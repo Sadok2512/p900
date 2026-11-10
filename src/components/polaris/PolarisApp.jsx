@@ -101,7 +101,7 @@ const test = (s,[k,v]) => ({
 }[k] || (()=>true))();
 
 /* ------------------------------------------------------------------ */
-const EN = {"Données de démo": "Demo data", "Fraîcheur : 4 s": "Freshness: 4 s", "moyenne": "average", "échecs": "failures", "maintenant": "now", "il y a": "", "preuve": "evidence", "Analyse": "Analysis", "Template": "Template", "il y a 3 min": "3 min ago", "il y a 12 min": "12 min ago", "il y a 40 min": "40 min ago", "il y a 2 h": "2 h ago", "Données de démo — OIRAN non connecté.": "Demo data — OIRAN not connected.", "Accueil": "Home", "Analyzer": "Analyzer", "Nœuds": "Nodes", "KPI": "KPI", "Live": "Live", "Trafic": "Traffic", "Templates": "Templates", "Paramètres": "Settings", "Compte": "Account", "Notifications": "Notifications", "Rechercher…": "Search…", "← Retour": "← Back", "Gérez votre compte et l'apparence de POLARIS": "Manage your account and the look of POLARIS", "Apparence": "Appearance", "Couleur et thème": "Color and theme", "Sécurité": "Security", "Mot de passe": "Password", "À propos": "About", "Version et build": "Version and build", "Langue": "Language", "Français ou English": "French or English", "Couleur de l'application": "App color", "Choisissez la couleur d'accent utilisée dans toute l'interface.": "Choose the accent color used across the interface.", "Bleu": "Blue", "Noir": "Black", "Vert": "Green", "Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.": "Use at least 8 characters, with uppercase letters, numbers and symbols.", "Mot de passe actuel": "Current password", "Nouveau mot de passe": "New password", "Confirmer le mot de passe": "Confirm password", "Mettre à jour le mot de passe": "Update password", "Versions des composants installés.": "Versions of installed components.", "Langue de l'interface": "Interface language", "Choisissez la langue utilisée dans POLARIS.": "Choose the language used in POLARIS.", "Mot de passe actuel requis et 8 caractères minimum.": "Current password required, 8 characters minimum.", "Les mots de passe ne correspondent pas.": "Passwords do not match.", "Mot de passe mis à jour.": "Password updated.", "Bienvenue sur POLARIS": "Welcome to POLARIS", "Analyse, diagnostic et supervision des sessions et du trafic réseau.": "Analysis, diagnostics and monitoring of network sessions and traffic.", "Nouvelle analyse": "New analysis", "Ouvrir un template": "Open a template", "Explorer un run": "Explore a run", "Trace live": "Live trace", "Bientôt": "Soon", "Modules": "Modules", "KPI & Anomalies": "KPI & Anomalies", "Plan usager": "User plane", "Requêtes, ladder et corrélation des sessions 4G/5G.": "Queries, ladder and correlation of 4G/5G sessions.", "Indicateurs par procédure et détection d'écarts.": "Per-procedure indicators and anomaly detection.", "Suivi en temps réel des sessions capturées.": "Real-time tracking of captured sessions.", "Débits et flux N3 / S1-U par session.": "N3 / S1-U throughput and flows per session.", "Requêtes enregistrées et modèles prêts à l'emploi.": "Saved queries and ready-to-use models.", "Ouvrir →": "Open →", "Activité récente": "Recent activity", "Voir tout": "View all", "Aucune activité pour l'instant": "No activity yet", "Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.": "Your analyses, KPI queries, templates and viewed runs will appear here.", "Lancer une analyse →": "Start an analysis →", "État de la plateforme": "Platform status", "Voir la supervision": "View monitoring", "Capture": "Capture", "dumpcap actifs / attendus": "active / expected dumpcap", "Fraîcheur des données": "Data freshness", "dernier import": "last import", "Alertes": "Alerts", "points de vigilance": "watch points", "Service OIRAN non connecté : aucune donnée en direct.": "OIRAN service not connected: no live data.", "Données à jour · retard 4 s": "Data up to date · 4 s delay", "Fraîcheur : — (OIRAN non connecté)": "Freshness: — (OIRAN not connected)", "Rechercher un KPI…": "Search a KPI…", "Santé sonde": "Probe health", "Procédures 5G": "5G procedures", "Procédures 4G": "4G procedures", "Session N4": "N4 session", "Erreurs": "Errors", "Latence": "Latency", "Corrélation": "Correlation", "Dumpcap actifs": "Active dumpcap", "Segments ignorés": "Dropped segments", "Retard d’import": "Import lag", "Disque disponible": "Disk available", "Succès Registration": "Registration success", "Succès PDU Session": "PDU Session success", "Succès Service Request": "Service Request success", "Succès Attach": "Attach success", "Succès E-RAB Setup": "E-RAB Setup success", "Succès établissement N4": "N4 establishment success", "Erreurs S6a": "S6a errors", "Erreurs SBI par NF": "SBI errors per NF", "Latence par procédure": "Latency per procedure", "Taux de liens EXACT": "EXACT link rate", "Séries": "Series", "Heatmap causes × temps": "Causes × time heatmap", "Top-N": "Top-N", "Granularité": "Granularity", "Aucune donnée à afficher": "No data to display", "Chaque point cliquable ouvrira l'Analyzer pré-filtré (fenêtre + dimension).": "Each clickable point will open the Analyzer pre-filtered (window + dimension).", "Requête générée": "Generated query", "Fiche KPI": "KPI sheet", "Formule": "Formula", "Événements sources": "Source events", "Dimensions": "Dimensions", "Unité": "Unit", "Règle de dédup": "Dedup rule", "Invariant": "Invariant", "Explorer dans l'Analyzer →": "Explore in Analyzer →", "Anomalies": "Anomalies", "Règles et invariants": "Rules and invariants", "Nouveauté": "Novelty", "Invariant de comptage": "Counting invariant", "succès + échec = total, par procédure et par minute": "success + failure = total, per procedure per minute", "Cause obligatoire": "Mandatory cause", "toute procédure en échec porte une cause (NAS, Diameter, HTTP…)": "every failed procedure carries a cause (NAS, Diameter, HTTP…)", "Ordre canonique": "Canonical order", "seq strictement croissant dans une capture (capture_id, seq)": "seq strictly increasing within a capture (capture_id, seq)", "Cause jamais vue": "Never-seen cause", "une cause d’échec absente du référentiel historique": "a failure cause absent from the historical reference", "Séquence hors flux 3GPP": "Out-of-flow 3GPP sequence", "enchaînement de messages incompatible avec la procédure": "message sequence incompatible with the procedure", "jamais déclenchée": "never triggered", "Une anomalie se ferme avec une preuve, ou reste OUVERTE.": "An anomaly closes with evidence, or stays OPEN."};
+const EN = {"Live delayed by": "Live delayed by", "flux pris après décodage — dumpcap jamais touchés": "stream taken after decoding — dumpcap never touched", "Cible": "Target", "Pause": "Pause", "Reprendre": "Resume", "Rôle viewer : cible par pseudonyme uniquement, identités masquées.": "Viewer role: pseudonym targets only, identities masked.", "Traces actives": "Active traces", "Expiration": "Expires in", "Messages reçus": "Messages received", "En tampon (pause)": "Buffered (paused)", "Signalisation live": "Live signalling", "en direct": "live", "en pause": "paused", "Ordre (capture_id, seq) — chaque message est retrouvable à l'identique dans l'Analyzer.": "Order (capture_id, seq) — every message is found identical in the Analyzer.", "Chaîne d'identité": "Identity chain", "masqué": "masked", "Débit live": "Live throughput", "Rapport d'usage PFCP": "PFCP usage report", "écart": "gap", "RTP live": "Live RTP", "Codec": "Codec", "Débit": "Bitrate", "Pertes": "Loss", "Gigue": "Jitter", "Déséquencement": "Reordering", "estimation G.107": "G.107 estimate", "En-têtes seulement — aucune charge audio lue ni stockée.": "Headers only — no audio payload read or stored.", "Journal des traces": "Trace log", "trace créée": "trace created", "recherche IMSI": "IMSI lookup", "consultation historique": "history viewed", "Données de démo": "Demo data", "Fraîcheur : 4 s": "Freshness: 4 s", "moyenne": "average", "échecs": "failures", "maintenant": "now", "il y a": "", "preuve": "evidence", "Analyse": "Analysis", "Template": "Template", "il y a 3 min": "3 min ago", "il y a 12 min": "12 min ago", "il y a 40 min": "40 min ago", "il y a 2 h": "2 h ago", "Données de démo — OIRAN non connecté.": "Demo data — OIRAN not connected.", "Accueil": "Home", "Analyzer": "Analyzer", "Nœuds": "Nodes", "KPI": "KPI", "Live": "Live", "Trafic": "Traffic", "Templates": "Templates", "Paramètres": "Settings", "Compte": "Account", "Notifications": "Notifications", "Rechercher…": "Search…", "← Retour": "← Back", "Gérez votre compte et l'apparence de POLARIS": "Manage your account and the look of POLARIS", "Apparence": "Appearance", "Couleur et thème": "Color and theme", "Sécurité": "Security", "Mot de passe": "Password", "À propos": "About", "Version et build": "Version and build", "Langue": "Language", "Français ou English": "French or English", "Couleur de l'application": "App color", "Choisissez la couleur d'accent utilisée dans toute l'interface.": "Choose the accent color used across the interface.", "Bleu": "Blue", "Noir": "Black", "Vert": "Green", "Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.": "Use at least 8 characters, with uppercase letters, numbers and symbols.", "Mot de passe actuel": "Current password", "Nouveau mot de passe": "New password", "Confirmer le mot de passe": "Confirm password", "Mettre à jour le mot de passe": "Update password", "Versions des composants installés.": "Versions of installed components.", "Langue de l'interface": "Interface language", "Choisissez la langue utilisée dans POLARIS.": "Choose the language used in POLARIS.", "Mot de passe actuel requis et 8 caractères minimum.": "Current password required, 8 characters minimum.", "Les mots de passe ne correspondent pas.": "Passwords do not match.", "Mot de passe mis à jour.": "Password updated.", "Bienvenue sur POLARIS": "Welcome to POLARIS", "Analyse, diagnostic et supervision des sessions et du trafic réseau.": "Analysis, diagnostics and monitoring of network sessions and traffic.", "Nouvelle analyse": "New analysis", "Ouvrir un template": "Open a template", "Explorer un run": "Explore a run", "Trace live": "Live trace", "Bientôt": "Soon", "Modules": "Modules", "KPI & Anomalies": "KPI & Anomalies", "Plan usager": "User plane", "Requêtes, ladder et corrélation des sessions 4G/5G.": "Queries, ladder and correlation of 4G/5G sessions.", "Indicateurs par procédure et détection d'écarts.": "Per-procedure indicators and anomaly detection.", "Suivi en temps réel des sessions capturées.": "Real-time tracking of captured sessions.", "Débits et flux N3 / S1-U par session.": "N3 / S1-U throughput and flows per session.", "Requêtes enregistrées et modèles prêts à l'emploi.": "Saved queries and ready-to-use models.", "Ouvrir →": "Open →", "Activité récente": "Recent activity", "Voir tout": "View all", "Aucune activité pour l'instant": "No activity yet", "Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.": "Your analyses, KPI queries, templates and viewed runs will appear here.", "Lancer une analyse →": "Start an analysis →", "État de la plateforme": "Platform status", "Voir la supervision": "View monitoring", "Capture": "Capture", "dumpcap actifs / attendus": "active / expected dumpcap", "Fraîcheur des données": "Data freshness", "dernier import": "last import", "Alertes": "Alerts", "points de vigilance": "watch points", "Service OIRAN non connecté : aucune donnée en direct.": "OIRAN service not connected: no live data.", "Données à jour · retard 4 s": "Data up to date · 4 s delay", "Fraîcheur : — (OIRAN non connecté)": "Freshness: — (OIRAN not connected)", "Rechercher un KPI…": "Search a KPI…", "Santé sonde": "Probe health", "Procédures 5G": "5G procedures", "Procédures 4G": "4G procedures", "Session N4": "N4 session", "Erreurs": "Errors", "Latence": "Latency", "Corrélation": "Correlation", "Dumpcap actifs": "Active dumpcap", "Segments ignorés": "Dropped segments", "Retard d’import": "Import lag", "Disque disponible": "Disk available", "Succès Registration": "Registration success", "Succès PDU Session": "PDU Session success", "Succès Service Request": "Service Request success", "Succès Attach": "Attach success", "Succès E-RAB Setup": "E-RAB Setup success", "Succès établissement N4": "N4 establishment success", "Erreurs S6a": "S6a errors", "Erreurs SBI par NF": "SBI errors per NF", "Latence par procédure": "Latency per procedure", "Taux de liens EXACT": "EXACT link rate", "Séries": "Series", "Heatmap causes × temps": "Causes × time heatmap", "Top-N": "Top-N", "Granularité": "Granularity", "Aucune donnée à afficher": "No data to display", "Chaque point cliquable ouvrira l'Analyzer pré-filtré (fenêtre + dimension).": "Each clickable point will open the Analyzer pre-filtered (window + dimension).", "Requête générée": "Generated query", "Fiche KPI": "KPI sheet", "Formule": "Formula", "Événements sources": "Source events", "Dimensions": "Dimensions", "Unité": "Unit", "Règle de dédup": "Dedup rule", "Invariant": "Invariant", "Explorer dans l'Analyzer →": "Explore in Analyzer →", "Anomalies": "Anomalies", "Règles et invariants": "Rules and invariants", "Nouveauté": "Novelty", "Invariant de comptage": "Counting invariant", "succès + échec = total, par procédure et par minute": "success + failure = total, per procedure per minute", "Cause obligatoire": "Mandatory cause", "toute procédure en échec porte une cause (NAS, Diameter, HTTP…)": "every failed procedure carries a cause (NAS, Diameter, HTTP…)", "Ordre canonique": "Canonical order", "seq strictement croissant dans une capture (capture_id, seq)": "seq strictly increasing within a capture (capture_id, seq)", "Cause jamais vue": "Never-seen cause", "une cause d’échec absente du référentiel historique": "a failure cause absent from the historical reference", "Séquence hors flux 3GPP": "Out-of-flow 3GPP sequence", "enchaînement de messages incompatible avec la procédure": "message sequence incompatible with the procedure", "jamais déclenchée": "never triggered", "Une anomalie se ferme avec une preuve, ou reste OUVERTE.": "An anomaly closes with evidence, or stays OPEN."};
 let LANG = 'fr';
 const t = s => LANG==='en' ? (EN[s] ?? s) : s;
 const I = ({d,c='w-4 h-4'}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={c}><path d={d}/></svg>;
@@ -130,7 +130,7 @@ function TopBar({role,setRole,page,setPage,onAnalyzer,accent,onSettings}) {
       </div>
       <nav className="flex h-full">
         {[['home','Accueil'],['sessions','Analyzer'],['nodes','Nœuds'],['kpi','KPI'],['live','Live'],['trafic','Trafic'],['templates','Templates']].map(([k,n]) => {
-          const on = page===k, ok = ['home','sessions','nodes','templates','kpi'].includes(k);
+          const on = page===k, ok = ['home','sessions','nodes','templates','kpi','live'].includes(k);
           return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
         })}
       </nav>
@@ -462,12 +462,12 @@ const Card = ({title,action,children,className=''}) => (
 const HOME_ACTIONS = [
   ['tpl','Ouvrir un template','M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z','templates'],
   ['run','Explorer un run','M4 6h16M4 12h16M4 18h10','sessions'],
-  ['live','Trace live','M3 12h4l3-8 4 16 3-8h4',null],
+  ['live','Trace live','M3 12h4l3-8 4 16 3-8h4','live'],
 ];
 const MODULES = [
   ['POLARIS Analyzer','Requêtes, ladder et corrélation des sessions 4G/5G.','M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm10 2-4.35-4.35','sessions'],
   ['KPI & Anomalies','Indicateurs par procédure et détection d\'écarts.','M4 20V10M10 20V4M16 20v-7M22 20H2','kpi'],
-  ['Live','Suivi en temps réel des sessions capturées.','M3 12h4l3-8 4 16 3-8h4',null],
+  ['Live','Suivi en temps réel des sessions capturées.','M3 12h4l3-8 4 16 3-8h4','live'],
   ['Plan usager','Débits et flux N3 / S1-U par session.','M4 7h16M4 12h16M4 17h16',null],
   ['Templates','Requêtes enregistrées et modèles prêts à l\'emploi.','M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z','templates'],
 ];
@@ -782,6 +782,130 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
     </div>);
 }
 
+/* ---------------- Live (IMSI trace · débit · RTP) — données de démo ---------------- */
+const LIVE_SCRIPT = [
+  ['N1','UE','AMF','Registration Request','5GMM'],['N2','gNB','AMF','Initial UE Message','NGAP'],
+  ['SBI','AMF','AUSF','POST /ue-authentications','HTTP/2'],['SBI','AUSF','UDM','POST /generate-auth-data','HTTP/2'],
+  ['N1','AMF','UE','Authentication Request','5GMM'],['N1','UE','AMF','Authentication Response','5GMM'],
+  ['N1','AMF','UE','Security Mode Command','5GMM'],['N1','UE','AMF','Security Mode Complete','5GMM'],
+  ['N1','AMF','UE','Registration Accept (5G-GUTI₂)','5GMM'],['N1','UE','AMF','PDU Session Est. Request','5GSM'],
+  ['SBI','AMF','SMF','POST /sm-contexts','HTTP/2'],['N4','SMF','UPF','PFCP Session Est. Request','PFCP'],
+  ['N4','UPF','SMF','PFCP Session Est. Response','PFCP'],['N2','AMF','gNB','PDU Session Resource Setup Req','NGAP'],
+  ['N2','gNB','AMF','PDU Session Resource Setup Resp','NGAP'],['N1','AMF','UE','PDU Session Est. Accept','5GSM'],
+  ['N4','UPF','SMF','PFCP Session Report (usage)','PFCP'],['N1','UE','AMF','Service Request','5GMM'],
+];
+const LIVE_NODES = ['UE','gNB','AMF','AUSF','UDM','SMF','UPF'];
+const IFC_C = {N1:'#0062A1',N2:'#7C3AED',SBI:'#0F5B56',N4:'#A15C07'};
+const LIVE_CHAIN = [
+  ['SUPI','imsi-20801••••••4821','Registration Request (SUCI déchiffré, SBI)','EXACT'],
+  ['5G-GUTI₁','208-01-02-3F-0A1B2C3D','Registration Accept #1 · seq 1 204','EXACT'],
+  ['5G-GUTI₂','208-01-02-3F-0A7E91F0','Configuration Update Command · seq 1 877','EXACT'],
+  ['5G-S-TMSI','3F-0A7E91F0','Service Request · seq 2 310','À PROUVER'],
+];
+const LIVE_JOURNAL = [['00:31:42','SD','operator','trace créée','pseudo ue-7f3a'],['00:12:09','SD','operator','recherche IMSI','empreinte sha256:9c1e…'],['23:58:30','MB','viewer','consultation historique','pseudo ue-21c0']];
+
+function Live({role}) {
+  const [target,setTarget] = useState('ue-7f3a');
+  const [running,setRunning] = useState(true);
+  const [msgs,setMsgs] = useState([]);
+  const [buf,setBuf] = useState(0);
+  const [ttl,setTtl] = useState(30*60);
+  const [delay,setDelay] = useState(4);
+  const [thr,setThr] = useState(()=>Array.from({length:40},(_,i)=>[40+Math.sin(i/3)*12, 6+Math.cos(i/4)*2]));
+  const seq = React.useRef(0);
+  useEffect(()=>{ const id=setInterval(()=>{
+    const s=LIVE_SCRIPT[seq.current%LIVE_SCRIPT.length]; seq.current++;
+    const m={seq:2400+seq.current, ts:new Date().toLocaleTimeString('fr-FR'), ifc:s[0], from:s[1], to:s[2], name:s[3], proto:s[4]};
+    if(running) setMsgs(x=>[...x.slice(-60), m]); else setBuf(b=>b+1);
+    if(running) setMsgs(x=>x); 
+    setTtl(v=>Math.max(0,v-1)); setDelay(3+Math.round(Math.random()*3));
+    setThr(x=>[...x.slice(1),[35+Math.random()*25, 4+Math.random()*5]]);
+  },1100); return ()=>clearInterval(id); },[running]);
+  const resume = () => { const n=buf; const add=[]; for(let i=0;i<n;i++){ const s=LIVE_SCRIPT[(seq.current-n+i)%LIVE_SCRIPT.length]; add.push({seq:2400+seq.current-n+i+1,ts:'(tampon)',ifc:s[0],from:s[1],to:s[2],name:s[3],proto:s[4]}); } setMsgs(x=>[...x,...add].slice(-60)); setBuf(0); setRunning(true); };
+  const box = React.useRef(null);
+  useEffect(()=>{ if(box.current) box.current.scrollTop=box.current.scrollHeight; },[msgs]);
+  const W=640, colW=W/LIVE_NODES.length, cx=n=>colW*LIVE_NODES.indexOf(n)+colW/2;
+  const ul=thr[thr.length-1][1], dl=thr[thr.length-1][0], pfcp=dl*1.03;
+  const path=(k,mx)=>thr.map((p,i)=>`${i?'L':'M'}${(i*(W/39)).toFixed(1)},${(120-p[k]/mx*110).toFixed(1)}`).join(' ');
+  const card="bg-white rounded-xl border border-[#EBEBEB] overflow-hidden";
+  const head=(n,extra)=><div className="h-11 px-4 flex items-center gap-2 border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold text-[#171717]">{t(n)}</h3>{extra}</div>;
+  return (
+    <div className="flex-1 overflow-auto scroll-thin bg-[#FAFAFA]">
+      <div className="sticky top-0 z-10 bg-[#FFF7E6] border-b border-[#FCE2B0] text-[#A15C00] text-[12.5px] px-8 h-8 flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-[#A15C00] animate-pulse"/>{t("Live delayed by")} {delay} s<span className="ml-auto text-[11.5px]">{t("Données de démo")} · {t("flux pris après décodage — dumpcap jamais touchés")}</span></div>
+      <div className="max-w-[1480px] mx-auto px-8 py-7 space-y-5">
+        <div className="flex flex-wrap items-end gap-6">
+          <div><div className="text-[12px] text-[#666666]">POLARIS Live</div><h1 className="text-[24px] font-semibold tracking-tight text-[#171717] mt-1">{t("Trace live")}</h1><div className="text-[13px] text-[#666666] mt-1">{t("Suivi en temps réel des sessions capturées.")}</div></div>
+          <div className="ml-auto flex items-center gap-2">
+            <div className="flex items-center gap-2 h-9 px-3 rounded-lg border border-[#EBEBEB] bg-white focus-within:border-[var(--app-accent)] w-[300px]">
+              <span className="text-[11px] text-[#8F8F8F]">{t("Cible")}</span>
+              <input value={target} onChange={e=>setTarget(e.target.value)} placeholder={role==='operator'?'pseudo, IMSI, SUPI, MSISDN':'pseudonyme'} className="flex-1 min-w-0 bg-transparent outline-none text-[13px] font-mono"/>
+            </div>
+            <button onClick={()=>running?setRunning(false):resume()} className="h-9 px-4 rounded-lg bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium">{running?t("Pause"):`${t("Reprendre")}${buf?` (+${buf})`:''}`}</button>
+          </div>
+        </div>
+        {role!=='operator' && <div className="text-[12px] text-[#8F8F8F]">{t("Rôle viewer : cible par pseudonyme uniquement, identités masquées.")}</div>}
+
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[['Traces actives','2 / 5'],['Expiration',`${Math.floor(ttl/60)}:${String(ttl%60).padStart(2,'0')}`],['Messages reçus',String(msgs.length+buf)],['En tampon (pause)',String(buf)]].map(([n,v])=>(
+            <div key={n} className="bg-white rounded-xl border border-[#EBEBEB] px-4 py-3"><div className="text-[12px] text-[#8F8F8F]">{t(n)}</div><div className="text-[20px] font-semibold tabular-nums text-[#171717] mt-0.5">{v}</div></div>))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
+          <div className={card}>
+            {head("Signalisation live",<span className="ml-auto flex items-center gap-1.5 text-[11.5px] text-[#666666]"><span className={`w-[7px] h-[7px] rounded-full ${running?'bg-[#15803D] animate-pulse':'bg-[#D4D4D4]'}`}/>{running?t("en direct"):t("en pause")}</span>)}
+            <div className="grid px-0" style={{gridTemplateColumns:`repeat(${LIVE_NODES.length},1fr)`}}>{LIVE_NODES.map(n=><div key={n} className="text-center text-[11.5px] font-semibold text-[#4D4D4D] py-2 border-b border-[#F2F2F2]">{n}</div>)}</div>
+            <div ref={box} className="h-[380px] overflow-auto scroll-thin">
+              <svg viewBox={`0 0 ${W} ${Math.max(1,msgs.length)*28+10}`} className="w-full">
+                {LIVE_NODES.map(n=><line key={n} x1={cx(n)} x2={cx(n)} y1={0} y2={msgs.length*28+10} stroke="#EBEBEB"/>)}
+                {msgs.map((m,i)=>{const y=i*28+20,a=cx(m.from),b=cx(m.to),c=IFC_C[m.ifc]||'#666';return <g key={m.seq+'-'+i}>
+                  <line x1={a} x2={b} y1={y} y2={y} stroke={c} strokeWidth="1.4"/><path d={b>a?`M${b},${y} l-6,-3 v6z`:`M${b},${y} l6,-3 v6z`} fill={c}/>
+                  <text x={(a+b)/2} y={y-5} fontSize="9.5" textAnchor="middle" fill="#171717">{m.name}</text>
+                  <text x={4} y={y+3} fontSize="8.5" fill="#A3A3A3" fontFamily="monospace">{m.seq}</text>
+                  <text x={W-4} y={y+3} fontSize="8.5" textAnchor="end" fill={c}>{m.ifc}</text></g>;})}
+              </svg>
+            </div>
+            <div className="px-4 py-2.5 border-t border-[#F2F2F2] text-[11.5px] text-[#8F8F8F]">{t("Ordre (capture_id, seq) — chaque message est retrouvable à l'identique dans l'Analyzer.")}</div>
+          </div>
+
+          <div className="space-y-4">
+            <div className={card}>
+              {head("Chaîne d'identité")}
+              <div className="p-4 space-y-3">
+                {LIVE_CHAIN.map(([k,v,p,st],i)=>(<div key={k} className="flex gap-3">
+                  <div className="flex flex-col items-center"><span className={`w-2.5 h-2.5 rounded-full mt-1 ${st==='EXACT'?'bg-[var(--app-accent)]':'border-2 border-[#A15C07]'}`}/>{i<LIVE_CHAIN.length-1&&<span className="flex-1 w-px bg-[#EBEBEB]"/>}</div>
+                  <div className="min-w-0 pb-1"><div className="flex items-center gap-2"><span className="text-[12px] font-semibold text-[#171717]">{k}</span><span className={`text-[10px] font-medium rounded px-1 ${st==='EXACT'?'bg-[#ECFDF3] text-[#15803D]':'bg-[#FFF7E6] text-[#A15C07]'}`}>{st}</span></div>
+                  <div className="font-mono text-[11.5px] text-[#4D4D4D] truncate">{role==='operator'||i>0?v:t('masqué')}</div><div className="text-[11px] text-[#8F8F8F]">{p}</div></div></div>))}
+              </div>
+            </div>
+            <div className={card}>
+              {head("Débit live",<span className="ml-auto text-[11px] text-[#8F8F8F]">PDU #1 · QFI 9 · DNN internet</span>)}
+              <div className="p-4">
+                <div className="flex gap-6 text-[12px]"><span><span className="text-[#8F8F8F]">DL </span><b className="tabular-nums">{dl.toFixed(1)} Mb/s</b></span><span><span className="text-[#8F8F8F]">UL </span><b className="tabular-nums">{ul.toFixed(1)} Mb/s</b></span><span className="text-[#8F8F8F]">cell 0A1F</span></div>
+                <svg viewBox={`0 0 ${W} 125`} className="w-full h-[110px] mt-2"><path d={path(0,70)} fill="none" stroke="var(--app-accent)" strokeWidth="2"/><path d={path(1,70)} fill="none" stroke="#A3A3A3" strokeWidth="1.5"/></svg>
+                <div className="mt-2 flex items-center justify-between text-[11.5px] rounded-md bg-[#FFF7E6] text-[#A15C00] px-2.5 py-1.5"><span>{t("Rapport d'usage PFCP")} {pfcp.toFixed(1)} Mb/s</span><span>{t("écart")} +3,0 % · {t("OUVERT")}</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className={card}>
+            {head("RTP live",<span className="ml-auto text-[10.5px] font-medium text-[#8F8F8F] border border-[#EBEBEB] rounded px-1.5">LIVE-2</span>)}
+            <div className="p-4 grid grid-cols-3 gap-3 text-[12px]">
+              {[['Codec','AMR-WB 23.85'],['Bearer','5QI 1 · N3'],['Débit',`${(24+Math.random()).toFixed(1)} kb/s`],['Pertes','0,4 %'],['Gigue','7 ms'],['Déséquencement','0,1 %']].map(([n,v])=><div key={n}><div className="text-[#8F8F8F]">{t(n)}</div><div className="font-semibold tabular-nums text-[#171717]">{v}</div></div>)}
+              <div className="col-span-3 flex items-center gap-2 pt-2 border-t border-[#F2F2F2]"><span className="text-[#8F8F8F]">MOS</span><b className="text-[16px]">4,1</b><span className="text-[10.5px] rounded bg-[#F5F5F5] px-1.5 text-[#666666]">{t("estimation G.107")}</span><span className="ml-auto text-[11px] text-[#8F8F8F]">{t("En-têtes seulement — aucune charge audio lue ni stockée.")}</span></div>
+            </div>
+          </div>
+          <div className={card}>
+            {head("Journal des traces")}
+            <div className="divide-y divide-[#F2F2F2]">{LIVE_JOURNAL.map(([h,u,r,a,c])=>(<div key={h} className="px-4 py-2.5 flex items-center gap-3 text-[12px]"><span className="font-mono text-[#8F8F8F]">{h}</span><span className="font-semibold">{u}</span><span className={`text-[10.5px] rounded px-1 ${r==='operator'?'bg-[#A15C07] text-white':'bg-[#F2F2F2] text-[#666666]'}`}>{r}</span><span className="text-[#4D4D4D]">{t(a)}</span><span className="ml-auto font-mono text-[11px] text-[#8F8F8F]">{c}</span></div>))}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- KPI & Anomalies ---------------- */
 // Fiche KPI : [id, nom, version, unité, numérateur, dénominateur, événements sources, dimensions, dédup, invariant, requête]
 const KPI_CATS = [
@@ -974,7 +1098,7 @@ function App() {
   const [theme,setThemeS] = useState(()=>{ try { return localStorage.getItem('polaris-theme')||'blue'; } catch(e) { return 'blue'; } });
   const setTheme = t => { try { localStorage.setItem('polaris-theme',t); } catch(e) {} setThemeS(t); };
   const accent = THEMES.find(t=>t[0]===theme)?.[2] || '#0062A1';
-    const readP = () => { const h=(location.hash||'').replace('#',''); return ['sessions','nodes','settings','templates','kpi'].includes(h) ? h : 'home'; };
+    const readP = () => { const h=(location.hash||'').replace('#',''); return ['sessions','nodes','settings','templates','kpi','live'].includes(h) ? h : 'home'; };
   const [page,setPageS] = useState(readP);
   const setPage = p => { try { location.hash = p; } catch(e) {} setPageS(p); };
   useEffect(()=>{ const f=()=>setPageS(readP()); window.addEventListener('hashchange',f); return ()=>window.removeEventListener('hashchange',f); },[]);
@@ -1003,7 +1127,7 @@ function App() {
     <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-[13px]">
       <TopBar role={role} setRole={setRole} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')}/>
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · les identités sont visibles · chaque consultation est journalisée</div>}
-      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage}/> : page==='kpi' ? <Kpis setPage={setPage}/> : page==='nodes' ? <Nodes/> : page==='templates' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>{setPage('sessions');setAview('results');}}/> : aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>setAview('results')}/> : <>
+      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage}/> : page==='kpi' ? <Kpis setPage={setPage}/> : page==='live' ? <Live role={role}/> : page==='nodes' ? <Nodes/> : page==='templates' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>{setPage('sessions');setAview('results');}}/> : aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>setAview('results')}/> : <>
       {!full && <Tabs onHome={()=>setAview('queries')}/>}
       <div className="flex-1 flex min-h-0 p-3 bg-[#FAFAFA]">
         <main ref={mainRef} className="flex-1 min-w-0 flex flex-col">
