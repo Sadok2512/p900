@@ -126,19 +126,20 @@ function TopBar({role,setRole,page,setPage,onAnalyzer,accent,onSettings}) {
         <span className="text-[14px] font-semibold tracking-tight text-[#171717]">POLARIS</span>
       </div>
       <nav className="flex h-full">
-        {[['home','Accueil'],['sessions','Analyzer'],['nodes','Nœuds'],['kpi','KPI'],['live','Live'],['trafic','Trafic']].map(([k,n]) => {
-          const on = page===k, ok = k==='home'||k==='sessions'||k==='nodes';
-          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if(k==='sessions' && onAnalyzer) onAnalyzer(); } }} className={`relative px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{n}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
+        {[['home','Accueil'],['sessions','Analyzer'],['nodes','Nœuds'],['kpi','KPI'],['live','Live'],['trafic','Trafic'],['templates','Templates']].map(([k,n]) => {
+          const on = page===k, ok = ['home','sessions','nodes','templates'].includes(k);
+          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{n}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
         })}
       </nav>
       <div className="flex-1 max-w-[420px] h-8 rounded-md border border-[#EBEBEB] bg-[#FAFAFA] flex items-center gap-2 px-2.5 text-[13px] text-[#8F8F8F]">
-        <I d={ic.search} c="w-[15px] h-[15px]"/>Rechercher une session, une requête, une commande<kbd className="ml-auto text-[11px] border border-[#EBEBEB] bg-white rounded px-1.5 text-[#666666]">⌘K</kbd>
+        <I d={ic.search} c="w-[15px] h-[15px] shrink-0"/><span className="truncate">Rechercher…</span><kbd className="ml-auto text-[11px] border border-[#EBEBEB] bg-white rounded px-1.5 text-[#666666]">⌘K</kbd>
       </div>
       <div className="ml-auto flex items-center gap-4 text-[12.5px]">
         <span className="flex items-center gap-1.5 text-[#666666]"><span className="w-[7px] h-[7px] rounded-full bg-[#15803D]"/>Données à jour · retard 4 s</span>
         <div className="flex rounded-md border border-[#EBEBEB] p-[2px] bg-[#FAFAFA]">
           {['viewer','operator'].map(r => <button key={r} onClick={()=>setRole(r)} className={`px-2.5 h-6 rounded-[4px] text-[12px] ${role===r ? (r==='operator'?'bg-[#A15C07] text-white':'bg-white text-[#171717] shadow-sm') : 'text-[#666666]'}`}>{r==='operator'?'operator':'viewer'}</button>)}
         </div>
+        <button type="button" title="Notifications" className="w-8 h-8 rounded-md grid place-items-center text-[#666666] hover:bg-[#F5F5F5] hover:text-[#171717]"><I d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" c="w-4 h-4"/></button>
         <div className="relative">
           <button type="button" onClick={()=>setMenu(m=>!m)} title="Compte" style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white hover:opacity-90">SD</button>
           {menu && <>
@@ -391,7 +392,7 @@ const NODES = [
   {n:'oiran-capture-01',role:'Capture',st:'ok',ver:'OIRAN 2.10.2',exp:'2.10.2',cpu:31,mem:[2.1,4],disk:76,seen:'il y a 2 s',info:'12/12 dumpcap · PID stables'},
   {n:'oiran-import-01',role:'Import et décodage',st:'ok',ver:'OIRAN 2.10.2',exp:'2.10.2',cpu:58,mem:[2.9,4],disk:76,seen:'il y a 2 s',info:'retard 4 s · 0 segment ignoré'},
   {n:'oiran-dataset',role:'Base / dataset',st:'warn',ver:'schéma 7',exp:'7',cpu:22,mem:[1.4,4],disk:76,seen:'il y a 5 s',info:'~1,5 M événements · disque en hausse'},
-  {n:'analyzer-api',role:'API Analyzer',st:'ok',ver:'Analyzer 0.1.0',exp:'0.1.0',cpu:9,mem:[0.4,1],disk:41,seen:'il y a 1 s',info:'p95 requête 0,8 s'},
+  {n:'analyzer-api',role:'API Analyzer',st:'ok',ver:'Analyzer 0.2.0',exp:'0.2.0',cpu:9,mem:[0.4,1],disk:41,seen:'il y a 1 s',info:'p95 requête 0,8 s'},
   {n:'polaris-control',role:'Orchestrateur',st:'ok',ver:'API 0.30.0 · sim 0.13.4',exp:'0.30.0',cpu:12,mem:[0.6,2],disk:41,seen:'il y a 3 s',info:'run 5G #482 terminé'},
   {n:'open5gs-core',role:'Cœur 5G / EPC (observé)',st:'ok',ver:'Open5GS 2.8.0',exp:'2.8.0',cpu:null,mem:null,disk:null,seen:'trafic vu il y a 1 s',info:'AMF, SMF, UPF, MME actifs'},
 ];
@@ -405,108 +406,74 @@ const Card = ({title,action,children,className=''}) => (
   </section>
 );
 
+const HOME_ACTIONS = [
+  ['tpl','Ouvrir un template','M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z','templates'],
+  ['run','Explorer un run','M4 6h16M4 12h16M4 18h10','sessions'],
+  ['live','Trace live','M3 12h4l3-8 4 16 3-8h4',null],
+];
+const MODULES = [
+  ['POLARIS Analyzer','Requêtes, ladder et corrélation des sessions 4G/5G.','M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm10 2-4.35-4.35','sessions'],
+  ['KPI & Anomalies','Indicateurs par procédure et détection d\'écarts.','M4 20V10M10 20V4M16 20v-7M22 20H2',null],
+  ['Live','Suivi en temps réel des sessions capturées.','M3 12h4l3-8 4 16 3-8h4',null],
+  ['Plan usager','Débits et flux N3 / S1-U par session.','M4 7h16M4 12h16M4 17h16',null],
+  ['Templates','Requêtes enregistrées et modèles prêts à l\'emploi.','M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z','templates'],
+];
+const Soon = () => <span className="text-[10.5px] font-medium text-[#8F8F8F] border border-[#EBEBEB] rounded px-1.5 py-[1px]">Bientôt</span>;
+
 function Home({setPage}) {
-  const [node,setNode] = useState(null);
+  const go = t => t && setPage(t);
   return (
-    <div className="flex-1 overflow-auto scroll-thin">
-      <div className="max-w-[1480px] mx-auto px-8 py-7 space-y-5">
-        <div className="flex items-end gap-6">
-          <div>
-            <div className="text-[12px] text-[#666666]">Mardi 10 novembre · labo POLARIS</div>
-            <h1 className="text-[24px] font-semibold tracking-tight text-[#171717] mt-1">Plateforme opérationnelle</h1>
-            <div className="text-[13px] text-[#666666] mt-1">6 nœuds sur 6 joignables · 1 point de vigilance : disque à 76 % et en hausse.</div>
+    <div className="flex-1 overflow-auto scroll-thin bg-white">
+      <div className="max-w-[1120px] mx-auto px-8 pt-14 pb-16">
+        <header className="flex flex-wrap items-end justify-between gap-6">
+          <div className="min-w-0">
+            <h1 className="text-[30px] leading-[1.15] font-semibold tracking-[-0.02em] text-[#171717]">Bienvenue sur POLARIS</h1>
+            <p className="mt-2 text-[15px] text-[#666666]">Analyse, diagnostic et supervision des sessions et du trafic réseau.</p>
           </div>
-          <div className="ml-auto flex gap-2">
-            <button onClick={()=>setPage('sessions')} className="h-9 px-4 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.search} c="w-4 h-4"/>Nouvelle recherche</button>
-            <button className="h-9 px-4 rounded-md border border-[#EBEBEB] bg-white text-[13px] text-[#4D4D4D] hover:bg-[#FAFAFA]">Ouvrir le dernier run</button>
-            <button className="h-9 px-4 rounded-md border border-[#EBEBEB] bg-white text-[13px] text-[#4D4D4D] hover:bg-[#FAFAFA]">Trace live</button>
-          </div>
+          <button onClick={()=>setPage('sessions')} className="h-10 px-5 rounded-lg bg-[var(--app-accent)] text-white text-[14px] font-medium flex items-center gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.12)] hover:opacity-90 transition"><I d={ic.plus} c="w-4 h-4"/>Nouvelle analyse</button>
+        </header>
+        <div className="mt-6 flex flex-wrap gap-2">
+          {HOME_ACTIONS.map(([k,n,d,t])=>(
+            <button key={k} disabled={!t} onClick={()=>go(t)} className="h-9 px-3.5 rounded-lg border border-[#EBEBEB] bg-white text-[13.5px] text-[#171717] flex items-center gap-2 hover:border-[#D4D4D4] hover:bg-[#FAFAFA] transition disabled:text-[#A3A3A3] disabled:hover:bg-white disabled:cursor-not-allowed">
+              <I d={d} c="w-4 h-4 text-[#666666]"/>{n}{!t && <Soon/>}</button>))}
         </div>
 
-        <div className="rounded-lg border border-[#F1D9A8] bg-[#FDF6E7] px-4 py-2.5 flex items-center gap-3 text-[12.5px] text-[#7A4505]">
-          <span className="font-semibold">Maintenance planifiée</span>
-          <span>Déploiement OIRAN 2.10.2 en cours par ANR1 · la capture n’est pas interrompue · rollback prêt.</span>
-          <span className="ml-auto underline cursor-pointer">Détails</span>
-        </div>
+        <section className="mt-14">
+          <h2 className="text-[13px] font-semibold text-[#171717] mb-4">Modules</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {MODULES.map(([n,desc,d,t])=>(
+              <button key={n} disabled={!t} onClick={()=>go(t)} className="group text-left h-full rounded-xl border border-[#EBEBEB] bg-white p-4 flex flex-col transition hover:border-[#D4D4D4] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:border-[#EBEBEB]">
+                <span className={`w-8 h-8 rounded-lg grid place-items-center ${t?'bg-[var(--app-accent)] text-white':'bg-[#F2F2F2] text-[#8F8F8F]'}`}><I d={d} c="w-4 h-4"/></span>
+                <span className={`mt-4 text-[14px] font-semibold ${t?'text-[#171717]':'text-[#666666]'}`}>{n}</span>
+                <span className="mt-1 text-[12.5px] leading-[1.45] text-[#666666] flex-1">{desc}</span>
+                <span className="mt-4 text-[12.5px] font-medium flex items-center gap-1">{t ? <span className="text-[#171717] group-hover:translate-x-0.5 transition">Ouvrir →</span> : <Soon/>}</span>
+              </button>))}
+          </div>
+        </section>
 
-        <div className="grid grid-cols-5 gap-4">
-          {[['Sessions · 24 h','48 112','+6,2 % vs veille','ok'],['Taux de succès','97,4 %','5G SA et LTE','ok'],['Liens EXACT','14 / 18','4 à prouver (SBI)','warn'],['Retard d’import','4 s','seuil 60 s','ok'],['Segments ignorés','0','compteur typé','ok']].map(([l,v,s,t]) => (
-            <div key={l} className="bg-white rounded-lg border border-[#EBEBEB] px-4 py-3.5">
-              <div className="flex items-center gap-2 text-[12px] text-[#666666]"><Dot st={t}/>{l}</div>
-              <div className="text-[24px] font-semibold tracking-tight tabular-nums text-[#171717] mt-1.5">{v}</div>
-              <div className="text-[11.5px] text-[#8F8F8F] mt-0.5">{s}</div>
+        <div className="mt-14 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-10">
+          <section>
+            <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-[#171717]">Activité récente</h2><button disabled className="ml-auto text-[12.5px] text-[#A3A3A3] cursor-not-allowed">Voir tout</button></div>
+            <div className="rounded-xl border border-dashed border-[#E5E5E5] px-6 py-10 text-center">
+              <div className="mx-auto w-9 h-9 rounded-full bg-[#F5F5F5] grid place-items-center text-[#8F8F8F]"><I d="M12 7v5l3 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z" c="w-4 h-4"/></div>
+              <div className="mt-3 text-[14px] font-medium text-[#171717]">Aucune activité pour l'instant</div>
+              <div className="mt-1 text-[13px] text-[#666666]">Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.</div>
+              <button onClick={()=>setPage('sessions')} className="mt-4 text-[13px] font-medium text-[#171717] hover:underline">Lancer une analyse →</button>
             </div>
-          ))}
-        </div>
-
-        <div className="grid grid-cols-[minmax(0,1fr)_400px] gap-5 items-start">
-          <div className="space-y-5 min-w-0">
-            <div className="grid grid-cols-2 gap-4">
-              {[
-                ['sessions','POLARIS Analyzer','Rechercher, inspecter et prouver les sessions UE sur toutes les interfaces.','Analyzer 0.1.0 · OIRAN 2.10.2',[['312','sessions dans le dernier run'],['14 / 18','liens EXACT']],ic.search,true],
-                ['nodes','POLARIS Nœuds','Installer, superviser et mettre à jour les nœuds de capture, d’import et de base.','6 nœuds · 1 vigilance',[['6 / 6','joignables'],['76 %','disque, en hausse']],ic.cols,true],
-              ].map(([k,t,d,v,st,ico]) => (
-                <button key={k} onClick={()=>setPage(k)} className="group text-left bg-white rounded-xl border border-[#EBEBEB] hover:border-[#171717] hover:shadow-[0_6px_24px_-12px_rgba(0,0,0,.18)] transition p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="w-11 h-11 rounded-lg bg-[var(--app-accent)] text-white grid place-items-center"><I d={ico} c="w-5 h-5"/></div>
-                    <div className="flex-1">
-                      <div className="text-[16px] font-semibold tracking-tight text-[#171717]">{t}</div>
-                      <div className="text-[12.5px] text-[#666666] mt-1 leading-relaxed">{d}</div>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3 mt-5">
-                    {st.map(([a,b]) => <div key={b} className="rounded-md bg-[#FAFAFA] px-3 py-2"><div className="text-[18px] font-semibold tabular-nums text-[#171717]">{a}</div><div className="text-[11.5px] text-[#666666]">{b}</div></div>)}
-                  </div>
-                  <div className="flex items-center mt-4 pt-3 border-t border-[#F2F2F2] text-[12px]">
-                    <span className="font-mono text-[#8F8F8F]">{v}</span>
-                    <span className="ml-auto inline-flex items-center gap-1.5 font-medium text-[#171717]">Lancer<I d={ic.chev} c="w-3.5 h-3.5 -rotate-90 transition group-hover:translate-x-0.5"/></span>
-                  </div>
-                </button>
-              ))}
+          </section>
+          <section>
+            <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-[#171717]">État de la plateforme</h2><button onClick={()=>setPage('nodes')} className="ml-auto text-[12.5px] font-medium text-[#171717] hover:underline">Voir la supervision</button></div>
+            <div className="rounded-xl border border-[#EBEBEB] divide-y divide-[#F2F2F2]">
+              {[['Capture','dumpcap actifs / attendus'],['Fraîcheur des données','dernier import'],['Alertes','points de vigilance']].map(([n,d])=>(
+                <div key={n} className="px-4 py-3.5 flex items-center gap-3">
+                  <span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]"/>
+                  <div className="min-w-0"><div className="text-[13.5px] text-[#171717]">{n}</div><div className="text-[12px] text-[#8F8F8F]">{d}</div></div>
+                  <span className="ml-auto text-[13px] tabular-nums text-[#A3A3A3]">—</span>
+                </div>))}
             </div>
-            <div className="grid grid-cols-3 gap-4">
-              {[['KPI et anomalies','Dataviews, rapports, alertes'],['Live','Trace IMSI, trafic, RTP'],['POLARIS Control','Scénarios, runs, UE']].map(([t,d]) => (
-                <div key={t} className="bg-white rounded-lg border border-[#EBEBEB] px-4 py-3 flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-[#F2F2F2] grid place-items-center text-[#666666]"><I d={ic.play} c="w-3.5 h-3.5"/></div>
-                  <div className="flex-1"><div className="text-[13px] font-medium text-[#171717]">{t}</div><div className="text-[11.5px] text-[#8F8F8F]">{d}</div></div>
-                  <span className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] border border-[#EBEBEB] rounded px-1.5 py-0.5">Bientôt</span>
-                </div>
-              ))}
-            </div>
-            <Card title="Runs récents · POLARIS Control">
-              <div className="divide-y divide-[#F2F2F2]">
-                {[['run 5G #482','Registration + PDU + trafic','Terminé','ok'],['lte-run-976bd44b','Attach + bearer + trafic','Certifié','ok'],['run 5G #481','PDU Session DNN inconnu','Échec attendu','warn']].map(([r,x,st,t])=>(
-                  <div key={r} onClick={()=>setPage('sessions')} className="px-4 py-2.5 flex items-center gap-3 cursor-pointer hover:bg-[#FAFAFA]"><Dot st={t}/><div className="flex-1"><div className="font-mono text-[12px] text-[#171717]">{r}</div><div className="text-[11.5px] text-[#8F8F8F]">{x}</div></div><span className="text-[12px] text-[#666666]">{st}</span><I d={ic.chev} c="w-3.5 h-3.5 -rotate-90 text-[#8F8F8F]"/></div>
-                ))}
-              </div>
-            </Card>
-          </div>
-
-          <div className="space-y-5">
-            <Card title="Informations">
-              <div className="divide-y divide-[#F2F2F2]">
-                {[['Incident','#B42318','Aucun incident en cours','—'],['Problème connu','#D97706','Liens SBI ↔ N2 et SBI ↔ N4 encore à prouver sur le run 5G','D-SBI · ouvert'],['Problème connu','#D97706','Publication du dataset : consommation mémoire à prouver en production','2.10.2 · ouvert'],['Info','#1D4ED8','Certification LTE validée sur run réel (attach, bearer, trafic)','10 nov.']].map(([t,c,x,m],k)=>(
-                  <div key={k} className="px-4 py-3"><div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.06em]" style={{color:c}}>{t}<span className="ml-auto normal-case tracking-normal font-normal text-[#8F8F8F]">{m}</span></div><div className="text-[12.5px] text-[#4D4D4D] mt-1">{x}</div></div>
-                ))}
-              </div>
-            </Card>
-            <Card title="Nouveautés · OIRAN 2.10.2" action="Toutes les notes">
-              <ul className="p-4 space-y-2 text-[12.5px] text-[#4D4D4D]">
-                <li className="flex gap-2"><span className="text-[#171717]">•</span>Publication du dataset bornée en mémoire</li>
-                <li className="flex gap-2"><span className="text-[#171717]">•</span>Session Explorer : filtres message, cause et identité (operator)</li>
-                <li className="flex gap-2"><span className="text-[#171717]">•</span>Corrélation LTE : liens S11 ↔ S1-U prouvés par TEID</li>
-              </ul>
-            </Card>
-            <Card title="Activité récente">
-              <div className="p-4 space-y-3 text-[12.5px]">
-                {[['ANR1','déploiement OIRAN 2.10.2 démarré','13:50'],['ANR2','run 5G #482 terminé · BILAN en cours','13:31'],['Claude devmat','2.10.2 poussée sur #9','12:58'],['Sadok','requête « Échecs · run 482 » enregistrée','12:40']].map(([w,x,h],k)=>(
-                  <div key={k} className="flex gap-3"><div className="w-7 h-7 shrink-0 rounded-full bg-[#F2F2F2] grid place-items-center text-[10.5px] font-semibold text-[#4D4D4D]">{w.split(' ').map(p=>p[0]).join('').slice(0,2)}</div><div className="flex-1"><div className="text-[#171717]"><span className="font-medium">{w}</span> · {x}</div><div className="text-[11.5px] text-[#8F8F8F]">{h}</div></div></div>
-                ))}
-              </div>
-            </Card>
-          </div>
+            <p className="mt-3 text-[12px] text-[#8F8F8F]">Service OIRAN non connecté : aucune donnée en direct.</p>
+          </section>
         </div>
-        <div className="text-[11.5px] text-[#8F8F8F]">Données de démonstration. En production, chaque valeur affichée provient d’une mesure datée et s’ouvre sur sa requête.</div>
       </div>
     </div>
   );
@@ -741,7 +708,7 @@ function Settings({theme,setTheme,onClose}) {
               </form>
             </Card>}
             {sec==='apropos' && <Card title="À propos" desc="Versions des composants installés.">
-              <div className="grid grid-cols-2 gap-5">{[['POLARIS Analyzer','0.1.0'],['OIRAN','2.10.2']].map(([n,v])=>(
+              <div className="grid grid-cols-2 gap-5">{[['POLARIS Analyzer','0.2.0'],['OIRAN','2.10.2']].map(([n,v])=>(
                 <div key={n} className="rounded-xl border border-[#EBEBEB] p-5"><div className="text-[13px] text-[#666666]">{n}</div><div className="mt-1 text-[26px] font-semibold tracking-tight font-mono" style={{color:accent}}>{v}</div></div>))}</div>
             </Card>}
           </div>
@@ -755,7 +722,7 @@ function App() {
   const [theme,setThemeS] = useState(()=>{ try { return localStorage.getItem('polaris-theme')||'blue'; } catch(e) { return 'blue'; } });
   const setTheme = t => { try { localStorage.setItem('polaris-theme',t); } catch(e) {} setThemeS(t); };
   const accent = THEMES.find(t=>t[0]===theme)?.[2] || '#0062A1';
-    const readP = () => { const h=(location.hash||'').replace('#',''); return ['sessions','nodes','settings'].includes(h) ? h : 'home'; };
+    const readP = () => { const h=(location.hash||'').replace('#',''); return ['sessions','nodes','settings','templates'].includes(h) ? h : 'home'; };
   const [page,setPageS] = useState(readP);
   const setPage = p => { try { location.hash = p; } catch(e) {} setPageS(p); };
   useEffect(()=>{ const f=()=>setPageS(readP()); window.addEventListener('hashchange',f); return ()=>window.removeEventListener('hashchange',f); },[]);
@@ -771,7 +738,7 @@ function App() {
     <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-[13px]">
       <TopBar role={role} setRole={setRole} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')}/>
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · les identités sont visibles · chaque consultation est journalisée</div>}
-      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage}/> : page==='nodes' ? <Nodes/> : aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>setAview('results')}/> : <>
+      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage}/> : page==='nodes' ? <Nodes/> : page==='templates' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>{setPage('sessions');setAview('results');}}/> : aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>setAview('results')}/> : <>
       <Tabs onHome={()=>setAview('queries')}/>
       <div className="flex-1 flex min-h-0">
         <main className="flex-1 min-w-0 flex flex-col">
@@ -782,7 +749,7 @@ function App() {
       </div></>}
       <footer className="h-7 shrink-0 bg-white border-t border-[#EBEBEB] flex items-center gap-5 px-4 text-[11.5px] text-[#666666]">
         <span className="flex items-center gap-1.5"><span className="w-[6px] h-[6px] rounded-full bg-[#15803D]"/>12/12 dumpcap</span><span>Import à jour</span><span>Segments ignorés : 0</span>
-        <span>{rows.length} sessions · requête 0,8 s</span><span className="ml-auto font-mono">OIRAN 2.10.2 · Analyzer 0.1.0 · données fictives</span>
+        <span>{rows.length} sessions · requête 0,8 s</span><span className="ml-auto font-mono">OIRAN 2.10.2 · Analyzer 0.2.0 · données fictives</span>
       </footer>
     </div>
   );
