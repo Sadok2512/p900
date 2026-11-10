@@ -203,7 +203,7 @@ function QueryPanel({conds,setConds}) {
               <div className="rounded-md border border-[#171717] p-2 space-y-1.5 bg-[#FAFAFA]">
                 <select value={f} onChange={e=>{setF(e.target.value); setV(FIELDS.find(x=>x[0]===e.target.value)[1][0]);}} className="w-full h-7 rounded border border-[#EBEBEB] text-[12.5px] px-1.5 bg-white">{FIELDS.map(x=><option key={x[0]}>{x[0]}</option>)}</select>
                 <select value={v} onChange={e=>setV(e.target.value)} className="w-full h-7 rounded border border-[#EBEBEB] text-[12.5px] px-1.5 bg-white">{vals.map(x=><option key={x}>{x}</option>)}</select>
-                <div className="flex gap-1.5"><button onClick={()=>{setConds([...conds,[f,v]]); setAdding(false);}} className="flex-1 h-7 rounded bg-[#171717] text-white text-[12px] font-medium">Ajouter</button><button onClick={()=>setAdding(false)} className="h-7 px-2 rounded border border-[#EBEBEB] text-[12px] bg-white">Annuler</button></div>
+                <div className="flex gap-1.5"><button onClick={()=>{setConds([...conds,[f,v]]); setAdding(false);}} className="flex-1 h-7 rounded bg-[var(--app-accent)] text-white text-[12px] font-medium">Ajouter</button><button onClick={()=>setAdding(false)} className="h-7 px-2 rounded border border-[#EBEBEB] text-[12px] bg-white">Annuler</button></div>
               </div>
             ) : <button onClick={()=>setAdding(true)} className="w-full h-8 rounded-md border border-dashed border-[#D4D4D4] text-[12.5px] text-[#666666] hover:border-[#171717] hover:text-[#171717] flex items-center justify-center gap-1.5"><I d={ic.plus} c="w-3.5 h-3.5"/>Ajouter une condition</button>}
             <div className="flex items-center gap-1.5 pt-1 text-[11.5px] text-[#8F8F8F]"><I d={ic.lock} c="w-3 h-3"/>Identités : rôle operator uniquement</div>
@@ -212,7 +212,7 @@ function QueryPanel({conds,setConds}) {
         <div><Lbl>Regrouper par</Lbl>
           <div className="h-8 rounded-md border border-[#EBEBEB] px-2.5 flex items-center text-[13px] text-[#8F8F8F]">Aucun<I d={ic.chev} c="w-3.5 h-3.5 ml-auto"/></div>
         </div>
-        <button className="w-full h-8 rounded-md bg-[#171717] hover:bg-[#383838] text-white text-[13px] font-medium flex items-center justify-center gap-2"><I d={ic.play} c="w-3.5 h-3.5"/>Exécuter</button>
+        <button className="w-full h-8 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium flex items-center justify-center gap-2"><I d={ic.play} c="w-3.5 h-3.5"/>Exécuter</button>
         <div className="border-t border-[#F2F2F2] pt-4"><Lbl>Requêtes enregistrées</Lbl>
           {['Échecs · run 482','PDU Session 5G · toutes causes','Attach LTE · certification','Liens à prouver SBI'].map((q,k) => (
             <div key={q} className="flex items-center gap-2 h-7 px-1 rounded text-[12.5px] text-[#4D4D4D] hover:bg-[#FAFAFA]"><I d={ic.star} c={`w-3.5 h-3.5 ${k<2?'text-[#A15C07]':'text-[#D4D4D4]'}`}/>{q}</div>
@@ -366,7 +366,7 @@ function Inspector({s,sel,role,lens,setLens}) {
           {m[5] && <div className="rounded-md border border-[#EBEBEB] p-3">
             <div className="flex items-center gap-2 font-medium text-[#171717]"><I d={ic.lens} c="w-4 h-4 text-[#171717]"/>Lentille de clé</div>
             <div className="text-[#666666] mt-1"><span className="font-mono text-[#A15C07]">{m[5]}</span> apparaît dans {shared} message(s) de la session.</div>
-            <button onClick={()=>setLens(lens===m[5]?null:m[5])} className={`mt-2 h-7 px-3 rounded-md text-[12px] font-medium ${lens===m[5]?'border border-[#EBEBEB] text-[#4D4D4D]':'bg-[#171717] text-white'}`}>{lens===m[5]?'Retirer le surlignage':'Surligner dans la session'}</button>
+            <button onClick={()=>setLens(lens===m[5]?null:m[5])} className={`mt-2 h-7 px-3 rounded-md text-[12px] font-medium ${lens===m[5]?'border border-[#EBEBEB] text-[#4D4D4D]':'bg-[var(--app-accent)] text-white'}`}>{lens===m[5]?'Retirer le surlignage':'Surligner dans la session'}</button>
           </div>}
         </div>}
         {tab==='Preuves' && <div className="space-y-2">{d.links.map((l,k)=>(
@@ -397,7 +397,7 @@ const NODES = [
 ];
 const IFACES = ['N2','N3','N4','SBI','N6','S1-MME','S1-U','S5-U','S11','S5-C','S6a','Sxa/Sxb'];
 const Dot = ({st}) => <span className={`w-[8px] h-[8px] rounded-full ${st==='ok'?'bg-[#15803D]':st==='warn'?'bg-[#D97706]':'bg-[#B42318]'}`}/>;
-const Bar = ({v,warn=70,crit=85}) => <div className="flex items-center gap-2"><div className="w-16 h-1.5 rounded-full bg-[#F2F2F2] overflow-hidden"><div className={`h-full ${v>=crit?'bg-[#B42318]':v>=warn?'bg-[#D97706]':'bg-[#171717]'}`} style={{width:`${v}%`}}/></div><span className="tabular-nums text-[12px] text-[#4D4D4D] w-9">{v} %</span></div>;
+const Bar = ({v,warn=70,crit=85}) => <div className="flex items-center gap-2"><div className="w-16 h-1.5 rounded-full bg-[#F2F2F2] overflow-hidden"><div className={`h-full ${v>=crit?'bg-[#B42318]':v>=warn?'bg-[#D97706]':'bg-[var(--app-accent)]'}`} style={{width:`${v}%`}}/></div><span className="tabular-nums text-[12px] text-[#4D4D4D] w-9">{v} %</span></div>;
 const Card = ({title,action,children,className=''}) => (
   <section className={`bg-white rounded-lg border border-[#EBEBEB] ${className}`}>
     <div className="h-11 px-4 flex items-center border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold text-[#171717]">{title}</h3>{action && <span className="ml-auto text-[12px] text-[#171717] font-medium cursor-pointer">{action}</span>}</div>
@@ -417,7 +417,7 @@ function Home({setPage}) {
             <div className="text-[13px] text-[#666666] mt-1">6 nœuds sur 6 joignables · 1 point de vigilance : disque à 76 % et en hausse.</div>
           </div>
           <div className="ml-auto flex gap-2">
-            <button onClick={()=>setPage('sessions')} className="h-9 px-4 rounded-md bg-[#171717] hover:bg-[#383838] text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.search} c="w-4 h-4"/>Nouvelle recherche</button>
+            <button onClick={()=>setPage('sessions')} className="h-9 px-4 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.search} c="w-4 h-4"/>Nouvelle recherche</button>
             <button className="h-9 px-4 rounded-md border border-[#EBEBEB] bg-white text-[13px] text-[#4D4D4D] hover:bg-[#FAFAFA]">Ouvrir le dernier run</button>
             <button className="h-9 px-4 rounded-md border border-[#EBEBEB] bg-white text-[13px] text-[#4D4D4D] hover:bg-[#FAFAFA]">Trace live</button>
           </div>
@@ -448,7 +448,7 @@ function Home({setPage}) {
               ].map(([k,t,d,v,st,ico]) => (
                 <button key={k} onClick={()=>setPage(k)} className="group text-left bg-white rounded-xl border border-[#EBEBEB] hover:border-[#171717] hover:shadow-[0_6px_24px_-12px_rgba(0,0,0,.18)] transition p-5">
                   <div className="flex items-start gap-4">
-                    <div className="w-11 h-11 rounded-lg bg-[#171717] text-white grid place-items-center"><I d={ico} c="w-5 h-5"/></div>
+                    <div className="w-11 h-11 rounded-lg bg-[var(--app-accent)] text-white grid place-items-center"><I d={ico} c="w-5 h-5"/></div>
                     <div className="flex-1">
                       <div className="text-[16px] font-semibold tracking-tight text-[#171717]">{t}</div>
                       <div className="text-[12.5px] text-[#666666] mt-1 leading-relaxed">{d}</div>
@@ -521,7 +521,7 @@ function Nodes() {
           <div><div className="text-[12px] text-[#666666]">POLARIS Nœuds</div><h1 className="text-[24px] font-semibold tracking-tight text-[#171717] mt-1">Gestion des nœuds</h1>
             <div className="text-[13px] text-[#666666] mt-1">6 nœuds joignables · versions servies conformes · disque à surveiller.</div></div>
           <div className="ml-auto flex gap-2">
-            <button className="h-9 px-4 rounded-md bg-[#171717] hover:bg-[#383838] text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.plus} c="w-4 h-4"/>Ajouter un nœud</button>
+            <button className="h-9 px-4 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.plus} c="w-4 h-4"/>Ajouter un nœud</button>
             <button className="h-9 px-4 rounded-md border border-[#EBEBEB] bg-white text-[13px] text-[#4D4D4D] hover:bg-[#FAFAFA]">Déploiements</button>
             <button className="h-9 px-4 rounded-md border border-[#EBEBEB] bg-white text-[13px] text-[#4D4D4D] hover:bg-[#FAFAFA]">Journal d’audit</button>
           </div>
@@ -624,7 +624,7 @@ function AnalyzerHome({conds,setConds,run}) {
             </div>
             <div className="text-[13px] font-medium pt-1.5">Portée<div className="text-[11.5px] font-normal text-[#8F8F8F] mt-0.5">run, captures ou fenêtre</div></div>
             <div className="flex gap-2">
-              {['Run 5G #482','lte-run-976bd44b','Captures c41 → c43','Fenêtre horaire'].map((p,k) => <button key={p} className={`h-8 px-3 rounded-md border text-[12.5px] ${k===0?'border-[#171717] bg-[#171717] text-white':'border-[#EBEBEB] text-[#4D4D4D] hover:border-[#D4D4D4]'}`}>{p}</button>)}
+              {['Run 5G #482','lte-run-976bd44b','Captures c41 → c43','Fenêtre horaire'].map((p,k) => <button key={p} className={`h-8 px-3 rounded-md border text-[12.5px] ${k===0?'border-[#171717] bg-[var(--app-accent)] text-white':'border-[#EBEBEB] text-[#4D4D4D] hover:border-[#D4D4D4]'}`}>{p}</button>)}
             </div>
             <div className="text-[13px] font-medium pt-1.5">Conditions<div className="text-[11.5px] font-normal text-[#8F8F8F] mt-0.5">combinées en ET</div></div>
             <div className="space-y-2">
@@ -646,7 +646,7 @@ function AnalyzerHome({conds,setConds,run}) {
           <div className="px-5 h-14 flex items-center gap-2 border-t border-[#F2F2F2] bg-[#FAFAFA] rounded-b-lg">
             <input placeholder="Nom de la requête (facultatif)" className="h-8 w-72 rounded-md border border-[#EBEBEB] px-3 text-[12.5px] bg-white outline-none focus:border-[#171717]"/>
             <button className="h-8 px-3 rounded-md border border-[#EBEBEB] bg-white text-[12.5px] text-[#4D4D4D] hover:bg-[#F2F2F2]">Enregistrer</button>
-            <button onClick={run} className="ml-auto h-9 px-5 rounded-md bg-[#171717] hover:bg-[#383838] text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.play} c="w-3.5 h-3.5"/>Exécuter la requête</button>
+            <button onClick={run} className="ml-auto h-9 px-5 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.play} c="w-3.5 h-3.5"/>Exécuter la requête</button>
           </div>
         </section>
 
@@ -768,7 +768,7 @@ function App() {
   const [lens,setLens] = useState(null);
   useEffect(()=>{ setMsg(s.d===KO5?4:Math.min(14,s.d.msgs.length-1)); setLens(null); },[s.id]);
   return (
-    <div className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-[13px]">
+    <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-[13px]">
       <TopBar role={role} setRole={setRole} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')}/>
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · les identités sont visibles · chaque consultation est journalisée</div>}
       {page==='settings' ? <Settings theme={theme} setTheme={setTheme} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage}/> : page==='nodes' ? <Nodes/> : aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>setAview('results')}/> : <>
