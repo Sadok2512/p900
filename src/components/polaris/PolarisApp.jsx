@@ -101,7 +101,7 @@ const test = (s,[k,v]) => ({
 }[k] || (()=>true))();
 
 /* ------------------------------------------------------------------ */
-const EN = {"Accueil": "Home", "Analyzer": "Analyzer", "Nœuds": "Nodes", "KPI": "KPI", "Live": "Live", "Trafic": "Traffic", "Templates": "Templates", "Paramètres": "Settings", "Compte": "Account", "Notifications": "Notifications", "Rechercher…": "Search…", "← Retour": "← Back", "Gérez votre compte et l'apparence de POLARIS": "Manage your account and the look of POLARIS", "Apparence": "Appearance", "Couleur et thème": "Color and theme", "Sécurité": "Security", "Mot de passe": "Password", "À propos": "About", "Version et build": "Version and build", "Langue": "Language", "Français ou English": "French or English", "Couleur de l'application": "App color", "Choisissez la couleur d'accent utilisée dans toute l'interface.": "Choose the accent color used across the interface.", "Bleu": "Blue", "Noir": "Black", "Vert": "Green", "Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.": "Use at least 8 characters, with uppercase letters, numbers and symbols.", "Mot de passe actuel": "Current password", "Nouveau mot de passe": "New password", "Confirmer le mot de passe": "Confirm password", "Mettre à jour le mot de passe": "Update password", "Versions des composants installés.": "Versions of installed components.", "Langue de l'interface": "Interface language", "Choisissez la langue utilisée dans POLARIS.": "Choose the language used in POLARIS.", "Mot de passe actuel requis et 8 caractères minimum.": "Current password required, 8 characters minimum.", "Les mots de passe ne correspondent pas.": "Passwords do not match.", "Mot de passe mis à jour.": "Password updated.", "Bienvenue sur POLARIS": "Welcome to POLARIS", "Analyse, diagnostic et supervision des sessions et du trafic réseau.": "Analysis, diagnostics and monitoring of network sessions and traffic.", "Nouvelle analyse": "New analysis", "Ouvrir un template": "Open a template", "Explorer un run": "Explore a run", "Trace live": "Live trace", "Bientôt": "Soon", "Modules": "Modules", "KPI & Anomalies": "KPI & Anomalies", "Plan usager": "User plane", "Requêtes, ladder et corrélation des sessions 4G/5G.": "Queries, ladder and correlation of 4G/5G sessions.", "Indicateurs par procédure et détection d'écarts.": "Per-procedure indicators and anomaly detection.", "Suivi en temps réel des sessions capturées.": "Real-time tracking of captured sessions.", "Débits et flux N3 / S1-U par session.": "N3 / S1-U throughput and flows per session.", "Requêtes enregistrées et modèles prêts à l'emploi.": "Saved queries and ready-to-use models.", "Ouvrir →": "Open →", "Activité récente": "Recent activity", "Voir tout": "View all", "Aucune activité pour l'instant": "No activity yet", "Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.": "Your analyses, KPI queries, templates and viewed runs will appear here.", "Lancer une analyse →": "Start an analysis →", "État de la plateforme": "Platform status", "Voir la supervision": "View monitoring", "Capture": "Capture", "dumpcap actifs / attendus": "active / expected dumpcap", "Fraîcheur des données": "Data freshness", "dernier import": "last import", "Alertes": "Alerts", "points de vigilance": "watch points", "Service OIRAN non connecté : aucune donnée en direct.": "OIRAN service not connected: no live data.", "Données à jour · retard 4 s": "Data up to date · 4 s delay", "Fraîcheur : — (OIRAN non connecté)": "Freshness: — (OIRAN not connected)", "Rechercher un KPI…": "Search a KPI…", "Santé sonde": "Probe health", "Procédures 5G": "5G procedures", "Procédures 4G": "4G procedures", "Session N4": "N4 session", "Erreurs": "Errors", "Latence": "Latency", "Corrélation": "Correlation", "Dumpcap actifs": "Active dumpcap", "Segments ignorés": "Dropped segments", "Retard d’import": "Import lag", "Disque disponible": "Disk available", "Succès Registration": "Registration success", "Succès PDU Session": "PDU Session success", "Succès Service Request": "Service Request success", "Succès Attach": "Attach success", "Succès E-RAB Setup": "E-RAB Setup success", "Succès établissement N4": "N4 establishment success", "Erreurs S6a": "S6a errors", "Erreurs SBI par NF": "SBI errors per NF", "Latence par procédure": "Latency per procedure", "Taux de liens EXACT": "EXACT link rate", "Séries": "Series", "Heatmap causes × temps": "Causes × time heatmap", "Top-N": "Top-N", "Granularité": "Granularity", "Aucune donnée à afficher": "No data to display", "Chaque point cliquable ouvrira l'Analyzer pré-filtré (fenêtre + dimension).": "Each clickable point will open the Analyzer pre-filtered (window + dimension).", "Requête générée": "Generated query", "Fiche KPI": "KPI sheet", "Formule": "Formula", "Événements sources": "Source events", "Dimensions": "Dimensions", "Unité": "Unit", "Règle de dédup": "Dedup rule", "Invariant": "Invariant", "Explorer dans l'Analyzer →": "Explore in Analyzer →", "Anomalies": "Anomalies", "Règles et invariants": "Rules and invariants", "Nouveauté": "Novelty", "Invariant de comptage": "Counting invariant", "succès + échec = total, par procédure et par minute": "success + failure = total, per procedure per minute", "Cause obligatoire": "Mandatory cause", "toute procédure en échec porte une cause (NAS, Diameter, HTTP…)": "every failed procedure carries a cause (NAS, Diameter, HTTP…)", "Ordre canonique": "Canonical order", "seq strictement croissant dans une capture (capture_id, seq)": "seq strictly increasing within a capture (capture_id, seq)", "Cause jamais vue": "Never-seen cause", "une cause d’échec absente du référentiel historique": "a failure cause absent from the historical reference", "Séquence hors flux 3GPP": "Out-of-flow 3GPP sequence", "enchaînement de messages incompatible avec la procédure": "message sequence incompatible with the procedure", "jamais déclenchée": "never triggered", "Une anomalie se ferme avec une preuve, ou reste OUVERTE.": "An anomaly closes with evidence, or stays OPEN."};
+const EN = {"Données de démo": "Demo data", "Fraîcheur : 4 s": "Freshness: 4 s", "moyenne": "average", "échecs": "failures", "maintenant": "now", "il y a": "", "preuve": "evidence", "Analyse": "Analysis", "Template": "Template", "il y a 3 min": "3 min ago", "il y a 12 min": "12 min ago", "il y a 40 min": "40 min ago", "il y a 2 h": "2 h ago", "Données de démo — OIRAN non connecté.": "Demo data — OIRAN not connected.", "Accueil": "Home", "Analyzer": "Analyzer", "Nœuds": "Nodes", "KPI": "KPI", "Live": "Live", "Trafic": "Traffic", "Templates": "Templates", "Paramètres": "Settings", "Compte": "Account", "Notifications": "Notifications", "Rechercher…": "Search…", "← Retour": "← Back", "Gérez votre compte et l'apparence de POLARIS": "Manage your account and the look of POLARIS", "Apparence": "Appearance", "Couleur et thème": "Color and theme", "Sécurité": "Security", "Mot de passe": "Password", "À propos": "About", "Version et build": "Version and build", "Langue": "Language", "Français ou English": "French or English", "Couleur de l'application": "App color", "Choisissez la couleur d'accent utilisée dans toute l'interface.": "Choose the accent color used across the interface.", "Bleu": "Blue", "Noir": "Black", "Vert": "Green", "Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.": "Use at least 8 characters, with uppercase letters, numbers and symbols.", "Mot de passe actuel": "Current password", "Nouveau mot de passe": "New password", "Confirmer le mot de passe": "Confirm password", "Mettre à jour le mot de passe": "Update password", "Versions des composants installés.": "Versions of installed components.", "Langue de l'interface": "Interface language", "Choisissez la langue utilisée dans POLARIS.": "Choose the language used in POLARIS.", "Mot de passe actuel requis et 8 caractères minimum.": "Current password required, 8 characters minimum.", "Les mots de passe ne correspondent pas.": "Passwords do not match.", "Mot de passe mis à jour.": "Password updated.", "Bienvenue sur POLARIS": "Welcome to POLARIS", "Analyse, diagnostic et supervision des sessions et du trafic réseau.": "Analysis, diagnostics and monitoring of network sessions and traffic.", "Nouvelle analyse": "New analysis", "Ouvrir un template": "Open a template", "Explorer un run": "Explore a run", "Trace live": "Live trace", "Bientôt": "Soon", "Modules": "Modules", "KPI & Anomalies": "KPI & Anomalies", "Plan usager": "User plane", "Requêtes, ladder et corrélation des sessions 4G/5G.": "Queries, ladder and correlation of 4G/5G sessions.", "Indicateurs par procédure et détection d'écarts.": "Per-procedure indicators and anomaly detection.", "Suivi en temps réel des sessions capturées.": "Real-time tracking of captured sessions.", "Débits et flux N3 / S1-U par session.": "N3 / S1-U throughput and flows per session.", "Requêtes enregistrées et modèles prêts à l'emploi.": "Saved queries and ready-to-use models.", "Ouvrir →": "Open →", "Activité récente": "Recent activity", "Voir tout": "View all", "Aucune activité pour l'instant": "No activity yet", "Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.": "Your analyses, KPI queries, templates and viewed runs will appear here.", "Lancer une analyse →": "Start an analysis →", "État de la plateforme": "Platform status", "Voir la supervision": "View monitoring", "Capture": "Capture", "dumpcap actifs / attendus": "active / expected dumpcap", "Fraîcheur des données": "Data freshness", "dernier import": "last import", "Alertes": "Alerts", "points de vigilance": "watch points", "Service OIRAN non connecté : aucune donnée en direct.": "OIRAN service not connected: no live data.", "Données à jour · retard 4 s": "Data up to date · 4 s delay", "Fraîcheur : — (OIRAN non connecté)": "Freshness: — (OIRAN not connected)", "Rechercher un KPI…": "Search a KPI…", "Santé sonde": "Probe health", "Procédures 5G": "5G procedures", "Procédures 4G": "4G procedures", "Session N4": "N4 session", "Erreurs": "Errors", "Latence": "Latency", "Corrélation": "Correlation", "Dumpcap actifs": "Active dumpcap", "Segments ignorés": "Dropped segments", "Retard d’import": "Import lag", "Disque disponible": "Disk available", "Succès Registration": "Registration success", "Succès PDU Session": "PDU Session success", "Succès Service Request": "Service Request success", "Succès Attach": "Attach success", "Succès E-RAB Setup": "E-RAB Setup success", "Succès établissement N4": "N4 establishment success", "Erreurs S6a": "S6a errors", "Erreurs SBI par NF": "SBI errors per NF", "Latence par procédure": "Latency per procedure", "Taux de liens EXACT": "EXACT link rate", "Séries": "Series", "Heatmap causes × temps": "Causes × time heatmap", "Top-N": "Top-N", "Granularité": "Granularity", "Aucune donnée à afficher": "No data to display", "Chaque point cliquable ouvrira l'Analyzer pré-filtré (fenêtre + dimension).": "Each clickable point will open the Analyzer pre-filtered (window + dimension).", "Requête générée": "Generated query", "Fiche KPI": "KPI sheet", "Formule": "Formula", "Événements sources": "Source events", "Dimensions": "Dimensions", "Unité": "Unit", "Règle de dédup": "Dedup rule", "Invariant": "Invariant", "Explorer dans l'Analyzer →": "Explore in Analyzer →", "Anomalies": "Anomalies", "Règles et invariants": "Rules and invariants", "Nouveauté": "Novelty", "Invariant de comptage": "Counting invariant", "succès + échec = total, par procédure et par minute": "success + failure = total, per procedure per minute", "Cause obligatoire": "Mandatory cause", "toute procédure en échec porte une cause (NAS, Diameter, HTTP…)": "every failed procedure carries a cause (NAS, Diameter, HTTP…)", "Ordre canonique": "Canonical order", "seq strictement croissant dans une capture (capture_id, seq)": "seq strictly increasing within a capture (capture_id, seq)", "Cause jamais vue": "Never-seen cause", "une cause d’échec absente du référentiel historique": "a failure cause absent from the historical reference", "Séquence hors flux 3GPP": "Out-of-flow 3GPP sequence", "enchaînement de messages incompatible avec la procédure": "message sequence incompatible with the procedure", "jamais déclenchée": "never triggered", "Une anomalie se ferme avec une preuve, ou reste OUVERTE.": "An anomaly closes with evidence, or stays OPEN."};
 let LANG = 'fr';
 const t = s => LANG==='en' ? (EN[s] ?? s) : s;
 const I = ({d,c='w-4 h-4'}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={c}><path d={d}/></svg>;
@@ -507,7 +507,11 @@ function Home({setPage}) {
         <div className="mt-14 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-10">
           <section>
             <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-[#171717]">{t("Activité récente")}</h2><button disabled className="ml-auto text-[12.5px] text-[#A3A3A3] cursor-not-allowed">{t("Voir tout")}</button></div>
-            <div className="rounded-xl border border-dashed border-[#E5E5E5] px-6 py-10 text-center">
+            <div className="rounded-xl border border-[#EBEBEB] bg-white divide-y divide-[#F2F2F2]">
+              {[['Analyse','Run 5G #482 · Registration','il y a 3 min','sessions'],['KPI','Succès PDU Session · 15 min','il y a 12 min','kpi'],['Template','Échecs Attach par cellule','il y a 40 min','templates'],['Analyse','Run 4G #219 · E-RAB Setup','il y a 2 h','sessions']].map(([ty,n,w,tg])=>(
+                <button key={n} onClick={()=>setPage(tg)} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[#FAFAFA]"><span className="text-[11px] font-medium text-[#666666] bg-[#F5F5F5] rounded px-1.5 py-[1px] w-16 text-center">{t(ty)}</span><span className="text-[13px] text-[#171717] truncate">{n}</span><span className="ml-auto text-[12px] text-[#8F8F8F] shrink-0">{t(w)}</span></button>))}
+            </div>
+            <div className="hidden">
               <div className="mx-auto w-9 h-9 rounded-full bg-[#F5F5F5] grid place-items-center text-[#8F8F8F]"><I d="M12 7v5l3 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z" c="w-4 h-4"/></div>
               <div className="mt-3 text-[14px] font-medium text-[#171717]">{t("Aucune activité pour l'instant")}</div>
               <div className="mt-1 text-[13px] text-[#666666]">{t("Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.")}</div>
@@ -517,14 +521,14 @@ function Home({setPage}) {
           <section>
             <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-[#171717]">{t("État de la plateforme")}</h2><button onClick={()=>setPage('nodes')} className="ml-auto text-[12.5px] font-medium text-[#171717] hover:underline">{t("Voir la supervision")}</button></div>
             <div className="rounded-xl border border-[#EBEBEB] divide-y divide-[#F2F2F2]">
-              {[['Capture','dumpcap actifs / attendus'],['Fraîcheur des données','dernier import'],['Alertes','points de vigilance']].map(([n,d])=>(
+              {[['Capture','dumpcap actifs / attendus','12 / 12','#15803D'],['Fraîcheur des données','dernier import','4 s','#15803D'],['Alertes','points de vigilance','3','#B42318']].map(([n,d,v,c])=>(
                 <div key={n} className="px-4 py-3.5 flex items-center gap-3">
-                  <span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]"/>
+                  <span className="w-[7px] h-[7px] rounded-full" style={{background:c}}/>
                   <div className="min-w-0"><div className="text-[13.5px] text-[#171717]">{t(n)}</div><div className="text-[12px] text-[#8F8F8F]">{t(d)}</div></div>
-                  <span className="ml-auto text-[13px] tabular-nums text-[#A3A3A3]">—</span>
+                  <span className="ml-auto text-[13px] font-medium tabular-nums text-[#171717]">{v}</span>
                 </div>))}
             </div>
-            <p className="mt-3 text-[12px] text-[#8F8F8F]">{t("Service OIRAN non connecté : aucune donnée en direct.")}</p>
+            <p className="mt-3 text-[12px] text-[#A15C00]">{t("Données de démo — OIRAN non connecté.")}</p>
           </section>
         </div>
       </div>
@@ -821,6 +825,33 @@ const ANOM_N2 = [
   ['Séquence hors flux 3GPP','enchaînement de messages incompatible avec la procédure'],
 ];
 
+
+/* ---- Données de démo (mock) ---- */
+const seedRand = (str) => { let h=2166136261; for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619);} return () => { h^=h<<13; h^=h>>>17; h^=h<<5; return ((h>>>0)%10000)/10000; }; };
+const MOCK_BASE = {'%':[97,2.5],'segments':[12,10],'s':[4,3],'err/min':[6,5],'ms':[38,15]};
+const GRAN_N = {'1 min':60,'15 min':48,'1 h':24,'1 j':14};
+function mockSeries(k, gran){
+  const r=seedRand(k.id+gran); const [b,v]=MOCK_BASE[k.unit]||[50,10]; const n=GRAN_N[gran]||48;
+  return Array.from({length:n},(_,i)=>{ let x=b+(r()-0.5)*2*v+Math.sin(i/4)*v*0.4; if(r()>0.94) x+= (k.unit==='%'?-v*3:v*2.5); if(k.unit==='%') x=Math.min(100,x); return Math.max(0,+x.toFixed(1)); });
+}
+const fmtV = (v,u) => u==='%'?v.toFixed(1)+' %':u==='ms'?Math.round(v)+' ms':u==='s'?v.toFixed(1)+' s':String(Math.round(v));
+const mockNow = (k) => { const s=mockSeries(k,'15 min'); return s[s.length-1]; };
+const MOCK_CAUSES = ['5GMM #7','5GMM #11','5GSM #27','5GSM #33','EMM #15','DIA 5001','HTTP 404','HTTP 503'];
+const MOCK_TOP = [['Cellule 208-01-0A1F',0],['Cellule 208-01-0B07',0],['DNN internet',0],['DNN ims',0],['S-NSSAI 1-000001',0],['Run 5G #482',0],['Run 4G #219',0]];
+function MockChart({data,unit}){
+  const w=640,h=240,pad=28; const mn=Math.min(...data), mx=Math.max(...data); const lo=mn-(mx-mn)*0.1, hi=mx+(mx-mn)*0.1||1;
+  const X=i=>pad+i*(w-pad*2)/(data.length-1), Y=v=>h-pad-(v-lo)/(hi-lo||1)*(h-pad*2);
+  const line=data.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+  const avg=data.reduce((a,b)=>a+b,0)/data.length;
+  return <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-full">
+    {[0,1,2,3].map(i=>{const y=pad+i*(h-pad*2)/3; const v=hi-(i/3)*(hi-lo); return <g key={i}><line x1={pad} x2={w-pad} y1={y} y2={y} stroke="#F2F2F2"/><text x={2} y={y+3} fontSize="9" fill="#A3A3A3">{fmtV(v,unit)}</text></g>;})}
+    <path d={`${line} L${X(data.length-1)},${h-pad} L${X(0)},${h-pad} Z`} fill="var(--app-accent)" opacity="0.08"/>
+    <path d={line} fill="none" stroke="var(--app-accent)" strokeWidth="1.8"/>
+    <line x1={pad} x2={w-pad} y1={Y(avg)} y2={Y(avg)} stroke="#A3A3A3" strokeDasharray="3 3"/>
+    {data.map((v,i)=>Math.abs(v-avg)>(mx-mn)*0.35?<circle key={i} cx={X(i)} cy={Y(v)} r="3.2" fill="#B42318"><title>{fmtV(v,unit)}</title></circle>:null)}
+  </svg>;
+}
+
 function Kpis({setPage}) {
   const [kid,setKid] = useState('kpi.probe.dumpcap');
   const [q,setQ] = useState('');
@@ -828,6 +859,7 @@ function Kpis({setPage}) {
   const [gran,setGran] = useState('15 min');
   const k = ALL_KPIS.find(x=>x.id===kid) || ALL_KPIS[0];
   const ql = q.trim().toLowerCase();
+  const series = mockSeries(k, gran);
   const match = x => !ql || (x.name+' '+x.id+' '+x.src+' '+x.dims).toLowerCase().includes(ql);
   return (
     <div className="flex-1 overflow-auto scroll-thin bg-[#FAFAFA]">
@@ -839,7 +871,8 @@ function Kpis({setPage}) {
             <div className="text-[13px] text-[#666666] mt-1">{t("Indicateurs par procédure et détection d'écarts.")}</div>
           </div>
           <div className="ml-auto flex items-center gap-3">
-            <span className="flex items-center gap-1.5 text-[12px] text-[#8F8F8F]"><span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]"/>{t("Fraîcheur : — (OIRAN non connecté)")}</span>
+            <span className="text-[11px] font-medium text-[#A15C00] bg-[#FFF7E6] border border-[#FCE2B0] rounded px-1.5 py-[1px]">{t("Données de démo")}</span>
+            <span className="flex items-center gap-1.5 text-[12px] text-[#666666]"><span className="w-[7px] h-[7px] rounded-full bg-[#15803D]"/>{t("Fraîcheur : 4 s")}</span>
             <div className="flex rounded-lg border border-[#EBEBEB] bg-white overflow-hidden">
               {['1 min','15 min','1 h','1 j'].map(g=>(
                 <button key={g} onClick={()=>setGran(g)} className={`h-8 px-3 text-[12.5px] ${gran===g?'bg-[var(--app-accent)] text-white font-medium':'text-[#4D4D4D] hover:bg-[#FAFAFA]'}`}>{g}</button>
@@ -866,7 +899,7 @@ function Kpis({setPage}) {
                   {list.map(x=>(
                     <button key={x[0]} onClick={()=>setKid(x[0])} className={`w-full text-left px-3 py-2 flex items-center gap-2 ${kid===x[0]?'bg-[#FAFAFA] border-l-2 border-l-[var(--app-accent)]':'border-l-2 border-l-transparent hover:bg-[#FAFAFA]'}`}>
                       <span className="min-w-0"><span className={`block truncate text-[12.5px] ${kid===x[0]?'font-semibold text-[#171717]':'text-[#4D4D4D]'}`}>{t(x[1])}</span><span className="block truncate font-mono text-[10.5px] text-[#A3A3A3]">{x[0]} · v{x[2]}</span></span>
-                      <span className="ml-auto shrink-0 text-[12px] tabular-nums text-[#A3A3A3]">—</span>
+                      <span className="ml-auto shrink-0 text-[12px] tabular-nums text-[#4D4D4D]">{fmtV(mockNow({id:x[0],unit:x[3]}),x[3])}</span>
                     </button>
                   ))}
                 </div>;
@@ -882,13 +915,10 @@ function Kpis({setPage}) {
               ))}
               <span className="ml-auto text-[11.5px] text-[#A3A3A3]">{t("Granularité")} {gran}</span>
             </div>
-            <div className="h-[340px] grid place-items-center">
-              <div className="text-center px-8">
-                <div className="mx-auto w-9 h-9 rounded-full bg-[#F5F5F5] grid place-items-center text-[#8F8F8F]"><I d="M4 20V10M10 20V4M16 20v-7M22 20H2" c="w-4 h-4"/></div>
-                <div className="mt-3 text-[13.5px] font-medium text-[#171717]">{t("Aucune donnée à afficher")}</div>
-                <div className="mt-1 text-[12.5px] text-[#666666]">{t("Service OIRAN non connecté : aucune donnée en direct.")}</div>
-                <div className="mt-1 text-[12px] text-[#8F8F8F]">{t("Chaque point cliquable ouvrira l'Analyzer pré-filtré (fenêtre + dimension).")}</div>
-              </div>
+            <div className="h-[340px] p-4">
+              {dv==='series' && <div className="h-full flex flex-col"><div className="flex items-baseline gap-3 mb-1"><span className="text-[22px] font-semibold tabular-nums text-[#171717]">{fmtV(series[series.length-1],k.unit)}</span><span className="text-[12px] text-[#8F8F8F]">{t("moyenne")} {fmtV(series.reduce((a,b)=>a+b,0)/series.length,k.unit)}</span></div><div className="flex-1 min-h-0"><MockChart data={series} unit={k.unit}/></div></div>}
+              {dv==='heat' && <div className="h-full overflow-auto scroll-thin"><table className="text-[11px] w-full"><tbody>{MOCK_CAUSES.map(c=>{const r=seedRand(k.id+c+gran);return <tr key={c}><td className="pr-2 py-[3px] font-mono text-[#B42318] whitespace-nowrap">{c}</td>{Array.from({length:24},(_,i)=>{const v=Math.pow(r(),3);return <td key={i} className="p-[1px]"><div title={Math.round(v*40)+' '+t('échecs')} className="h-6 rounded-[3px] bg-[var(--app-accent)]" style={{opacity:0.06+v*0.94}}/></td>;})}</tr>;})}</tbody></table><div className="mt-2 flex justify-between text-[10.5px] text-[#A3A3A3]"><span>−24 × {gran}</span><span>{t("maintenant")}</span></div></div>}
+              {dv==='top' && <div className="space-y-2.5">{MOCK_TOP.map(([n],i)=>{const r=seedRand(k.id+n);const v=Math.round(20+r()*400)/(i+1);return [n,v];}).sort((a,b)=>b[1]-a[1]).map(([n,v],i,arr)=>(<div key={n} className="flex items-center gap-3 text-[12.5px]"><span className="w-5 text-[#A3A3A3] tabular-nums">{i+1}</span><span className="w-44 truncate text-[#4D4D4D]">{n}</span><div className="flex-1 h-2 rounded-full bg-[#F2F2F2]"><div className="h-2 rounded-full bg-[var(--app-accent)]" style={{width:(v/arr[0][1]*100)+'%'}}/></div><span className="w-12 text-right tabular-nums text-[#171717]">{Math.round(v)}</span></div>))}</div>}
             </div>
             <div className="border-t border-[#F2F2F2] px-4 py-3">
               <Lbl>{t("Requête générée")}</Lbl>
@@ -916,14 +946,14 @@ function Kpis({setPage}) {
               <div className="h-11 px-4 flex items-center gap-2 border-b border-[#F2F2F2]">
                 <h3 className="text-[13px] font-semibold text-[#171717]">{t("Anomalies")} {lv}</h3>
                 <span className="text-[11.5px] text-[#8F8F8F]">{sub}</span>
-                <span className="ml-auto flex items-center gap-3 text-[11.5px]"><span className="flex items-center gap-1.5 text-[#8F8F8F]"><span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]"/>{t("OUVERT")} —</span><span className="flex items-center gap-1.5 text-[#8F8F8F]"><span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]"/>{t("FERMÉ")} —</span></span>
+                <span className="ml-auto flex items-center gap-3 text-[11.5px]"><span className="flex items-center gap-1.5 text-[#8F8F8F]"><span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]"/>{t("OUVERT")} {lv==='N1'?2:1}</span><span className="flex items-center gap-1.5 text-[#8F8F8F]"><span className="w-[7px] h-[7px] rounded-full bg-[#15803D]"/>{t("FERMÉ")} {lv==='N1'?5:3}</span></span>
               </div>
               <div className="divide-y divide-[#F2F2F2]">
-                {rules.map(([n,d])=>(
+                {rules.map(([n,d],ri)=>(
                   <div key={n} className="px-4 py-3 flex items-start gap-3">
-                    <span className="mt-0.5 w-[7px] h-[7px] rounded-full bg-[#D4D4D4] shrink-0"/>
+                    <span className={`mt-0.5 w-[7px] h-[7px] rounded-full shrink-0 ${ri%2===0?'bg-[#B42318]':'bg-[#15803D]'}`}/>
                     <div className="min-w-0"><div className="text-[12.5px] font-medium text-[#171717]">{t(n)}</div><div className="text-[12px] text-[#666666]">{t(d)}</div></div>
-                    <span className="ml-auto shrink-0 text-[11px] text-[#A3A3A3]">{t("jamais déclenchée")}</span>
+                    <span className={`ml-auto shrink-0 text-[11px] font-medium ${ri%2===0?'text-[#B42318]':'text-[#15803D]'}`}>{ri%2===0?`${t("OUVERT")} · ${t("il y a")} ${6+ri*7} min`:`${t("FERMÉ")} · ${t("preuve")} #${310+ri}`}</span>
                   </div>
                 ))}
               </div>
