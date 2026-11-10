@@ -118,6 +118,7 @@ const Stat = ({s}) => {
 const Lbl = ({children}) => <div className="text-[11px] font-semibold text-[#666666] uppercase tracking-[0.06em] mb-1.5">{children}</div>;
 
 function TopBar({role,setRole,page,setPage,onAnalyzer,accent,onSettings}) {
+  const [menu,setMenu] = useState(false);
   return (
     <header className="h-12 shrink-0 bg-white border-b border-[#EBEBEB] flex items-center px-4 gap-6">
       <div className="flex items-center gap-2">
@@ -138,7 +139,15 @@ function TopBar({role,setRole,page,setPage,onAnalyzer,accent,onSettings}) {
         <div className="flex rounded-md border border-[#EBEBEB] p-[2px] bg-[#FAFAFA]">
           {['viewer','operator'].map(r => <button key={r} onClick={()=>setRole(r)} className={`px-2.5 h-6 rounded-[4px] text-[12px] ${role===r ? (r==='operator'?'bg-[#A15C07] text-white':'bg-white text-[#171717] shadow-sm') : 'text-[#666666]'}`}>{r==='operator'?'operator':'viewer'}</button>)}
         </div>
-        <button type="button" onClick={onSettings} title="Paramètres" style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white hover:opacity-90">SD</button>
+        <div className="relative">
+          <button type="button" onClick={()=>setMenu(m=>!m)} title="Compte" style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white hover:opacity-90">SD</button>
+          {menu && <>
+            <div className="fixed inset-0 z-40" onClick={()=>setMenu(false)}/>
+            <div className="absolute right-0 top-9 z-50 w-48 bg-white border border-[#EBEBEB] rounded-md shadow-lg py-1 text-[13px]">
+              <div className="px-3 py-2 border-b border-[#EBEBEB]"><div className="font-semibold text-[#171717]">SD</div><div className="text-[11.5px] text-[#8F8F8F]">{role}</div></div>
+              <button type="button" onClick={()=>{setMenu(false);onSettings();}} className="w-full text-left px-3 py-2 hover:bg-[#FAFAFA] text-[#171717]">Paramètres</button>
+            </div></>}
+        </div>
       </div>
     </header>
   );
@@ -686,12 +695,12 @@ function Settings({theme,setTheme,onClose}) {
   const save = e => { e.preventDefault(); if(!cur||nw.length<8) return setPm(['err','Mot de passe actuel requis et 8 caractères minimum.']); if(nw!==cf) return setPm(['err','Les mots de passe ne correspondent pas.']); setPm(['ok','Mot de passe mis à jour (maquette).']); setCur('');setNw('');setCf(''); };
   const inp = "w-full h-8 rounded-md border border-[#EBEBEB] px-2.5 text-[13px] outline-none focus:border-[#8F8F8F]";
   return (
-    <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center" onClick={onClose}>
-      <div className="w-[420px] bg-white rounded-lg border border-[#EBEBEB] shadow-xl" onClick={e=>e.stopPropagation()}>
+    <div className="flex-1 overflow-auto scroll-thin p-8">
+      <div className="max-w-[560px] mx-auto bg-white rounded-lg border border-[#EBEBEB]">
         <div className="h-12 px-4 flex items-center gap-3 border-b border-[#EBEBEB]">
           <div style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white">SD</div>
           <span className="text-[14px] font-semibold">Paramètres</span>
-          <button onClick={onClose} className="ml-auto text-[#666666] hover:text-[#171717]"><I d={ic.x} c="w-4 h-4"/></button>
+          <button onClick={onClose} className="ml-auto text-[12.5px] text-[#666666] hover:text-[#171717]">← Retour</button>
         </div>
         <div className="p-4 space-y-5">
           <div><Lbl>Version</Lbl>
@@ -717,8 +726,7 @@ function App() {
   const [theme,setThemeS] = useState(()=>{ try { return localStorage.getItem('polaris-theme')||'blue'; } catch(e) { return 'blue'; } });
   const setTheme = t => { try { localStorage.setItem('polaris-theme',t); } catch(e) {} setThemeS(t); };
   const accent = THEMES.find(t=>t[0]===theme)?.[2] || '#0062A1';
-  const [showSet,setShowSet] = useState(false);
-  const readP = () => { const h=(location.hash||'').replace('#',''); return ['sessions','nodes'].includes(h) ? h : 'home'; };
+    const readP = () => { const h=(location.hash||'').replace('#',''); return ['sessions','nodes','settings'].includes(h) ? h : 'home'; };
   const [page,setPageS] = useState(readP);
   const setPage = p => { try { location.hash = p; } catch(e) {} setPageS(p); };
   useEffect(()=>{ const f=()=>setPageS(readP()); window.addEventListener('hashchange',f); return ()=>window.removeEventListener('hashchange',f); },[]);
@@ -732,10 +740,9 @@ function App() {
   useEffect(()=>{ setMsg(s.d===KO5?4:Math.min(14,s.d.msgs.length-1)); setLens(null); },[s.id]);
   return (
     <div className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-[13px]">
-      <TopBar role={role} setRole={setRole} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setShowSet(true)}/>
-      {showSet && <Settings theme={theme} setTheme={setTheme} onClose={()=>setShowSet(false)}/>}
+      <TopBar role={role} setRole={setRole} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')}/>
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · les identités sont visibles · chaque consultation est journalisée</div>}
-      {page==='home' ? <Home setPage={setPage}/> : page==='nodes' ? <Nodes/> : aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>setAview('results')}/> : <>
+      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage}/> : page==='nodes' ? <Nodes/> : aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>setAview('results')}/> : <>
       <Tabs onHome={()=>setAview('queries')}/>
       <div className="flex-1 flex min-h-0">
         <main className="flex-1 min-w-0 flex flex-col">
