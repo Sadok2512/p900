@@ -101,7 +101,7 @@ const test = (s,[k,v]) => ({
 }[k] || (()=>true))();
 
 /* ------------------------------------------------------------------ */
-const EN = {"Accueil": "Home", "Analyzer": "Analyzer", "Nœuds": "Nodes", "KPI": "KPI", "Live": "Live", "Trafic": "Traffic", "Templates": "Templates", "Paramètres": "Settings", "Compte": "Account", "Notifications": "Notifications", "Rechercher…": "Search…", "← Retour": "← Back", "Gérez votre compte et l'apparence de POLARIS": "Manage your account and the look of POLARIS", "Apparence": "Appearance", "Couleur et thème": "Color and theme", "Sécurité": "Security", "Mot de passe": "Password", "À propos": "About", "Version et build": "Version and build", "Langue": "Language", "Français ou English": "French or English", "Couleur de l'application": "App color", "Choisissez la couleur d'accent utilisée dans toute l'interface.": "Choose the accent color used across the interface.", "Bleu": "Blue", "Noir": "Black", "Vert": "Green", "Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.": "Use at least 8 characters, with uppercase letters, numbers and symbols.", "Mot de passe actuel": "Current password", "Nouveau mot de passe": "New password", "Confirmer le mot de passe": "Confirm password", "Mettre à jour le mot de passe": "Update password", "Versions des composants installés.": "Versions of installed components.", "Langue de l'interface": "Interface language", "Choisissez la langue utilisée dans POLARIS.": "Choose the language used in POLARIS.", "Mot de passe actuel requis et 8 caractères minimum.": "Current password required, 8 characters minimum.", "Les mots de passe ne correspondent pas.": "Passwords do not match.", "Mot de passe mis à jour.": "Password updated.", "Bienvenue sur POLARIS": "Welcome to POLARIS", "Analyse, diagnostic et supervision des sessions et du trafic réseau.": "Analysis, diagnostics and monitoring of network sessions and traffic.", "Nouvelle analyse": "New analysis", "Ouvrir un template": "Open a template", "Explorer un run": "Explore a run", "Trace live": "Live trace", "Bientôt": "Soon", "Modules": "Modules", "KPI & Anomalies": "KPI & Anomalies", "Plan usager": "User plane", "Requêtes, ladder et corrélation des sessions 4G/5G.": "Queries, ladder and correlation of 4G/5G sessions.", "Indicateurs par procédure et détection d'écarts.": "Per-procedure indicators and anomaly detection.", "Suivi en temps réel des sessions capturées.": "Real-time tracking of captured sessions.", "Débits et flux N3 / S1-U par session.": "N3 / S1-U throughput and flows per session.", "Requêtes enregistrées et modèles prêts à l'emploi.": "Saved queries and ready-to-use models.", "Ouvrir →": "Open →", "Activité récente": "Recent activity", "Voir tout": "View all", "Aucune activité pour l'instant": "No activity yet", "Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.": "Your analyses, KPI queries, templates and viewed runs will appear here.", "Lancer une analyse →": "Start an analysis →", "État de la plateforme": "Platform status", "Voir la supervision": "View monitoring", "Capture": "Capture", "dumpcap actifs / attendus": "active / expected dumpcap", "Fraîcheur des données": "Data freshness", "dernier import": "last import", "Alertes": "Alerts", "points de vigilance": "watch points", "Service OIRAN non connecté : aucune donnée en direct.": "OIRAN service not connected: no live data.", "Données à jour · retard 4 s": "Data up to date · 4 s delay"};
+const EN = {"Accueil": "Home", "Analyzer": "Analyzer", "Nœuds": "Nodes", "KPI": "KPI", "Live": "Live", "Trafic": "Traffic", "Templates": "Templates", "Paramètres": "Settings", "Compte": "Account", "Notifications": "Notifications", "Rechercher…": "Search…", "← Retour": "← Back", "Gérez votre compte et l'apparence de POLARIS": "Manage your account and the look of POLARIS", "Apparence": "Appearance", "Couleur et thème": "Color and theme", "Sécurité": "Security", "Mot de passe": "Password", "À propos": "About", "Version et build": "Version and build", "Langue": "Language", "Français ou English": "French or English", "Couleur de l'application": "App color", "Choisissez la couleur d'accent utilisée dans toute l'interface.": "Choose the accent color used across the interface.", "Bleu": "Blue", "Noir": "Black", "Vert": "Green", "Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.": "Use at least 8 characters, with uppercase letters, numbers and symbols.", "Mot de passe actuel": "Current password", "Nouveau mot de passe": "New password", "Confirmer le mot de passe": "Confirm password", "Mettre à jour le mot de passe": "Update password", "Versions des composants installés.": "Versions of installed components.", "Langue de l'interface": "Interface language", "Choisissez la langue utilisée dans POLARIS.": "Choose the language used in POLARIS.", "Mot de passe actuel requis et 8 caractères minimum.": "Current password required, 8 characters minimum.", "Les mots de passe ne correspondent pas.": "Passwords do not match.", "Mot de passe mis à jour.": "Password updated.", "Bienvenue sur POLARIS": "Welcome to POLARIS", "Analyse, diagnostic et supervision des sessions et du trafic réseau.": "Analysis, diagnostics and monitoring of network sessions and traffic.", "Nouvelle analyse": "New analysis", "Ouvrir un template": "Open a template", "Explorer un run": "Explore a run", "Trace live": "Live trace", "Bientôt": "Soon", "Modules": "Modules", "KPI & Anomalies": "KPI & Anomalies", "Plan usager": "User plane", "Requêtes, ladder et corrélation des sessions 4G/5G.": "Queries, ladder and correlation of 4G/5G sessions.", "Indicateurs par procédure et détection d'écarts.": "Per-procedure indicators and anomaly detection.", "Suivi en temps réel des sessions capturées.": "Real-time tracking of captured sessions.", "Débits et flux N3 / S1-U par session.": "N3 / S1-U throughput and flows per session.", "Requêtes enregistrées et modèles prêts à l'emploi.": "Saved queries and ready-to-use models.", "Ouvrir →": "Open →", "Activité récente": "Recent activity", "Voir tout": "View all", "Aucune activité pour l'instant": "No activity yet", "Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.": "Your analyses, KPI queries, templates and viewed runs will appear here.", "Lancer une analyse →": "Start an analysis →", "État de la plateforme": "Platform status", "Voir la supervision": "View monitoring", "Capture": "Capture", "dumpcap actifs / attendus": "active / expected dumpcap", "Fraîcheur des données": "Data freshness", "dernier import": "last import", "Alertes": "Alerts", "points de vigilance": "watch points", "Service OIRAN non connecté : aucune donnée en direct.": "OIRAN service not connected: no live data.", "Données à jour · retard 4 s": "Data up to date · 4 s delay", "Fraîcheur : — (OIRAN non connecté)": "Freshness: — (OIRAN not connected)", "Rechercher un KPI…": "Search a KPI…", "Santé sonde": "Probe health", "Procédures 5G": "5G procedures", "Procédures 4G": "4G procedures", "Session N4": "N4 session", "Erreurs": "Errors", "Latence": "Latency", "Corrélation": "Correlation", "Dumpcap actifs": "Active dumpcap", "Segments ignorés": "Dropped segments", "Retard d’import": "Import lag", "Disque disponible": "Disk available", "Succès Registration": "Registration success", "Succès PDU Session": "PDU Session success", "Succès Service Request": "Service Request success", "Succès Attach": "Attach success", "Succès E-RAB Setup": "E-RAB Setup success", "Succès établissement N4": "N4 establishment success", "Erreurs S6a": "S6a errors", "Erreurs SBI par NF": "SBI errors per NF", "Latence par procédure": "Latency per procedure", "Taux de liens EXACT": "EXACT link rate", "Séries": "Series", "Heatmap causes × temps": "Causes × time heatmap", "Top-N": "Top-N", "Granularité": "Granularity", "Aucune donnée à afficher": "No data to display", "Chaque point cliquable ouvrira l'Analyzer pré-filtré (fenêtre + dimension).": "Each clickable point will open the Analyzer pre-filtered (window + dimension).", "Requête générée": "Generated query", "Fiche KPI": "KPI sheet", "Formule": "Formula", "Événements sources": "Source events", "Dimensions": "Dimensions", "Unité": "Unit", "Règle de dédup": "Dedup rule", "Invariant": "Invariant", "Explorer dans l'Analyzer →": "Explore in Analyzer →", "Anomalies": "Anomalies", "Règles et invariants": "Rules and invariants", "Nouveauté": "Novelty", "Invariant de comptage": "Counting invariant", "succès + échec = total, par procédure et par minute": "success + failure = total, per procedure per minute", "Cause obligatoire": "Mandatory cause", "toute procédure en échec porte une cause (NAS, Diameter, HTTP…)": "every failed procedure carries a cause (NAS, Diameter, HTTP…)", "Ordre canonique": "Canonical order", "seq strictement croissant dans une capture (capture_id, seq)": "seq strictly increasing within a capture (capture_id, seq)", "Cause jamais vue": "Never-seen cause", "une cause d’échec absente du référentiel historique": "a failure cause absent from the historical reference", "Séquence hors flux 3GPP": "Out-of-flow 3GPP sequence", "enchaînement de messages incompatible avec la procédure": "message sequence incompatible with the procedure", "jamais déclenchée": "never triggered", "Une anomalie se ferme avec une preuve, ou reste OUVERTE.": "An anomaly closes with evidence, or stays OPEN."};
 let LANG = 'fr';
 const t = s => LANG==='en' ? (EN[s] ?? s) : s;
 const I = ({d,c='w-4 h-4'}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={c}><path d={d}/></svg>;
@@ -130,7 +130,7 @@ function TopBar({role,setRole,page,setPage,onAnalyzer,accent,onSettings}) {
       </div>
       <nav className="flex h-full">
         {[['home','Accueil'],['sessions','Analyzer'],['nodes','Nœuds'],['kpi','KPI'],['live','Live'],['trafic','Trafic'],['templates','Templates']].map(([k,n]) => {
-          const on = page===k, ok = ['home','sessions','nodes','templates'].includes(k);
+          const on = page===k, ok = ['home','sessions','nodes','templates','kpi'].includes(k);
           return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
         })}
       </nav>
@@ -445,7 +445,7 @@ const NODES = [
   {n:'oiran-capture-01',role:'Capture',st:'ok',ver:'OIRAN 2.10.2',exp:'2.10.2',cpu:31,mem:[2.1,4],disk:76,seen:'il y a 2 s',info:'12/12 dumpcap · PID stables'},
   {n:'oiran-import-01',role:'Import et décodage',st:'ok',ver:'OIRAN 2.10.2',exp:'2.10.2',cpu:58,mem:[2.9,4],disk:76,seen:'il y a 2 s',info:'retard 4 s · 0 segment ignoré'},
   {n:'oiran-dataset',role:'Base / dataset',st:'warn',ver:'schéma 7',exp:'7',cpu:22,mem:[1.4,4],disk:76,seen:'il y a 5 s',info:'~1,5 M événements · disque en hausse'},
-  {n:'analyzer-api',role:'API Analyzer',st:'ok',ver:'Analyzer 0.3.0',exp:'0.3.0',cpu:9,mem:[0.4,1],disk:41,seen:'il y a 1 s',info:'p95 requête 0,8 s'},
+  {n:'analyzer-api',role:'API Analyzer',st:'ok',ver:'Analyzer 0.4.0',exp:'0.4.0',cpu:9,mem:[0.4,1],disk:41,seen:'il y a 1 s',info:'p95 requête 0,8 s'},
   {n:'polaris-control',role:'Orchestrateur',st:'ok',ver:'API 0.30.0 · sim 0.13.4',exp:'0.30.0',cpu:12,mem:[0.6,2],disk:41,seen:'il y a 3 s',info:'run 5G #482 terminé'},
   {n:'open5gs-core',role:'Cœur 5G / EPC (observé)',st:'ok',ver:'Open5GS 2.8.0',exp:'2.8.0',cpu:null,mem:null,disk:null,seen:'trafic vu il y a 1 s',info:'AMF, SMF, UPF, MME actifs'},
 ];
@@ -466,7 +466,7 @@ const HOME_ACTIONS = [
 ];
 const MODULES = [
   ['POLARIS Analyzer','Requêtes, ladder et corrélation des sessions 4G/5G.','M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm10 2-4.35-4.35','sessions'],
-  ['KPI & Anomalies','Indicateurs par procédure et détection d\'écarts.','M4 20V10M10 20V4M16 20v-7M22 20H2',null],
+  ['KPI & Anomalies','Indicateurs par procédure et détection d\'écarts.','M4 20V10M10 20V4M16 20v-7M22 20H2','kpi'],
   ['Live','Suivi en temps réel des sessions capturées.','M3 12h4l3-8 4 16 3-8h4',null],
   ['Plan usager','Débits et flux N3 / S1-U par session.','M4 7h16M4 12h16M4 17h16',null],
   ['Templates','Requêtes enregistrées et modèles prêts à l\'emploi.','M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z','templates'],
@@ -769,13 +769,171 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
                 </button>);})}</div>
             </Card>}
             {sec==='apropos' && <Card title={t("À propos")} desc={t("Versions des composants installés.")}>
-              <div className="grid grid-cols-2 gap-5">{[['POLARIS Analyzer','0.3.0'],['OIRAN','2.10.2']].map(([n,v])=>(
+              <div className="grid grid-cols-2 gap-5">{[['POLARIS Analyzer','0.4.0'],['OIRAN','2.10.2']].map(([n,v])=>(
                 <div key={n} className="rounded-xl border border-[#EBEBEB] p-5"><div className="text-[13px] text-[#666666]">{n}</div><div className="mt-1 text-[26px] font-semibold tracking-tight font-mono" style={{color:accent}}>{v}</div></div>))}</div>
             </Card>}
           </div>
         </div>
       </div>
     </div>);
+}
+
+/* ---------------- KPI & Anomalies ---------------- */
+// Fiche KPI : [id, nom, version, unité, numérateur, dénominateur, événements sources, dimensions, dédup, invariant, requête]
+const KPI_CATS = [
+  ['Santé sonde', [
+    ['kpi.probe.dumpcap','Dumpcap actifs','1.0.0','%','dumpcap actifs','dumpcap attendus','heartbeat sonde (60 s)','nœud','1 valeur / nœud / minute','actifs ≤ attendus',"SELECT minute, node, count(*) FILTER (WHERE dumpcap_up) / count(*) FROM probe_heartbeat GROUP BY 1, 2"],
+    ['kpi.probe.segments','Segments ignorés','1.0.0','segments','segments ignorés','segments reçus','journal d\u2019import','nœud, interface','compteur monotone','ignorés ≤ reçus',"SELECT minute, node, sum(segments_dropped), sum(segments_received) FROM import_journal GROUP BY 1, 2"],
+    ['kpi.probe.lag','Retard d\u2019import','1.0.0','s','now() − dernier segment importé','—','horodatage d\u2019import','nœud','max par minute','retard ≥ 0',"SELECT minute, node, max(extract(epoch from now() - last_segment_at)) FROM import_state GROUP BY 1, 2"],
+    ['kpi.probe.disk','Disque disponible','1.0.0','%','espace libre','espace total','sonde disque','nœud, volume','dernière mesure / minute','libre ≤ total',"SELECT minute, node, volume, avg(free_bytes) / avg(total_bytes) FROM disk_probe GROUP BY 1, 2, 3"],
+  ]],
+  ['Procédures 5G', [
+    ['kpi.5g.registration','Succès Registration','1.0.0','%','Registration Accept','Registration Request','N1/N2 (NAS 5GMM)','RAT, cellule, TAC, DNN, S-NSSAI, run','1ère tentative / UE / procédure','succès + échec = total',"SELECT minute, count(*) FILTER (WHERE msg='RegistrationAccept') / count(*) FILTER (WHERE msg='RegistrationRequest') FROM msg WHERE ifc IN ('N1','N2') GROUP BY 1"],
+    ['kpi.5g.pdu','Succès PDU Session','1.0.0','%','PDU Session Establishment Accept','PDU Session Establishment Request','N1/N2 (NAS 5GSM)','RAT, DNN, S-NSSAI, run','1ère tentative / PDU session','succès + échec = total',"SELECT minute, count(*) FILTER (WHERE msg='PDUSessionEstablishmentAccept') / count(*) FILTER (WHERE msg='PDUSessionEstablishmentRequest') FROM msg GROUP BY 1"],
+    ['kpi.5g.servicereq','Succès Service Request','1.0.0','%','Service Accept','Service Request','N1/N2 (NAS 5GMM)','RAT, cellule, run','1ère tentative / UE','succès + échec = total',"SELECT minute, count(*) FILTER (WHERE msg='ServiceAccept') / count(*) FILTER (WHERE msg='ServiceRequest') FROM msg GROUP BY 1"],
+  ]],
+  ['Procédures 4G', [
+    ['kpi.4g.attach','Succès Attach','1.0.0','%','Attach Accept','Attach Request','S1-MME (NAS EMM)','cellule, TAC, run','1ère tentative / UE','succès + échec = total',"SELECT minute, count(*) FILTER (WHERE msg='AttachAccept') / count(*) FILTER (WHERE msg='AttachRequest') FROM msg WHERE ifc='S1-MME' GROUP BY 1"],
+    ['kpi.4g.erab','Succès E-RAB Setup','1.0.0','%','E-RAB Setup Response','E-RAB Setup Request','S1-MME (S1AP)','cellule, run','par E-RAB id','succès + échec = total',"SELECT minute, count(*) FILTER (WHERE msg='ERABSetupResponse') / count(*) FILTER (WHERE msg='ERABSetupRequest') FROM msg WHERE ifc='S1-MME' GROUP BY 1"],
+  ]],
+  ['Session N4', [
+    ['kpi.n4.session','Succès établissement N4','1.0.0','%','PFCP Session Establishment Response (cause=Accepted)','PFCP Session Establishment Request','N4 (PFCP)','NF, run','par SEID','réponses ≤ requêtes',"SELECT minute, count(*) FILTER (WHERE msg='PFCPSessionEstablishmentResponse' AND cause='Accepted') / count(*) FILTER (WHERE msg='PFCPSessionEstablishmentRequest') FROM msg WHERE ifc='N4' GROUP BY 1"],
+  ]],
+  ['Erreurs', [
+    ['kpi.err.s6a','Erreurs S6a','1.0.0','err/min','réponses S6a avec code erreur Diameter','—','S6a (Diameter)','code, run','par (capture_id, seq)','compteur ≥ 0',"SELECT minute, result_code, count(*) FROM msg WHERE ifc='S6a' AND result_code >= 3000 GROUP BY 1, 2"],
+    ['kpi.err.sbi','Erreurs SBI par NF','1.0.0','err/min','réponses SBI HTTP ≥ 400','—','SBI (HTTP/2)','NF, code, run','par (capture_id, seq)','compteur ≥ 0',"SELECT minute, nf, status, count(*) FROM msg WHERE ifc='SBI' AND status >= 400 GROUP BY 1, 2, 3"],
+  ]],
+  ['Latence', [
+    ['kpi.lat.proc','Latence par procédure','1.0.0','ms','seq(réponse) − seq(requête), même capture','—','toutes interfaces','procédure, run','paire req/resp unique','intra-capture uniquement, jamais ts',"SELECT minute, proc, percentile_cont(0.5) WITHIN GROUP (ORDER BY resp_seq - req_seq) FROM pairs WHERE same_capture GROUP BY 1, 2"],
+  ]],
+  ['Corrélation', [
+    ['kpi.corr.exact','Taux de liens EXACT','1.0.0','%','liens EXACT','liens total (EXACT + À PROUVER + ABSENT)','moteur de corrélation','interface, run','par paire de messages','EXACT + À PROUVER + ABSENT = total',"SELECT minute, count(*) FILTER (WHERE link='EXACT') / count(*) FROM correlation GROUP BY 1"],
+  ]],
+];
+const ALL_KPIS = KPI_CATS.flatMap(([c,ks]) => ks.map(k => ({cat:c, id:k[0], name:k[1], ver:k[2], unit:k[3], num:k[4], den:k[5], src:k[6], dims:k[7], dedup:k[8], inv:k[9], q:k[10]})));
+const ANOM_N1 = [
+  ['Invariant de comptage','succès + échec = total, par procédure et par minute'],
+  ['Cause obligatoire','toute procédure en échec porte une cause (NAS, Diameter, HTTP…)'],
+  ['Ordre canonique','seq strictement croissant dans une capture (capture_id, seq)'],
+];
+const ANOM_N2 = [
+  ['Cause jamais vue','une cause d\u2019échec absente du référentiel historique'],
+  ['Séquence hors flux 3GPP','enchaînement de messages incompatible avec la procédure'],
+];
+
+function Kpis({setPage}) {
+  const [kid,setKid] = useState('kpi.probe.dumpcap');
+  const [q,setQ] = useState('');
+  const [dv,setDv] = useState('series');
+  const [gran,setGran] = useState('15 min');
+  const k = ALL_KPIS.find(x=>x.id===kid) || ALL_KPIS[0];
+  const ql = q.trim().toLowerCase();
+  const match = x => !ql || (x.name+' '+x.id+' '+x.src+' '+x.dims).toLowerCase().includes(ql);
+  return (
+    <div className="flex-1 overflow-auto scroll-thin bg-[#FAFAFA]">
+      <div className="max-w-[1480px] mx-auto px-8 py-7 space-y-5">
+        <div className="flex flex-wrap items-end gap-6">
+          <div>
+            <div className="text-[12px] text-[#666666]">POLARIS KPI</div>
+            <h1 className="text-[24px] font-semibold tracking-tight text-[#171717] mt-1">{t("KPI & Anomalies")}</h1>
+            <div className="text-[13px] text-[#666666] mt-1">{t("Indicateurs par procédure et détection d'écarts.")}</div>
+          </div>
+          <div className="ml-auto flex items-center gap-3">
+            <span className="flex items-center gap-1.5 text-[12px] text-[#8F8F8F]"><span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]"/>{t("Fraîcheur : — (OIRAN non connecté)")}</span>
+            <div className="flex rounded-lg border border-[#EBEBEB] bg-white overflow-hidden">
+              {['1 min','15 min','1 h','1 j'].map(g=>(
+                <button key={g} onClick={()=>setGran(g)} className={`h-8 px-3 text-[12.5px] ${gran===g?'bg-[var(--app-accent)] text-white font-medium':'text-[#4D4D4D] hover:bg-[#FAFAFA]'}`}>{g}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_360px] gap-4 items-start">
+          {/* Catalogue */}
+          <div className="bg-white rounded-xl border border-[#EBEBEB] overflow-hidden">
+            <div className="p-3 border-b border-[#F2F2F2]">
+              <div className="flex items-center gap-2 h-8 px-2.5 rounded-md border border-[#EBEBEB] focus-within:border-[var(--app-accent)]">
+                <I d={ic.search} c="w-3.5 h-3.5 text-[#8F8F8F]"/>
+                <input value={q} onChange={e=>setQ(e.target.value)} placeholder={t("Rechercher un KPI…")} className="flex-1 min-w-0 bg-transparent outline-none text-[12.5px] placeholder:text-[#A3A3A3]"/>
+              </div>
+            </div>
+            <div className="max-h-[520px] overflow-auto scroll-thin py-1">
+              {KPI_CATS.map(([c,ks])=>{
+                const list = ks.filter(x=>match({name:x[1],id:x[0],src:x[6],dims:x[7]}));
+                if(!list.length) return null;
+                return <div key={c}>
+                  <div className="px-3 pt-3 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F]">{t(c)}</div>
+                  {list.map(x=>(
+                    <button key={x[0]} onClick={()=>setKid(x[0])} className={`w-full text-left px-3 py-2 flex items-center gap-2 ${kid===x[0]?'bg-[#FAFAFA] border-l-2 border-l-[var(--app-accent)]':'border-l-2 border-l-transparent hover:bg-[#FAFAFA]'}`}>
+                      <span className="min-w-0"><span className={`block truncate text-[12.5px] ${kid===x[0]?'font-semibold text-[#171717]':'text-[#4D4D4D]'}`}>{t(x[1])}</span><span className="block truncate font-mono text-[10.5px] text-[#A3A3A3]">{x[0]} · v{x[2]}</span></span>
+                      <span className="ml-auto shrink-0 text-[12px] tabular-nums text-[#A3A3A3]">—</span>
+                    </button>
+                  ))}
+                </div>;
+              })}
+            </div>
+          </div>
+
+          {/* Dataviews */}
+          <div className="bg-white rounded-xl border border-[#EBEBEB] overflow-hidden">
+            <div className="h-11 px-4 flex items-center gap-1 border-b border-[#F2F2F2]">
+              {[['series','Séries'],['heat','Heatmap causes × temps'],['top','Top-N']].map(([k2,n])=>(
+                <button key={k2} onClick={()=>setDv(k2)} className={`h-7 px-3 rounded-md text-[12.5px] ${dv===k2?'bg-[#F2F2F2] font-semibold text-[#171717]':'text-[#666666] hover:text-[#171717]'}`}>{t(n)}</button>
+              ))}
+              <span className="ml-auto text-[11.5px] text-[#A3A3A3]">{t("Granularité")} {gran}</span>
+            </div>
+            <div className="h-[340px] grid place-items-center">
+              <div className="text-center px-8">
+                <div className="mx-auto w-9 h-9 rounded-full bg-[#F5F5F5] grid place-items-center text-[#8F8F8F]"><I d="M4 20V10M10 20V4M16 20v-7M22 20H2" c="w-4 h-4"/></div>
+                <div className="mt-3 text-[13.5px] font-medium text-[#171717]">{t("Aucune donnée à afficher")}</div>
+                <div className="mt-1 text-[12.5px] text-[#666666]">{t("Service OIRAN non connecté : aucune donnée en direct.")}</div>
+                <div className="mt-1 text-[12px] text-[#8F8F8F]">{t("Chaque point cliquable ouvrira l'Analyzer pré-filtré (fenêtre + dimension).")}</div>
+              </div>
+            </div>
+            <div className="border-t border-[#F2F2F2] px-4 py-3">
+              <Lbl>{t("Requête générée")}</Lbl>
+              <pre className="font-mono text-[11.5px] leading-relaxed text-[#4D4D4D] bg-[#FAFAFA] border border-[#F2F2F2] rounded-md p-3 overflow-x-auto scroll-thin whitespace-pre-wrap">{k.q}</pre>
+            </div>
+          </div>
+
+          {/* Fiche KPI */}
+          <div className="bg-white rounded-xl border border-[#EBEBEB] overflow-hidden">
+            <div className="h-11 px-4 flex items-center border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold text-[#171717]">{t("Fiche KPI")}</h3><span className="ml-auto font-mono text-[11px] text-[#8F8F8F]">v{k.ver}</span></div>
+            <div className="p-4 space-y-4 text-[12.5px]">
+              <div><div className="text-[14px] font-semibold text-[#171717]">{t(k.name)}</div><div className="font-mono text-[11px] text-[#8F8F8F] mt-0.5">{k.id}</div></div>
+              {[['Formule',`${k.num} / ${k.den}`],['Événements sources',k.src],['Dimensions',k.dims],['Unité',k.unit],['Règle de dédup',k.dedup],['Invariant',k.inv]].map(([n,v])=>(
+                <div key={n}><Lbl>{t(n)}</Lbl><div className="text-[#4D4D4D] leading-snug">{v}</div></div>
+              ))}
+              <button onClick={()=>setPage('sessions')} className="w-full h-9 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[12.5px] font-medium">{t("Explorer dans l'Analyzer →")}</button>
+            </div>
+          </div>
+        </div>
+
+        {/* Anomalies */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {[['N1',t("Règles et invariants"),ANOM_N1],['N2',t("Nouveauté"),ANOM_N2]].map(([lv,sub,rules])=>(
+            <div key={lv} className="bg-white rounded-xl border border-[#EBEBEB] overflow-hidden">
+              <div className="h-11 px-4 flex items-center gap-2 border-b border-[#F2F2F2]">
+                <h3 className="text-[13px] font-semibold text-[#171717]">{t("Anomalies")} {lv}</h3>
+                <span className="text-[11.5px] text-[#8F8F8F]">{sub}</span>
+                <span className="ml-auto flex items-center gap-3 text-[11.5px]"><span className="flex items-center gap-1.5 text-[#8F8F8F]"><span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]"/>{t("OUVERT")} —</span><span className="flex items-center gap-1.5 text-[#8F8F8F]"><span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]"/>{t("FERMÉ")} —</span></span>
+              </div>
+              <div className="divide-y divide-[#F2F2F2]">
+                {rules.map(([n,d])=>(
+                  <div key={n} className="px-4 py-3 flex items-start gap-3">
+                    <span className="mt-0.5 w-[7px] h-[7px] rounded-full bg-[#D4D4D4] shrink-0"/>
+                    <div className="min-w-0"><div className="text-[12.5px] font-medium text-[#171717]">{t(n)}</div><div className="text-[12px] text-[#666666]">{t(d)}</div></div>
+                    <span className="ml-auto shrink-0 text-[11px] text-[#A3A3A3]">{t("jamais déclenchée")}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="px-4 py-3 border-t border-[#F2F2F2] text-[12px] text-[#8F8F8F]">{t("Une anomalie se ferme avec une preuve, ou reste OUVERTE.")}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 function App() {
@@ -786,7 +944,7 @@ function App() {
   const [theme,setThemeS] = useState(()=>{ try { return localStorage.getItem('polaris-theme')||'blue'; } catch(e) { return 'blue'; } });
   const setTheme = t => { try { localStorage.setItem('polaris-theme',t); } catch(e) {} setThemeS(t); };
   const accent = THEMES.find(t=>t[0]===theme)?.[2] || '#0062A1';
-    const readP = () => { const h=(location.hash||'').replace('#',''); return ['sessions','nodes','settings','templates'].includes(h) ? h : 'home'; };
+    const readP = () => { const h=(location.hash||'').replace('#',''); return ['sessions','nodes','settings','templates','kpi'].includes(h) ? h : 'home'; };
   const [page,setPageS] = useState(readP);
   const setPage = p => { try { location.hash = p; } catch(e) {} setPageS(p); };
   useEffect(()=>{ const f=()=>setPageS(readP()); window.addEventListener('hashchange',f); return ()=>window.removeEventListener('hashchange',f); },[]);
@@ -815,7 +973,7 @@ function App() {
     <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-[13px]">
       <TopBar role={role} setRole={setRole} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')}/>
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · les identités sont visibles · chaque consultation est journalisée</div>}
-      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage}/> : page==='nodes' ? <Nodes/> : page==='templates' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>{setPage('sessions');setAview('results');}}/> : aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>setAview('results')}/> : <>
+      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage}/> : page==='kpi' ? <Kpis setPage={setPage}/> : page==='nodes' ? <Nodes/> : page==='templates' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>{setPage('sessions');setAview('results');}}/> : aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>setAview('results')}/> : <>
       {!full && <Tabs onHome={()=>setAview('queries')}/>}
       <div className="flex-1 flex min-h-0 p-3 bg-[#FAFAFA]">
         <main ref={mainRef} className="flex-1 min-w-0 flex flex-col">
@@ -832,7 +990,7 @@ function App() {
       </div></>}
       <footer className="h-7 shrink-0 bg-white border-t border-[#EBEBEB] flex items-center gap-5 px-4 text-[11.5px] text-[#666666]">
         <span className="flex items-center gap-1.5"><span className="w-[6px] h-[6px] rounded-full bg-[#15803D]"/>12/12 dumpcap</span><span>Import à jour</span><span>Segments ignorés : 0</span>
-        <span>{rows.length} sessions · requête 0,8 s</span><span className="ml-auto font-mono">OIRAN 2.10.2 · Analyzer 0.3.0 · données fictives</span>
+        <span>{rows.length} sessions · requête 0,8 s</span><span className="ml-auto font-mono">OIRAN 2.10.2 · Analyzer 0.4.0 · données fictives</span>
       </footer>
     </div>
   );
