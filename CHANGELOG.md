@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.5.0
+- Refonte du module KPI : onglets Catalogue KPI, KPI Builder, Dashboards, Anomalies.
+- Arbre SYSTEM / PUBLIC / PRIVATE repliable, recherche, filtres techno/propriétaire, favoris, duplication, ajout à un dashboard, panneau redimensionnable.
+- KPI Builder en 5 étapes (règles ET/OU/NON, agrégation, dédup, invariants, dimensions, prévisualisation, publication SemVer + CHANGELOG).
+- Dashboards : bibliothèque, 4 dashboards SYSTEM, éditeur grille 12 colonnes (déplacer/redimensionner), 13 types de widgets avec compatibilité, filtres globaux, export CSV/JSON.
+- Anomalies : liste filtrable, détail, historique, fermeture avec justification + preuve.
+- Interrupteur « Démo » désactivé par défaut : états vides explicites sans OIRAN.
+- Persistance locale (navigateur) ; droits viewer/operator appliqués côté interface uniquement.
+
 ## 0.4.0
 - Module KPI & Anomalies activé : carte Home sans « Bientôt », page dédiée (#kpi).
 - Catalogue KPI (Annexe B) avec santé sonde en premier : dumpcap, segments ignorés, retard d'import, disque, puis procédures 5G/4G, N4, erreurs S6a/SBI, latence intra-capture, liens EXACT.

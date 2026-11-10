@@ -28,3 +28,4 @@ use the editor.
   own key and store it in Secrets.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
+- KPI module UI lives in src/components/polaris/kpi/KpiModule.tsx and receives catalogue/helpers via props from PolarisApp.jsx — avoids circular imports with the monolithic mockup file.
