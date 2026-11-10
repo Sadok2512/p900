@@ -101,6 +101,9 @@ const test = (s,[k,v]) => ({
 }[k] || (()=>true))();
 
 /* ------------------------------------------------------------------ */
+const EN = {"Accueil": "Home", "Analyzer": "Analyzer", "Nœuds": "Nodes", "KPI": "KPI", "Live": "Live", "Trafic": "Traffic", "Templates": "Templates", "Paramètres": "Settings", "Compte": "Account", "Notifications": "Notifications", "Rechercher…": "Search…", "← Retour": "← Back", "Gérez votre compte et l'apparence de POLARIS": "Manage your account and the look of POLARIS", "Apparence": "Appearance", "Couleur et thème": "Color and theme", "Sécurité": "Security", "Mot de passe": "Password", "À propos": "About", "Version et build": "Version and build", "Langue": "Language", "Français ou English": "French or English", "Couleur de l'application": "App color", "Choisissez la couleur d'accent utilisée dans toute l'interface.": "Choose the accent color used across the interface.", "Bleu": "Blue", "Noir": "Black", "Vert": "Green", "Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.": "Use at least 8 characters, with uppercase letters, numbers and symbols.", "Mot de passe actuel": "Current password", "Nouveau mot de passe": "New password", "Confirmer le mot de passe": "Confirm password", "Mettre à jour le mot de passe": "Update password", "Versions des composants installés.": "Versions of installed components.", "Langue de l'interface": "Interface language", "Choisissez la langue utilisée dans POLARIS.": "Choose the language used in POLARIS.", "Mot de passe actuel requis et 8 caractères minimum.": "Current password required, 8 characters minimum.", "Les mots de passe ne correspondent pas.": "Passwords do not match.", "Mot de passe mis à jour.": "Password updated.", "Bienvenue sur POLARIS": "Welcome to POLARIS", "Analyse, diagnostic et supervision des sessions et du trafic réseau.": "Analysis, diagnostics and monitoring of network sessions and traffic.", "Nouvelle analyse": "New analysis", "Ouvrir un template": "Open a template", "Explorer un run": "Explore a run", "Trace live": "Live trace", "Bientôt": "Soon", "Modules": "Modules", "KPI & Anomalies": "KPI & Anomalies", "Plan usager": "User plane", "Requêtes, ladder et corrélation des sessions 4G/5G.": "Queries, ladder and correlation of 4G/5G sessions.", "Indicateurs par procédure et détection d'écarts.": "Per-procedure indicators and anomaly detection.", "Suivi en temps réel des sessions capturées.": "Real-time tracking of captured sessions.", "Débits et flux N3 / S1-U par session.": "N3 / S1-U throughput and flows per session.", "Requêtes enregistrées et modèles prêts à l'emploi.": "Saved queries and ready-to-use models.", "Ouvrir →": "Open →", "Activité récente": "Recent activity", "Voir tout": "View all", "Aucune activité pour l'instant": "No activity yet", "Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.": "Your analyses, KPI queries, templates and viewed runs will appear here.", "Lancer une analyse →": "Start an analysis →", "État de la plateforme": "Platform status", "Voir la supervision": "View monitoring", "Capture": "Capture", "dumpcap actifs / attendus": "active / expected dumpcap", "Fraîcheur des données": "Data freshness", "dernier import": "last import", "Alertes": "Alerts", "points de vigilance": "watch points", "Service OIRAN non connecté : aucune donnée en direct.": "OIRAN service not connected: no live data.", "Données à jour · retard 4 s": "Data up to date · 4 s delay"};
+let LANG = 'fr';
+const t = s => LANG==='en' ? (EN[s] ?? s) : s;
 const I = ({d,c='w-4 h-4'}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={c}><path d={d}/></svg>;
 const ic = {
   search:'M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm10 2-4.35-4.35', x:'M18 6 6 18M6 6l12 12', plus:'M12 5v14M5 12h14',
@@ -128,25 +131,25 @@ function TopBar({role,setRole,page,setPage,onAnalyzer,accent,onSettings}) {
       <nav className="flex h-full">
         {[['home','Accueil'],['sessions','Analyzer'],['nodes','Nœuds'],['kpi','KPI'],['live','Live'],['trafic','Trafic'],['templates','Templates']].map(([k,n]) => {
           const on = page===k, ok = ['home','sessions','nodes','templates'].includes(k);
-          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{n}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
+          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
         })}
       </nav>
       <div className="flex-1 max-w-[420px] h-8 rounded-md border border-[#EBEBEB] bg-[#FAFAFA] flex items-center gap-2 px-2.5 text-[13px] text-[#8F8F8F]">
-        <I d={ic.search} c="w-[15px] h-[15px] shrink-0"/><span className="truncate">Rechercher…</span><kbd className="ml-auto text-[11px] border border-[#EBEBEB] bg-white rounded px-1.5 text-[#666666]">⌘K</kbd>
+        <I d={ic.search} c="w-[15px] h-[15px] shrink-0"/><span className="truncate">{t("Rechercher…")}</span><kbd className="ml-auto text-[11px] border border-[#EBEBEB] bg-white rounded px-1.5 text-[#666666]">⌘K</kbd>
       </div>
       <div className="ml-auto flex items-center gap-4 text-[12.5px]">
-        <span className="flex items-center gap-1.5 text-[#666666]"><span className="w-[7px] h-[7px] rounded-full bg-[#15803D]"/>Données à jour · retard 4 s</span>
+        <span className="flex items-center gap-1.5 text-[#666666]"><span className="w-[7px] h-[7px] rounded-full bg-[#15803D]"/>{t("Données à jour · retard 4 s")}</span>
         <div className="flex rounded-md border border-[#EBEBEB] p-[2px] bg-[#FAFAFA]">
           {['viewer','operator'].map(r => <button key={r} onClick={()=>setRole(r)} className={`px-2.5 h-6 rounded-[4px] text-[12px] ${role===r ? (r==='operator'?'bg-[#A15C07] text-white':'bg-white text-[#171717] shadow-sm') : 'text-[#666666]'}`}>{r==='operator'?'operator':'viewer'}</button>)}
         </div>
-        <button type="button" title="Notifications" className="w-8 h-8 rounded-md grid place-items-center text-[#666666] hover:bg-[#F5F5F5] hover:text-[#171717]"><I d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" c="w-4 h-4"/></button>
+        <button type="button" title={t("Notifications")} className="w-8 h-8 rounded-md grid place-items-center text-[#666666] hover:bg-[#F5F5F5] hover:text-[#171717]"><I d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" c="w-4 h-4"/></button>
         <div className="relative">
-          <button type="button" onClick={()=>setMenu(m=>!m)} title="Compte" style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white hover:opacity-90">SD</button>
+          <button type="button" onClick={()=>setMenu(m=>!m)} title={t("Compte")} style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white hover:opacity-90">SD</button>
           {menu && <>
             <div className="fixed inset-0 z-40" onClick={()=>setMenu(false)}/>
             <div className="absolute right-0 top-9 z-50 w-48 bg-white border border-[#EBEBEB] rounded-md shadow-lg py-1 text-[13px]">
               <div className="px-3 py-2 border-b border-[#EBEBEB]"><div className="font-semibold text-[#171717]">SD</div><div className="text-[11.5px] text-[#8F8F8F]">{role}</div></div>
-              <button type="button" onClick={()=>{setMenu(false);onSettings();}} className="w-full text-left px-3 py-2 hover:bg-[#FAFAFA] text-[#171717]">Paramètres</button>
+              <button type="button" onClick={()=>{setMenu(false);onSettings();}} className="w-full text-left px-3 py-2 hover:bg-[#FAFAFA] text-[#171717]">{t("Paramètres")}</button>
             </div></>}
         </div>
       </div>
@@ -418,7 +421,7 @@ const MODULES = [
   ['Plan usager','Débits et flux N3 / S1-U par session.','M4 7h16M4 12h16M4 17h16',null],
   ['Templates','Requêtes enregistrées et modèles prêts à l\'emploi.','M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z','templates'],
 ];
-const Soon = () => <span className="text-[10.5px] font-medium text-[#8F8F8F] border border-[#EBEBEB] rounded px-1.5 py-[1px]">Bientôt</span>;
+const Soon = () => <span className="text-[10.5px] font-medium text-[#8F8F8F] border border-[#EBEBEB] rounded px-1.5 py-[1px]">{t("Bientôt")}</span>;
 
 function Home({setPage}) {
   const go = t => t && setPage(t);
@@ -427,51 +430,51 @@ function Home({setPage}) {
       <div className="max-w-[1120px] mx-auto px-8 pt-14 pb-16">
         <header className="flex flex-wrap items-end justify-between gap-6">
           <div className="min-w-0">
-            <h1 className="text-[30px] leading-[1.15] font-semibold tracking-[-0.02em] text-[#171717]">Bienvenue sur POLARIS</h1>
-            <p className="mt-2 text-[15px] text-[#666666]">Analyse, diagnostic et supervision des sessions et du trafic réseau.</p>
+            <h1 className="text-[30px] leading-[1.15] font-semibold tracking-[-0.02em] text-[#171717]">{t("Bienvenue sur POLARIS")}</h1>
+            <p className="mt-2 text-[15px] text-[#666666]">{t("Analyse, diagnostic et supervision des sessions et du trafic réseau.")}</p>
           </div>
-          <button onClick={()=>setPage('sessions')} className="h-10 px-5 rounded-lg bg-[var(--app-accent)] text-white text-[14px] font-medium flex items-center gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.12)] hover:opacity-90 transition"><I d={ic.plus} c="w-4 h-4"/>Nouvelle analyse</button>
+          <button onClick={()=>setPage('sessions')} className="h-10 px-5 rounded-lg bg-[var(--app-accent)] text-white text-[14px] font-medium flex items-center gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.12)] hover:opacity-90 transition"><I d={ic.plus} c="w-4 h-4"/>{t("Nouvelle analyse")}</button>
         </header>
         <div className="mt-6 flex flex-wrap gap-2">
-          {HOME_ACTIONS.map(([k,n,d,t])=>(
-            <button key={k} disabled={!t} onClick={()=>go(t)} className="h-9 px-3.5 rounded-lg border border-[#EBEBEB] bg-white text-[13.5px] text-[#171717] flex items-center gap-2 hover:border-[#D4D4D4] hover:bg-[#FAFAFA] transition disabled:text-[#A3A3A3] disabled:hover:bg-white disabled:cursor-not-allowed">
-              <I d={d} c="w-4 h-4 text-[#666666]"/>{n}{!t && <Soon/>}</button>))}
+          {HOME_ACTIONS.map(([k,n,d,tg])=>(
+            <button key={k} disabled={!tg} onClick={()=>go(tg)} className="h-9 px-3.5 rounded-lg border border-[#EBEBEB] bg-white text-[13.5px] text-[#171717] flex items-center gap-2 hover:border-[#D4D4D4] hover:bg-[#FAFAFA] transition disabled:text-[#A3A3A3] disabled:hover:bg-white disabled:cursor-not-allowed">
+              <I d={d} c="w-4 h-4 text-[#666666]"/>{t(n)}{!tg && <Soon/>}</button>))}
         </div>
 
         <section className="mt-14">
-          <h2 className="text-[13px] font-semibold text-[#171717] mb-4">Modules</h2>
+          <h2 className="text-[13px] font-semibold text-[#171717] mb-4">{t("Modules")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {MODULES.map(([n,desc,d,t])=>(
-              <button key={n} disabled={!t} onClick={()=>go(t)} className="group text-left h-full rounded-xl border border-[#EBEBEB] bg-white p-4 flex flex-col transition hover:border-[#D4D4D4] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:border-[#EBEBEB]">
-                <span className={`w-8 h-8 rounded-lg grid place-items-center ${t?'bg-[var(--app-accent)] text-white':'bg-[#F2F2F2] text-[#8F8F8F]'}`}><I d={d} c="w-4 h-4"/></span>
-                <span className={`mt-4 text-[14px] font-semibold ${t?'text-[#171717]':'text-[#666666]'}`}>{n}</span>
-                <span className="mt-1 text-[12.5px] leading-[1.45] text-[#666666] flex-1">{desc}</span>
-                <span className="mt-4 text-[12.5px] font-medium flex items-center gap-1">{t ? <span className="text-[#171717] group-hover:translate-x-0.5 transition">Ouvrir →</span> : <Soon/>}</span>
+            {MODULES.map(([n,desc,d,tg])=>(
+              <button key={n} disabled={!tg} onClick={()=>go(tg)} className="group text-left h-full rounded-xl border border-[#EBEBEB] bg-white p-4 flex flex-col transition hover:border-[#D4D4D4] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:border-[#EBEBEB]">
+                <span className={`w-8 h-8 rounded-lg grid place-items-center ${tg?'bg-[var(--app-accent)] text-white':'bg-[#F2F2F2] text-[#8F8F8F]'}`}><I d={d} c="w-4 h-4"/></span>
+                <span className={`mt-4 text-[14px] font-semibold ${tg?'text-[#171717]':'text-[#666666]'}`}>{t(n)}</span>
+                <span className="mt-1 text-[12.5px] leading-[1.45] text-[#666666] flex-1">{t(desc)}</span>
+                <span className="mt-4 text-[12.5px] font-medium flex items-center gap-1">{tg ? <span className="text-[#171717] group-hover:translate-x-0.5 transition">{t("Ouvrir →")}</span> : <Soon/>}</span>
               </button>))}
           </div>
         </section>
 
         <div className="mt-14 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-10">
           <section>
-            <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-[#171717]">Activité récente</h2><button disabled className="ml-auto text-[12.5px] text-[#A3A3A3] cursor-not-allowed">Voir tout</button></div>
+            <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-[#171717]">{t("Activité récente")}</h2><button disabled className="ml-auto text-[12.5px] text-[#A3A3A3] cursor-not-allowed">{t("Voir tout")}</button></div>
             <div className="rounded-xl border border-dashed border-[#E5E5E5] px-6 py-10 text-center">
               <div className="mx-auto w-9 h-9 rounded-full bg-[#F5F5F5] grid place-items-center text-[#8F8F8F]"><I d="M12 7v5l3 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z" c="w-4 h-4"/></div>
-              <div className="mt-3 text-[14px] font-medium text-[#171717]">Aucune activité pour l'instant</div>
-              <div className="mt-1 text-[13px] text-[#666666]">Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.</div>
-              <button onClick={()=>setPage('sessions')} className="mt-4 text-[13px] font-medium text-[#171717] hover:underline">Lancer une analyse →</button>
+              <div className="mt-3 text-[14px] font-medium text-[#171717]">{t("Aucune activité pour l'instant")}</div>
+              <div className="mt-1 text-[13px] text-[#666666]">{t("Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.")}</div>
+              <button onClick={()=>setPage('sessions')} className="mt-4 text-[13px] font-medium text-[#171717] hover:underline">{t("Lancer une analyse →")}</button>
             </div>
           </section>
           <section>
-            <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-[#171717]">État de la plateforme</h2><button onClick={()=>setPage('nodes')} className="ml-auto text-[12.5px] font-medium text-[#171717] hover:underline">Voir la supervision</button></div>
+            <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-[#171717]">{t("État de la plateforme")}</h2><button onClick={()=>setPage('nodes')} className="ml-auto text-[12.5px] font-medium text-[#171717] hover:underline">{t("Voir la supervision")}</button></div>
             <div className="rounded-xl border border-[#EBEBEB] divide-y divide-[#F2F2F2]">
               {[['Capture','dumpcap actifs / attendus'],['Fraîcheur des données','dernier import'],['Alertes','points de vigilance']].map(([n,d])=>(
                 <div key={n} className="px-4 py-3.5 flex items-center gap-3">
                   <span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]"/>
-                  <div className="min-w-0"><div className="text-[13.5px] text-[#171717]">{n}</div><div className="text-[12px] text-[#8F8F8F]">{d}</div></div>
+                  <div className="min-w-0"><div className="text-[13.5px] text-[#171717]">{t(n)}</div><div className="text-[12px] text-[#8F8F8F]">{t(d)}</div></div>
                   <span className="ml-auto text-[13px] tabular-nums text-[#A3A3A3]">—</span>
                 </div>))}
             </div>
-            <p className="mt-3 text-[12px] text-[#8F8F8F]">Service OIRAN non connecté : aucune donnée en direct.</p>
+            <p className="mt-3 text-[12px] text-[#8F8F8F]">{t("Service OIRAN non connecté : aucune donnée en direct.")}</p>
           </section>
         </div>
       </div>
@@ -656,58 +659,66 @@ function AnalyzerHome({conds,setConds,run}) {
 }
 
 const THEMES = [['blue','Bleu','#0062A1'],['black','Noir','#171717'],['green','Vert','#0F5B56']];
-function Settings({theme,setTheme,onClose}) {
+function Settings({theme,setTheme,lang,setLang,onClose}) {
   const [sec,setSec]=useState('apparence');
   const [cur,setCur]=useState(''),[nw,setNw]=useState(''),[cf,setCf]=useState(''),[pm,setPm]=useState(null);
   const accent = THEMES.find(t=>t[0]===theme)[2];
-  const save = e => { e.preventDefault(); if(!cur||nw.length<8) return setPm(['err','Mot de passe actuel requis et 8 caractères minimum.']); if(nw!==cf) return setPm(['err','Les mots de passe ne correspondent pas.']); setPm(['ok','Mot de passe mis à jour.']); setCur('');setNw('');setCf(''); };
+  const save = e => { e.preventDefault(); if(!cur||nw.length<8) return setPm(['err',t("Mot de passe actuel requis et 8 caractères minimum.")]); if(nw!==cf) return setPm(['err',t("Les mots de passe ne correspondent pas.")]); setPm(['ok',t("Mot de passe mis à jour.")]); setCur('');setNw('');setCf(''); };
   const strength = Math.min(4,[/.{8,}/,/[A-Z]/,/[0-9]/,/[^A-Za-z0-9]/].filter(r=>r.test(nw)).length);
   const inp = "w-full h-11 rounded-lg border border-[#E5E5E5] bg-white px-3.5 text-[14px] outline-none transition focus:border-transparent focus:ring-2";
-  const SECS=[['apparence','Apparence','Couleur et thème'],['securite','Sécurité','Mot de passe'],['apropos','À propos','Version et build']];
+  const SECS=[['apparence','Apparence','Couleur et thème'],['securite','Sécurité','Mot de passe'],['langue','Langue','Français ou English'],['apropos','À propos','Version et build']];
   const Card = ({title,desc,children}) => <section className="bg-white rounded-xl border border-[#EBEBEB] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
     <div className="px-7 pt-6 pb-5 border-b border-[#F0F0F0]"><h2 className="text-[18px] font-semibold tracking-tight">{title}</h2><p className="mt-1 text-[14px] text-[#666666]">{desc}</p></div>
     <div className="p-7">{children}</div></section>;
   return (
     <div className="flex-1 overflow-auto scroll-thin">
       <div className="relative h-36 shrink-0" style={{background:`linear-gradient(120deg, ${accent}, ${accent}CC 60%, ${accent}88)`}}>
-        <button onClick={onClose} className="absolute top-5 left-8 h-9 px-3.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-[13.5px] font-medium backdrop-blur">← Retour</button>
+        <button onClick={onClose} className="absolute top-5 left-8 h-9 px-3.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-[13.5px] font-medium backdrop-blur">{t("← Retour")}</button>
       </div>
       <div className="relative z-10 max-w-[1080px] mx-auto px-8 -mt-12 pb-16">
         <div className="flex items-end gap-5 mb-10">
           <div style={{background:accent}} className="w-24 h-24 rounded-2xl ring-4 ring-white shadow-lg grid place-items-center text-[30px] font-bold text-white">SD</div>
-          <div className="pb-1 pt-14"><h1 className="text-[28px] font-semibold tracking-tight">Paramètres</h1><p className="text-[14.5px] text-[#666666]">Gérez votre compte et l'apparence de POLARIS</p></div>
+          <div className="pb-1 pt-14"><h1 className="text-[28px] font-semibold tracking-tight">{t("Paramètres")}</h1><p className="text-[14.5px] text-[#666666]">{t("Gérez votre compte et l'apparence de POLARIS")}</p></div>
         </div>
         <div className="grid grid-cols-[240px_minmax(0,1fr)] gap-10">
           <nav className="space-y-1.5">
             {SECS.map(([k,n,d])=>{const on=sec===k; return (
               <button key={k} onClick={()=>setSec(k)} className={`w-full text-left px-4 py-3 rounded-lg transition border ${on?'bg-white border-[#EBEBEB] shadow-sm':'border-transparent hover:bg-white/70'}`}>
-                <div className="flex items-center gap-2.5"><span className="w-1.5 h-5 rounded-full" style={{background:on?accent:'transparent'}}/><div><div className={`text-[14.5px] ${on?'font-semibold text-[#171717]':'text-[#4D4D4D]'}`}>{n}</div><div className="text-[12.5px] text-[#8F8F8F]">{d}</div></div></div>
+                <div className="flex items-center gap-2.5"><span className="w-1.5 h-5 rounded-full" style={{background:on?accent:'transparent'}}/><div><div className={`text-[14.5px] ${on?'font-semibold text-[#171717]':'text-[#4D4D4D]'}`}>{t(n)}</div><div className="text-[12.5px] text-[#8F8F8F]">{t(d)}</div></div></div>
               </button>);})}
           </nav>
           <div>
-            {sec==='apparence' && <Card title="Couleur de l'application" desc="Choisissez la couleur d'accent utilisée dans toute l'interface.">
+            {sec==='apparence' && <Card title={t("Couleur de l'application")} desc={t("Choisissez la couleur d'accent utilisée dans toute l'interface.")}>
               <div className="grid grid-cols-3 gap-5">{THEMES.map(([k,n,c])=>{const on=theme===k; return (
                 <button key={k} onClick={()=>setTheme(k)} className={`group text-left rounded-xl border-2 overflow-hidden transition ${on?'shadow-md':'border-[#EBEBEB] hover:border-[#D4D4D4]'}`} style={on?{borderColor:c}:{}}>
                   <div className="h-28 bg-[#FAFAFA] p-3 flex flex-col gap-2">
                     <div className="h-4 rounded flex items-center gap-1.5 px-1.5 bg-white border border-[#EEE]"><span className="w-2.5 h-2.5 rounded-sm" style={{background:c}}/><span className="h-1 w-8 rounded bg-[#DDD]"/><span className="ml-auto w-2.5 h-2.5 rounded-full" style={{background:c}}/></div>
                     <div className="flex-1 rounded bg-white border border-[#EEE] p-2 space-y-1.5"><span className="block h-1.5 w-3/4 rounded bg-[#E5E5E5]"/><span className="block h-1.5 w-1/2 rounded bg-[#E5E5E5]"/><span className="block h-4 w-14 rounded mt-2" style={{background:c}}/></div>
                   </div>
-                  <div className="px-4 py-3 flex items-center gap-2.5 bg-white"><span className="w-5 h-5 rounded-full" style={{background:c}}/><span className="text-[14.5px] font-medium">{n}</span><span className="ml-auto font-mono text-[11.5px] text-[#8F8F8F]">{c}</span>
+                  <div className="px-4 py-3 flex items-center gap-2.5 bg-white"><span className="w-5 h-5 rounded-full" style={{background:c}}/><span className="text-[14.5px] font-medium">{t(n)}</span><span className="ml-auto font-mono text-[11.5px] text-[#8F8F8F]">{c}</span>
                     {on && <span className="w-5 h-5 rounded-full grid place-items-center text-white text-[11px]" style={{background:c}}>✓</span>}</div>
                 </button>);})}</div>
             </Card>}
-            {sec==='securite' && <Card title="Mot de passe" desc="Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.">
+            {sec==='securite' && <Card title={t("Mot de passe")} desc={t("Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.")}>
               <form onSubmit={save} className="space-y-5 max-w-[460px]" style={{'--tw-ring-color':accent+'55'}}>
                 {[['Mot de passe actuel',cur,setCur],['Nouveau mot de passe',nw,setNw],['Confirmer le mot de passe',cf,setCf]].map(([l,v,fn],i)=>(
-                  <label key={l} className="block"><span className="block text-[13.5px] font-medium mb-1.5">{l}</span>
+                  <label key={l} className="block"><span className="block text-[13.5px] font-medium mb-1.5">{t(l)}</span>
                     <input type="password" value={v} onChange={e=>fn(e.target.value)} className={inp}/>
                     {i===1 && nw && <div className="mt-2 flex gap-1.5">{[0,1,2,3].map(j=><span key={j} className="h-1.5 flex-1 rounded-full" style={{background:j<strength?accent:'#EBEBEB'}}/>)}</div>}
                   </label>))}
                 {pm && <div className={`text-[13.5px] rounded-lg px-3.5 py-2.5 ${pm[0]==='ok'?'bg-[#ECF8F0] text-[#15803D]':'bg-[#FDEFEE] text-[#B42318]'}`}>{pm[1]}</div>}
-                <button type="submit" style={{background:accent}} className="h-11 px-6 rounded-lg text-white text-[14px] font-semibold shadow-sm hover:opacity-90">Mettre à jour le mot de passe</button>
+                <button type="submit" style={{background:accent}} className="h-11 px-6 rounded-lg text-white text-[14px] font-semibold shadow-sm hover:opacity-90">{t("Mettre à jour le mot de passe")}</button>
               </form>
             </Card>}
-            {sec==='apropos' && <Card title="À propos" desc="Versions des composants installés.">
+            {sec==='langue' && <Card title={t("Langue de l'interface")} desc={t("Choisissez la langue utilisée dans POLARIS.")}>
+              <div className="grid grid-cols-2 gap-5 max-w-[520px]">{[['fr','Français','FR'],['en','English','EN']].map(([k,n,c])=>{const on=lang===k; return (
+                <button key={k} onClick={()=>setLang(k)} className={`rounded-xl border-2 px-5 py-4 flex items-center gap-3 text-left transition ${on?'shadow-md':'border-[#EBEBEB] hover:border-[#D4D4D4]'}`} style={on?{borderColor:accent}:{}}>
+                  <span className="w-10 h-10 rounded-lg grid place-items-center text-[13px] font-bold text-white" style={{background:on?accent:'#A3A3A3'}}>{c}</span>
+                  <span className="text-[15px] font-medium">{n}</span>
+                  {on && <span className="ml-auto w-5 h-5 rounded-full grid place-items-center text-white text-[11px]" style={{background:accent}}>✓</span>}
+                </button>);})}</div>
+            </Card>}
+            {sec==='apropos' && <Card title={t("À propos")} desc={t("Versions des composants installés.")}>
               <div className="grid grid-cols-2 gap-5">{[['POLARIS Analyzer','0.2.0'],['OIRAN','2.10.2']].map(([n,v])=>(
                 <div key={n} className="rounded-xl border border-[#EBEBEB] p-5"><div className="text-[13px] text-[#666666]">{n}</div><div className="mt-1 text-[26px] font-semibold tracking-tight font-mono" style={{color:accent}}>{v}</div></div>))}</div>
             </Card>}
@@ -719,6 +730,9 @@ function Settings({theme,setTheme,onClose}) {
 
 function App() {
   const [role,setRole] = useState('viewer');
+  const [lang,setLangS] = useState(()=>{ try { return localStorage.getItem('polaris-lang')||'fr'; } catch(e) { return 'fr'; } });
+  const setLang = l => { try { localStorage.setItem('polaris-lang',l); } catch(e) {} setLangS(l); };
+  LANG = lang;
   const [theme,setThemeS] = useState(()=>{ try { return localStorage.getItem('polaris-theme')||'blue'; } catch(e) { return 'blue'; } });
   const setTheme = t => { try { localStorage.setItem('polaris-theme',t); } catch(e) {} setThemeS(t); };
   const accent = THEMES.find(t=>t[0]===theme)?.[2] || '#0062A1';
@@ -738,7 +752,7 @@ function App() {
     <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-[13px]">
       <TopBar role={role} setRole={setRole} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')}/>
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · les identités sont visibles · chaque consultation est journalisée</div>}
-      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage}/> : page==='nodes' ? <Nodes/> : page==='templates' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>{setPage('sessions');setAview('results');}}/> : aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>setAview('results')}/> : <>
+      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage}/> : page==='nodes' ? <Nodes/> : page==='templates' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>{setPage('sessions');setAview('results');}}/> : aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>setAview('results')}/> : <>
       <Tabs onHome={()=>setAview('queries')}/>
       <div className="flex-1 flex min-h-0">
         <main className="flex-1 min-w-0 flex flex-col">
