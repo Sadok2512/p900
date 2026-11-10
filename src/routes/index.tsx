@@ -1,23 +1,28 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, ClientOnly } from "@tanstack/react-router";
+import { lazy, Suspense } from "react";
 
-// The home route ships no og:image, so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
+const PolarisApp = lazy(() => import("@/components/polaris/PolarisApp.jsx"));
+
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "POLARIS Analyzer" },
+      { name: "description", content: "POLARIS Analyzer : requêtes, ladder, corrélation et gestion des nœuds de capture." },
+      { property: "og:title", content: "POLARIS Analyzer" },
+      { property: "og:description", content: "Analyse de sessions 4G/5G et supervision des nœuds POLARIS." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
 function Index() {
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
+    <ClientOnly fallback={<div className="min-h-screen bg-background" />}>
+      <Suspense fallback={<div className="min-h-screen bg-background" />}>
+        <PolarisApp />
+      </Suspense>
+    </ClientOnly>
   );
 }
