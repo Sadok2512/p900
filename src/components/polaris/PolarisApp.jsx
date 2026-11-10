@@ -160,7 +160,7 @@ function TopBar({role,setRole,page,setPage,onAnalyzer,accent,onSettings}) {
 function Tabs({onHome}) {
   const t = [['Requête','Échecs · run 482',true],['Session','UE-9b14 · PDU Session'],['Comparaison','UE-9b14 ↔ UE-7f3a'],['Trace','UE-7f3a',false,true]];
   return (
-    <div className="h-9 shrink-0 bg-[#FAFAFA] border-b border-[#EBEBEB] flex items-end px-2 gap-px">
+    <div className="h-10 shrink-0 bg-white border-b border-[#EBEBEB] flex items-end px-3 gap-px">
       <button onClick={onHome} className="h-8 px-3 flex items-center gap-1.5 text-[12.5px] text-[#666666] hover:text-[#171717] rounded-t-md hover:bg-white/60"><I d={ic.cols} c="w-3.5 h-3.5"/>Requêtes</button>
       <span className="w-px h-4 bg-[#EBEBEB] mb-2 mx-1"/>
       {t.map(([k,n,a,live]) => (
@@ -233,7 +233,7 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
   const ko = rows.filter(r=>r.res==='Échec').length;
   const cols = ['capture · seq','UE','RAT','Procédure','Résultat','Cause','Interfaces','Liens EXACT','Compl.','Durée','Cellule','IMSI'];
   return (
-    <section className="flex flex-col min-h-0 bg-white shrink-0" style={{height}}>
+    <section className="flex flex-col min-h-0 bg-white shrink-0 rounded-xl border border-[#EBEBEB] overflow-hidden" style={{height}}>
       <div className="h-11 shrink-0 flex items-center gap-3 px-3 border-b border-[#EBEBEB]">
         <div className="flex-1 h-8 rounded-md border border-[#EBEBEB] flex items-center gap-1.5 px-2 focus-within:border-[var(--app-accent)]">
           <I d={ic.search} c="w-[15px] h-[15px] text-[#8F8F8F]"/>
@@ -344,7 +344,7 @@ function Detail({s,sel,setSel,lens,ui}) {
   const tb = "h-7 px-2 rounded-md text-[12px] flex items-center gap-1.5 border transition";
   const d = s.d, ex = d.links.filter(l=>l[5]==='EXACT').length;
   return (
-    <section className="flex-1 min-h-0 flex flex-col bg-white">
+    <section className="flex-1 min-h-0 flex flex-col bg-white rounded-xl border border-[#EBEBEB] overflow-hidden">
       <div className="px-4 pt-3 pb-2 border-b border-[#EBEBEB]">
         <div className="flex items-center gap-3">
           <span className="font-mono text-[12px] text-[#666666]">c{s.cap} · {s.seq}</span>
@@ -392,7 +392,7 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
   const d = s.d, m = d.msgs[Math.min(sel,d.msgs.length-1)];
   const shared = m[5] ? d.msgs.filter(x=>x[5]===m[5]).length : 0;
   return (
-    <aside style={{width}} className="shrink-0 bg-white flex flex-col min-w-0">
+    <aside style={{width}} className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-[#EBEBEB] overflow-hidden">
       <div className="h-10 shrink-0 flex items-end gap-5 px-4 border-b border-[#EBEBEB]">
         {['Décodage','Preuves','Hex','Identité'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-9 text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#171717] font-medium':'border-transparent text-[#666666] hover:text-[#171717]'}`}>{t}</button>)}
         <button onClick={onHide} title="Masquer le panneau" className="ml-auto mb-2 w-7 h-7 rounded-md grid place-items-center text-[#8F8F8F] hover:bg-[#F5F5F5] hover:text-[#171717]"><I d="M15 4v16M4 4h16v16H4z" c="w-3.5 h-3.5"/></button>
@@ -817,17 +817,17 @@ function App() {
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · les identités sont visibles · chaque consultation est journalisée</div>}
       {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage}/> : page==='nodes' ? <Nodes/> : page==='templates' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>{setPage('sessions');setAview('results');}}/> : aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>setAview('results')}/> : <>
       {!full && <Tabs onHome={()=>setAview('queries')}/>}
-      <div className="flex-1 flex min-h-0">
+      <div className="flex-1 flex min-h-0 p-3 bg-[#FAFAFA]">
         <main ref={mainRef} className="flex-1 min-w-0 flex flex-col">
           {!full && !gridHidden && <>
             <Grid rows={rows} sel={s.id} setSel={setSel} role={role} conds={conds} setConds={setConds} onEdit={()=>setAview('queries')} height={`${gridPct}%`}/>
-            <div onMouseDown={e=>drag(e,'h')} onDoubleClick={()=>setGridPct(42)} title="Glisser pour redimensionner · double-clic pour réinitialiser" className="group h-[7px] -my-[3px] z-10 shrink-0 cursor-row-resize relative"><div className="absolute inset-x-0 top-[3px] h-px bg-[#EBEBEB] group-hover:bg-[var(--app-accent)] group-hover:h-[2px] transition-colors"/></div>
+            <div onMouseDown={e=>drag(e,'h')} onDoubleClick={()=>setGridPct(42)} title="Glisser pour redimensionner · double-clic pour réinitialiser" className="group h-3 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[5px] h-[2px] w-10 rounded-full bg-[#E0E0E0] group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
           </>}
           <Detail s={s} sel={msg} setSel={setMsg} lens={lens} ui={ui}/>
         </main>
         {!full && (insHidden
-          ? <button onClick={()=>setInsHidden(false)} title="Afficher le panneau" className="w-9 shrink-0 bg-white border-l border-[#EBEBEB] flex flex-col items-center pt-3 gap-3 text-[#666666] hover:text-[#171717]"><I d="M9 4v16M4 4h16v16H4z" c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[12px]">Décodage</span></button>
-          : <><div onMouseDown={e=>drag(e,'v')} onDoubleClick={()=>setInsW(360)} title="Glisser pour redimensionner" className="group w-[7px] -mx-[3px] z-10 shrink-0 cursor-col-resize relative"><div className="absolute inset-y-0 left-[3px] w-px bg-[#EBEBEB] group-hover:bg-[var(--app-accent)] group-hover:w-[2px] transition-colors"/></div>
+          ? <button onClick={()=>setInsHidden(false)} title="Afficher le panneau" className="ml-3 w-9 shrink-0 bg-white rounded-xl border border-[#EBEBEB] flex flex-col items-center pt-3 gap-3 text-[#666666] hover:text-[#171717]"><I d="M9 4v16M4 4h16v16H4z" c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[12px]">Décodage</span></button>
+          : <><div onMouseDown={e=>drag(e,'v')} onDoubleClick={()=>setInsW(360)} title="Glisser pour redimensionner" className="group w-3 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[5px] w-[2px] h-10 rounded-full bg-[#E0E0E0] group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div>
             <Inspector s={s} sel={msg} role={role} lens={lens} setLens={setLens} width={insW} onHide={()=>setInsHidden(true)}/></>)}
       </div></>}
       <footer className="h-7 shrink-0 bg-white border-t border-[#EBEBEB] flex items-center gap-5 px-4 text-[11.5px] text-[#666666]">
