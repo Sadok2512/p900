@@ -1,7 +1,7 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
 import { lazy, Suspense } from "react";
 
-const PolarisApp = lazy(() => import("@/components/polaris/PolarisApp.jsx"));
+const PolarisApp = lazy(() => import("@/components/polaris/PolarisApp"));
 
 export const Route = createFileRoute("/")({
   head: () => ({
