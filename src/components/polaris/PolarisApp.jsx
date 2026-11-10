@@ -117,17 +117,17 @@ const Stat = ({s}) => {
 };
 const Lbl = ({children}) => <div className="text-[11px] font-semibold text-[#666666] uppercase tracking-[0.06em] mb-1.5">{children}</div>;
 
-function TopBar({role,setRole,page,setPage,onAnalyzer}) {
+function TopBar({role,setRole,page,setPage,onAnalyzer,accent,onSettings}) {
   return (
     <header className="h-12 shrink-0 bg-white border-b border-[#EBEBEB] flex items-center px-4 gap-6">
       <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded-[5px] bg-[#171717] grid place-items-center"><svg viewBox="0 0 24 24" className="w-3.5 h-3.5"><path d="M12 2 13.6 10.4 22 12 13.6 13.6 12 22 10.4 13.6 2 12 10.4 10.4Z" fill="#fff"/></svg></div>
+        <div style={{background:accent}} className="w-6 h-6 rounded-[5px] grid place-items-center"><svg viewBox="0 0 24 24" className="w-3.5 h-3.5"><path d="M12 2 13.6 10.4 22 12 13.6 13.6 12 22 10.4 13.6 2 12 10.4 10.4Z" fill="#fff"/></svg></div>
         <span className="text-[14px] font-semibold tracking-tight text-[#171717]">POLARIS</span>
       </div>
       <nav className="flex h-full">
         {[['home','Accueil'],['sessions','Analyzer'],['nodes','Nœuds'],['kpi','KPI'],['live','Live'],['trafic','Trafic']].map(([k,n]) => {
           const on = page===k, ok = k==='home'||k==='sessions'||k==='nodes';
-          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if(k==='sessions' && onAnalyzer) onAnalyzer(); } }} className={`relative px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{n}{on && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-[#171717]"/>}</button>;
+          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if(k==='sessions' && onAnalyzer) onAnalyzer(); } }} className={`relative px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{n}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
         })}
       </nav>
       <div className="flex-1 max-w-[420px] h-8 rounded-md border border-[#EBEBEB] bg-[#FAFAFA] flex items-center gap-2 px-2.5 text-[13px] text-[#8F8F8F]">
@@ -138,7 +138,7 @@ function TopBar({role,setRole,page,setPage,onAnalyzer}) {
         <div className="flex rounded-md border border-[#EBEBEB] p-[2px] bg-[#FAFAFA]">
           {['viewer','operator'].map(r => <button key={r} onClick={()=>setRole(r)} className={`px-2.5 h-6 rounded-[4px] text-[12px] ${role===r ? (r==='operator'?'bg-[#A15C07] text-white':'bg-white text-[#171717] shadow-sm') : 'text-[#666666]'}`}>{r==='operator'?'operator':'viewer'}</button>)}
         </div>
-        <div className="w-7 h-7 rounded-full bg-[#EBEBEB] grid place-items-center text-[11px] font-semibold text-[#4D4D4D]">SD</div>
+        <button type="button" onClick={onSettings} title="Paramètres" style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white hover:opacity-90">SD</button>
       </div>
     </header>
   );
@@ -679,8 +679,45 @@ function AnalyzerHome({conds,setConds,run}) {
   );
 }
 
+const THEMES = [['blue','Bleu','#0062A1'],['black','Noir','#171717'],['green','Vert','#0F5B56']];
+function Settings({theme,setTheme,onClose}) {
+  const [cur,setCur]=useState(''),[nw,setNw]=useState(''),[cf,setCf]=useState(''),[pm,setPm]=useState(null);
+  const accent = THEMES.find(t=>t[0]===theme)[2];
+  const save = e => { e.preventDefault(); if(!cur||nw.length<8) return setPm(['err','Mot de passe actuel requis et 8 caractères minimum.']); if(nw!==cf) return setPm(['err','Les mots de passe ne correspondent pas.']); setPm(['ok','Mot de passe mis à jour (maquette).']); setCur('');setNw('');setCf(''); };
+  const inp = "w-full h-8 rounded-md border border-[#EBEBEB] px-2.5 text-[13px] outline-none focus:border-[#8F8F8F]";
+  return (
+    <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center" onClick={onClose}>
+      <div className="w-[420px] bg-white rounded-lg border border-[#EBEBEB] shadow-xl" onClick={e=>e.stopPropagation()}>
+        <div className="h-12 px-4 flex items-center gap-3 border-b border-[#EBEBEB]">
+          <div style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white">SD</div>
+          <span className="text-[14px] font-semibold">Paramètres</span>
+          <button onClick={onClose} className="ml-auto text-[#666666] hover:text-[#171717]"><I d={ic.x} c="w-4 h-4"/></button>
+        </div>
+        <div className="p-4 space-y-5">
+          <div><Lbl>Version</Lbl>
+            <div className="font-mono text-[12px] text-[#4D4D4D] space-y-0.5"><div>Analyzer 0.1.0</div><div>OIRAN 2.10.2</div></div></div>
+          <div><Lbl>Couleur de l'application</Lbl>
+            <div className="flex gap-2">{THEMES.map(([k,n,c])=>(
+              <button key={k} onClick={()=>setTheme(k)} className={`flex-1 h-9 rounded-md border flex items-center justify-center gap-2 text-[12.5px] ${theme===k?'border-[#171717] font-semibold':'border-[#EBEBEB] text-[#666666]'}`}>
+                <span className="w-3.5 h-3.5 rounded-full" style={{background:c}}/>{n}</button>))}</div></div>
+          <form onSubmit={save} className="space-y-2"><Lbl>Mot de passe</Lbl>
+            <input type="password" placeholder="Mot de passe actuel" value={cur} onChange={e=>setCur(e.target.value)} className={inp}/>
+            <input type="password" placeholder="Nouveau mot de passe" value={nw} onChange={e=>setNw(e.target.value)} className={inp}/>
+            <input type="password" placeholder="Confirmer" value={cf} onChange={e=>setCf(e.target.value)} className={inp}/>
+            {pm && <div className={`text-[12px] ${pm[0]==='ok'?'text-[#15803D]':'text-[#B42318]'}`}>{pm[1]}</div>}
+            <button type="submit" style={{background:accent}} className="h-8 px-3 rounded-md text-white text-[12.5px] font-medium">Changer le mot de passe</button>
+          </form>
+        </div>
+      </div>
+    </div>);
+}
+
 function App() {
   const [role,setRole] = useState('viewer');
+  const [theme,setThemeS] = useState(()=>{ try { return localStorage.getItem('polaris-theme')||'blue'; } catch(e) { return 'blue'; } });
+  const setTheme = t => { try { localStorage.setItem('polaris-theme',t); } catch(e) {} setThemeS(t); };
+  const accent = THEMES.find(t=>t[0]===theme)?.[2] || '#0062A1';
+  const [showSet,setShowSet] = useState(false);
   const readP = () => { const h=(location.hash||'').replace('#',''); return ['sessions','nodes'].includes(h) ? h : 'home'; };
   const [page,setPageS] = useState(readP);
   const setPage = p => { try { location.hash = p; } catch(e) {} setPageS(p); };
@@ -695,7 +732,8 @@ function App() {
   useEffect(()=>{ setMsg(s.d===KO5?4:Math.min(14,s.d.msgs.length-1)); setLens(null); },[s.id]);
   return (
     <div className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-[13px]">
-      <TopBar role={role} setRole={setRole} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')}/>
+      <TopBar role={role} setRole={setRole} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setShowSet(true)}/>
+      {showSet && <Settings theme={theme} setTheme={setTheme} onClose={()=>setShowSet(false)}/>}
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · les identités sont visibles · chaque consultation est journalisée</div>}
       {page==='home' ? <Home setPage={setPage}/> : page==='nodes' ? <Nodes/> : aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>setAview('results')}/> : <>
       <Tabs onHome={()=>setAview('queries')}/>
