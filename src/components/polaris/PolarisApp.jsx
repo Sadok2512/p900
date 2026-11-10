@@ -164,7 +164,7 @@ function Tabs({onHome}) {
       <button onClick={onHome} className="h-8 px-3 flex items-center gap-1.5 text-[12.5px] text-[#666666] hover:text-[#171717] rounded-t-md hover:bg-white/60"><I d={ic.cols} c="w-3.5 h-3.5"/>Requêtes</button>
       <span className="w-px h-4 bg-[#EBEBEB] mb-2 mx-1"/>
       {t.map(([k,n,a,live]) => (
-        <div key={n} className={`h-8 px-3 flex items-center gap-2 text-[12.5px] rounded-t-md border border-b-0 ${a?'bg-white border-[#EBEBEB] text-[#171717]':'border-transparent text-[#666666] hover:bg-white/60'}`}>
+        <div key={n} className={`h-8 px-3 flex items-center gap-2 text-[12.5px] rounded-t-md border border-b-0 ${a?'bg-white border-[#EBEBEB] text-[#171717] shadow-[inset_0_2px_0_var(--app-accent)]':'border-transparent text-[#666666] hover:bg-white/60'}`}>
           {live && <span className="w-[6px] h-[6px] rounded-full bg-[#15803D]"/>}
           <span className="text-[11px] text-[#8F8F8F]">{k}</span><span className={a?'font-medium':''}>{n}</span>
           <I d={ic.x} c="w-3 h-3 text-[#8F8F8F]"/>
@@ -227,14 +227,15 @@ function QueryPanel({conds,setConds}) {
   );
 }
 
-function Grid({rows,sel,setSel,role,conds,setConds,onEdit}) {
+function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
+  const [more,setMore] = useState(false);
   const [txt,setTxt] = useState('');
   const ko = rows.filter(r=>r.res==='Échec').length;
   const cols = ['capture · seq','UE','RAT','Procédure','Résultat','Cause','Interfaces','Liens EXACT','Compl.','Durée','Cellule','IMSI'];
   return (
-    <section className="flex flex-col min-h-0 bg-white border-b border-[#EBEBEB]" style={{height:'44%'}}>
+    <section className="flex flex-col min-h-0 bg-white shrink-0" style={{height}}>
       <div className="h-11 shrink-0 flex items-center gap-3 px-3 border-b border-[#EBEBEB]">
-        <div className="flex-1 h-8 rounded-md border border-[#EBEBEB] flex items-center gap-1.5 px-2 focus-within:border-[#171717]">
+        <div className="flex-1 h-8 rounded-md border border-[#EBEBEB] flex items-center gap-1.5 px-2 focus-within:border-[var(--app-accent)]">
           <I d={ic.search} c="w-[15px] h-[15px] text-[#8F8F8F]"/>
           {conds.map((c,i) => <span key={i} className="flex items-center gap-1 h-6 rounded-[4px] bg-[#F2F2F2] border border-[#E5E5E5] pl-1.5 pr-1 text-[12px] text-[#171717] whitespace-nowrap"><span className="text-[#8F8F8F]">{c[0]}</span>{c[1]}<button onClick={()=>setConds(conds.filter((_,j)=>j!==i))}><I d={ic.x} c="w-3 h-3"/></button></span>)}
           <input value={txt} onChange={e=>setTxt(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter'&&txt){ const f=FIELDS.find(x=>x[1].some(v=>v.toLowerCase()===txt.toLowerCase())); if(f){ setConds([...conds,[f[0],f[1].find(v=>v.toLowerCase()===txt.toLowerCase())]]); setTxt(''); } } }}
@@ -246,8 +247,13 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit}) {
           <span className="tabular-nums">{ko} échecs</span>
         </div>
         <button onClick={onEdit} className="h-8 px-2.5 rounded-md border border-[#EBEBEB] text-[12.5px] flex items-center gap-1.5 text-[#4D4D4D] hover:bg-[#FAFAFA]"><I d={ic.search} c="w-3.5 h-3.5"/>Modifier la requête</button>
-        <button className="h-8 px-2.5 rounded-md border border-[#EBEBEB] text-[12.5px] flex items-center gap-1.5 text-[#4D4D4D] hover:bg-[#FAFAFA]"><I d={ic.cols} c="w-3.5 h-3.5"/>Colonnes</button>
-        <button className="h-8 px-2.5 rounded-md border border-[#EBEBEB] text-[12.5px] flex items-center gap-1.5 text-[#4D4D4D] hover:bg-[#FAFAFA]"><I d={ic.dl} c="w-3.5 h-3.5"/>Exporter</button>
+        <div className="relative">
+          <button onClick={()=>setMore(m=>!m)} title="Plus d'actions" className="h-8 w-8 rounded-md border border-[#EBEBEB] grid place-items-center text-[#4D4D4D] hover:bg-[#FAFAFA]">⋯</button>
+          {more && <><div className="fixed inset-0 z-30" onClick={()=>setMore(false)}/><div className="absolute right-0 top-9 z-40 w-44 bg-white border border-[#EBEBEB] rounded-lg shadow-lg py-1 text-[13px]">
+            <button onClick={()=>setMore(false)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#FAFAFA]"><I d={ic.cols} c="w-3.5 h-3.5 text-[#666666]"/>Colonnes</button>
+            <button onClick={()=>setMore(false)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#FAFAFA]"><I d={ic.dl} c="w-3.5 h-3.5 text-[#666666]"/>Exporter</button>
+          </div></>}
+        </div>
       </div>
       <div className="flex-1 overflow-auto scroll-thin">
         <table className="w-full text-[12.5px] whitespace-nowrap border-separate border-spacing-0">
@@ -258,8 +264,8 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit}) {
             {rows.map(r => {
               const on = sel===r.id;
               return (
-                <tr key={r.id} onClick={()=>setSel(r.id)} className={`cursor-pointer ${on?'bg-[#F2F2F2]':'hover:bg-[#FAFAFA]'}`}>
-                  <td className={`h-7 px-3 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#666666] ${on?'shadow-[inset_2px_0_0_#171717]':''}`}>c{r.cap} · {r.seq}</td>
+                <tr key={r.id} onClick={()=>setSel(r.id)} className={`cursor-pointer ${on?'bg-[color-mix(in_oklab,var(--app-accent)_8%,white)]':'hover:bg-[#FAFAFA]'}`}>
+                  <td className={`h-8 px-3 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#666666] ${on?'shadow-[inset_3px_0_0_var(--app-accent)]':''}`}>c{r.cap} · {r.seq}</td>
                   <td className="px-3 border-b border-[#F2F2F2] font-mono text-[12px] text-[#171717]">{r.ue}</td>
                   <td className="px-3 border-b border-[#F2F2F2]">{r.rat}</td>
                   <td className="px-3 border-b border-[#F2F2F2] text-[#171717]">{r.proc}</td>
@@ -282,26 +288,43 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit}) {
   );
 }
 
-function Ladder({d,sel,setSel,lens}) {
-  const W = 760, LG = 150, n = d.nodes.length, ROW = 26, TOP = 40;
-  const x = k => LG + 30 + k*((W-LG-80)/(n-1));
-  const H = TOP + d.msgs.length*ROW + 12;
+const isCause = m => !!(m && m[4] && /^cause|code|result/i.test(m[4]));
+function useWidth() {
+  const ref = useRef(null); const [w,setW] = useState(900);
+  useEffect(()=>{ if(!ref.current) return; const ro = new ResizeObserver(e=>setW(Math.floor(e[0].contentRect.width))); ro.observe(ref.current); return ()=>ro.disconnect(); },[]);
+  return [ref,w];
+}
+function Ladder({d,sel,setSel,lens,hidden,collapsed,width}) {
+  const W = Math.max(720, width), LG = 170, n = d.nodes.length, ROW = 30, TOP = 46;
+  const x = k => LG + 50 + k*((W-LG-110)/(n-1));
+  const inCollapsed = k => d.procs.some(p=>collapsed.includes(p[0]) && k>=p[1] && k<=p[2]);
+  const vis = d.msgs.map((m,k)=>k).filter(k=>!hidden.includes(d.msgs[k][0]) && !inCollapsed(k));
+  const H = TOP + Math.max(1,vis.length)*ROW + 16;
+  const lensCause = lens && d.msgs.some(m=>m[5]===lens && isCause(m));
   return (
     <svg width={W} height={H} className="block select-none">
-      {d.procs.map(([p,a,b],k) => <g key={p}><rect x={8 + k*0} y={TOP + a*ROW + 2} width="4" height={(b-a+1)*ROW - 4} rx="2" fill="#171717" opacity={k===0?.9:.45} transform={`translate(${k*8},0)`}/><text x={30 + k*0} y={TOP + a*ROW + 15} fontSize="11" fill="#171717" fontWeight="600" transform={`translate(${k*0},0)`}>{k>0 ? '' : p}</text></g>)}
-      {d.nodes.map((nd,k) => <g key={nd}><line x1={x(k)} x2={x(k)} y1="30" y2={H} stroke="#EBEBEB"/><rect x={x(k)-46} y="6" width="92" height="22" rx="4" fill="#fff" stroke="#D4D4D4"/><text x={x(k)} y="21" textAnchor="middle" fontSize="11.5" fontWeight="600" fill="#171717">{nd}</text></g>)}
-      {d.msgs.map((m,k) => {
+      {d.nodes.map((nd,k) => <g key={nd}><line x1={x(k)} x2={x(k)} y1="34" y2={H} stroke="#EDEDED" strokeDasharray="0"/><rect x={x(k)-48} y="8" width="96" height="24" rx="6" fill="#fff" stroke="#E5E5E5"/><text x={x(k)} y="24" textAnchor="middle" fontSize="11.5" fontWeight="600" fill="#171717">{nd}</text></g>)}
+      {vis.length===0 && <text x={W/2} y={TOP+20} textAnchor="middle" fontSize="12" fill="#8F8F8F">Aucun message visible — réaffiche une interface ou déplie une procédure.</text>}
+      {vis.map((k,row) => {
+        const m = d.msgs[k];
         const [a,b] = m[2].split(' → ').map(s=>nodeIdx(d.nodes,s));
-        const y = TOP + k*ROW + 16, x1 = x(a), x2 = x(b), dir = x2>x1?1:-1, c = IFC[m[0]][0];
-        const on = sel===k, lit = lens && m[5]===lens;
+        const y = TOP + row*ROW + 18, x1 = x(a), x2 = x(b), dir = x2>x1?1:-1, c = IFC[m[0]][0];
+        const on = sel===k, lit = lens && m[5]===lens, cause = isCause(m);
+        const full = m[1] + (m[3] ? '  ·  '+m[3] : '');
+        const maxc = Math.max(8, Math.floor((Math.abs(x2-x1)-14)/6.1));
+        const label = full.length>maxc ? full.slice(0,maxc-1)+'…' : full;
+        const pstart = d.procs.find(p=>p[1]===k);
         return (
           <g key={k} onClick={()=>setSel(k)} className="cursor-pointer">
-            <rect x="0" y={y-16} width={W} height={ROW} fill={on?'#F2F2F2':lit?'#FDF6E7':'transparent'}/>
-            <text x="34" y={y+4} fontSize="10.5" fill="#8F8F8F" fontFamily="Geist Mono">{String(k+1).padStart(2,'0')}</text>
-            {d.procs.filter(p=>p[1]===k).map((p,j)=> j===0 && k>0 ? <text key={p[0]} x="58" y={y+4} fontSize="10.5" fill="#171717" fontWeight="600">{p[0]}</text> : null)}
-            <line x1={x1} x2={x2 - dir*6} y1={y} y2={y} stroke={c} strokeWidth={on?2:1.25}/>
+            <title>{`${k+1}. ${m[0]} · ${full} · ${m[2]}${m[4]?` · ${m[4]} ${m[5]}`:''}`}</title>
+            <rect x="0" y={y-18} width={W} height={ROW} fill={on?'color-mix(in oklab, var(--app-accent) 9%, white)':lit?(lensCause?'#FDEFEE':'#FDF6E7'):'transparent'}/>
+            {on && <rect x="0" y={y-18} width="3" height={ROW} fill="var(--app-accent)"/>}
+            <text x="16" y={y+4} fontSize="10.5" fill="#A3A3A3" fontFamily="Geist Mono">{String(k+1).padStart(2,'0')}</text>
+            {pstart && <text x="44" y={y+4} fontSize="11" fill="#4D4D4D" fontWeight="600">{pstart[0]}</text>}
+            <line x1={x1} x2={x2 - dir*7} y1={y} y2={y} stroke={c} strokeWidth={on?1.75:1.1}/>
             <path d={`M${x2},${y} l${-dir*7},-3.5 l0,7 z`} fill={c}/>
-            <text x={Math.min(x1,x2)+6} y={y-4} fontSize="11" fill="#171717" fontWeight={on?600:400}>{m[1]}{m[3] ? '  ·  '+m[3] : ''}</text>
+            <text x={Math.min(x1,x2)+7} y={y-5} fontSize="11.5" fill={on?'#171717':'#333'} fontWeight={on?600:450}>{label}</text>
+            {cause && <g><rect x={Math.max(x1,x2)+8} y={y-9} width={(m[5].length+7)*6.4} height="17" rx="4" fill="#FDEFEE" stroke="#F5C6C2"/><text x={Math.max(x1,x2)+14} y={y+3} fontSize="10.5" fill="#B42318" fontWeight="600">{m[4].replace(/^cause /,'')} {m[5]}</text></g>}
           </g>
         );
       })}
@@ -309,8 +332,16 @@ function Ladder({d,sel,setSel,lens}) {
   );
 }
 
-function Detail({s,sel,setSel,lens}) {
+function Detail({s,sel,setSel,lens,ui}) {
   const [tab,setTab] = useState('Ladder');
+  const [hidden,setHidden] = useState([]);
+  const [collapsed,setCollapsed] = useState([]);
+  const [ref,width] = useWidth();
+  useEffect(()=>{ setHidden([]); setCollapsed([]); },[s.id]);
+  const ifs = [...new Set(s.d.msgs.map(m=>m[0]))];
+  const step = dir => { const n=s.d.msgs.length; let k=sel; for(let i=0;i<n;i++){ k=(k+dir+n)%n; if(!hidden.includes(s.d.msgs[k][0])) break; } setSel(k); };
+  useEffect(()=>{ const f=e=>{ if(/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) return; if(e.key==='ArrowDown'||e.key==='j'){e.preventDefault();step(1);} if(e.key==='ArrowUp'||e.key==='k'){e.preventDefault();step(-1);} if(e.key==='f'&&tab==='Ladder') ui.setFull(v=>!v); if(e.key==='Escape') ui.setFull(false); }; window.addEventListener('keydown',f); return ()=>window.removeEventListener('keydown',f); });
+  const tb = "h-7 px-2 rounded-md text-[12px] flex items-center gap-1.5 border transition";
   const d = s.d, ex = d.links.filter(l=>l[5]==='EXACT').length;
   return (
     <section className="flex-1 min-h-0 flex flex-col bg-white">
@@ -324,13 +355,26 @@ function Detail({s,sel,setSel,lens}) {
         </div>
         <div className="mt-1.5 text-[12.5px] text-[#4D4D4D]">{d.summary}{d.diverge && <span className="ml-2 text-[#B42318]">{d.diverge}</span>}</div>
         <div className="flex gap-5 mt-2 -mb-2">
-          {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-8 text-[12.5px] border-b-2 ${tab===t?'border-[#171717] text-[#171717] font-medium':'border-transparent text-[#666666] hover:text-[#171717]'}`}>{t}</button>)}
+          {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-8 text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#171717] font-medium':'border-transparent text-[#666666] hover:text-[#171717]'}`}>{t}</button>)}
         </div>
       </div>
-      <div className="flex-1 overflow-auto scroll-thin">
-        {tab==='Ladder' && <Ladder d={d} sel={sel} setSel={setSel} lens={lens}/>}
+      {tab==='Ladder' && <div className="h-10 shrink-0 px-3 flex items-center gap-1.5 border-b border-[#F2F2F2] overflow-x-auto scroll-thin">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mr-1">Interfaces</span>
+        {ifs.map(i=>{const off=hidden.includes(i); return <button key={i} onClick={()=>setHidden(off?hidden.filter(x=>x!==i):[...hidden,i])} title={off?'Afficher':'Masquer'} className={`h-6 px-1 rounded-md border transition ${off?'opacity-35 border-transparent':'border-[#EBEBEB] bg-white'}`}><Tag i={i}/></button>;})}
+        <span className="w-px h-4 bg-[#EBEBEB] mx-2"/>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mr-1">Procédures</span>
+        {d.procs.map(([p,a,b])=>{const c=collapsed.includes(p); return <button key={p} onClick={()=>setCollapsed(c?collapsed.filter(x=>x!==p):[...collapsed,p])} className={`${tb} ${c?'border-[#EBEBEB] bg-[#FAFAFA] text-[#8F8F8F]':'border-[#EBEBEB] bg-white text-[#171717]'}`}><span className="text-[10px]">{c?'▸':'▾'}</span>{p}<span className="text-[#A3A3A3] tabular-nums">{b-a+1}</span></button>;})}
+        <div className="ml-auto flex items-center gap-1 shrink-0">
+          <button onClick={()=>step(-1)} title="Message précédent (↑)" className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>↑</button>
+          <button onClick={()=>step(1)} title="Message suivant (↓)" className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>↓</button>
+          {!ui.full && <button onClick={()=>ui.setGridHidden(v=>!v)} className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>{ui.gridHidden?'Afficher le tableau':'Masquer le tableau'}</button>}
+          <button onClick={()=>ui.setFull(v=>!v)} title="Plein écran (F)" className={`${tb} ${ui.full?'border-transparent bg-[var(--app-accent)] text-white':'border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]'}`}><I d={ui.full?'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5':'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'} c="w-3.5 h-3.5"/>{ui.full?'Quitter':'Plein écran'}</button>
+        </div>
+      </div>}
+      <div ref={ref} className="flex-1 overflow-auto scroll-thin">
+        {tab==='Ladder' && <Ladder d={d} sel={sel} setSel={setSel} lens={lens} hidden={hidden} collapsed={collapsed} width={width}/>}
         {tab==='Messages' && <table className="w-full text-[12.5px]"><tbody>{d.msgs.map((m,k)=>(
-          <tr key={k} onClick={()=>setSel(k)} className={`cursor-pointer ${sel===k?'bg-[#F2F2F2]':'hover:bg-[#FAFAFA]'}`}>
+          <tr key={k} onClick={()=>setSel(k)} className={`cursor-pointer ${sel===k?'bg-[color-mix(in_oklab,var(--app-accent)_9%,white)]':'hover:bg-[#FAFAFA]'}`}>
             <td className="h-7 px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#8F8F8F] w-12">{k+1}</td><td className="px-2 border-b border-[#F2F2F2] w-20"><Tag i={m[0]}/></td>
             <td className="px-2 border-b border-[#F2F2F2]">{m[1]}{m[3]&&<span className="text-[#666666]"> · {m[3]}</span>}</td><td className="px-2 border-b border-[#F2F2F2] text-[#666666]">{m[2]}</td>
             <td className="px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#666666]">{m[4]?`${m[4]} ${m[5]}`:''}</td></tr>))}</tbody></table>}
@@ -342,14 +386,16 @@ function Detail({s,sel,setSel,lens}) {
   );
 }
 
-function Inspector({s,sel,role,lens,setLens}) {
-  const [tab,setTab] = useState('Décodage');
+function Inspector({s,sel,role,lens,setLens,width,onHide}) {
+  const [tab,setTab] = useState(()=>{ try { return localStorage.getItem('polaris-insp-tab')||'Décodage'; } catch(e) { return 'Décodage'; } });
+  useEffect(()=>{ try { localStorage.setItem('polaris-insp-tab',tab); } catch(e) {} },[tab]);
   const d = s.d, m = d.msgs[Math.min(sel,d.msgs.length-1)];
   const shared = m[5] ? d.msgs.filter(x=>x[5]===m[5]).length : 0;
   return (
-    <aside className="w-[340px] shrink-0 bg-white border-l border-[#EBEBEB] flex flex-col">
+    <aside style={{width}} className="shrink-0 bg-white flex flex-col min-w-0">
       <div className="h-10 shrink-0 flex items-end gap-5 px-4 border-b border-[#EBEBEB]">
-        {['Décodage','Preuves','Hex','Identité'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-9 text-[12.5px] border-b-2 ${tab===t?'border-[#171717] text-[#171717] font-medium':'border-transparent text-[#666666]'}`}>{t}</button>)}
+        {['Décodage','Preuves','Hex','Identité'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-9 text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#171717] font-medium':'border-transparent text-[#666666] hover:text-[#171717]'}`}>{t}</button>)}
+        <button onClick={onHide} title="Masquer le panneau" className="ml-auto mb-2 w-7 h-7 rounded-md grid place-items-center text-[#8F8F8F] hover:bg-[#F5F5F5] hover:text-[#171717]"><I d="M15 4v16M4 4h16v16H4z" c="w-3.5 h-3.5"/></button>
       </div>
       <div className="flex-1 overflow-auto scroll-thin p-4 text-[12.5px]">
         {tab==='Décodage' && <div className="space-y-4">
@@ -367,11 +413,15 @@ function Inspector({s,sel,role,lens,setLens}) {
               <div className="pl-12">identité : {role==='operator' ? <span className="text-[#A15C07]">{s.imsi}</span> : <span className="text-[#8F8F8F]">masquée</span>}</div></>}
             {m[4] && <div className="pl-8">{m[4]} : <span className="text-[#A15C07]">{m[5]}</span></div>}
           </div>
-          {m[5] && <div className="rounded-md border border-[#EBEBEB] p-3">
-            <div className="flex items-center gap-2 font-medium text-[#171717]"><I d={ic.lens} c="w-4 h-4 text-[#171717]"/>Lentille de clé</div>
-            <div className="text-[#666666] mt-1"><span className="font-mono text-[#A15C07]">{m[5]}</span> apparaît dans {shared} message(s) de la session.</div>
+          {m[5] && (isCause(m) ? <div className="rounded-md border border-[#F5C6C2] bg-[#FFFBFA] p-3">
+            <div className="flex items-center gap-2 font-medium text-[#B42318]"><I d="M12 8v5M12 16h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" c="w-4 h-4"/>Lentille de cause</div>
+            <div className="text-[#666666] mt-1"><span className="font-mono text-[#B42318]">{m[4].replace(/^cause /,'')} {m[5]}</span> — cause d'échec, pas une clé de corrélation. Présente dans {shared} message(s).</div>
+            <button onClick={()=>setLens(lens===m[5]?null:m[5])} className={`mt-2 h-7 px-3 rounded-md text-[12px] font-medium ${lens===m[5]?'border border-[#EBEBEB] text-[#4D4D4D]':'bg-[#B42318] text-white'}`}>{lens===m[5]?'Retirer le surlignage':'Surligner la cause'}</button>
+          </div> : <div className="rounded-md border border-[#EBEBEB] p-3">
+            <div className="flex items-center gap-2 font-medium text-[#171717]"><I d={ic.lens} c="w-4 h-4"/>Lentille de clé</div>
+            <div className="text-[#666666] mt-1"><span className="font-mono text-[11.5px] text-[#8F8F8F]">{m[4]}</span> <span className="font-mono text-[#A15C07]">{m[5]}</span> apparaît dans {shared} message(s) de la session.</div>
             <button onClick={()=>setLens(lens===m[5]?null:m[5])} className={`mt-2 h-7 px-3 rounded-md text-[12px] font-medium ${lens===m[5]?'border border-[#EBEBEB] text-[#4D4D4D]':'bg-[var(--app-accent)] text-white'}`}>{lens===m[5]?'Retirer le surlignage':'Surligner dans la session'}</button>
-          </div>}
+          </div>)}
         </div>}
         {tab==='Preuves' && <div className="space-y-2">{d.links.map((l,k)=>(
           <div key={k} className="rounded-md border border-[#EBEBEB] p-3"><div className="flex items-center gap-2"><Tag i={l[2]}/><span className="text-[#8F8F8F]">→</span><Tag i={l[3]}/><span className="ml-auto"><Stat s={l[5]}/></span></div>
@@ -395,7 +445,7 @@ const NODES = [
   {n:'oiran-capture-01',role:'Capture',st:'ok',ver:'OIRAN 2.10.2',exp:'2.10.2',cpu:31,mem:[2.1,4],disk:76,seen:'il y a 2 s',info:'12/12 dumpcap · PID stables'},
   {n:'oiran-import-01',role:'Import et décodage',st:'ok',ver:'OIRAN 2.10.2',exp:'2.10.2',cpu:58,mem:[2.9,4],disk:76,seen:'il y a 2 s',info:'retard 4 s · 0 segment ignoré'},
   {n:'oiran-dataset',role:'Base / dataset',st:'warn',ver:'schéma 7',exp:'7',cpu:22,mem:[1.4,4],disk:76,seen:'il y a 5 s',info:'~1,5 M événements · disque en hausse'},
-  {n:'analyzer-api',role:'API Analyzer',st:'ok',ver:'Analyzer 0.2.0',exp:'0.2.0',cpu:9,mem:[0.4,1],disk:41,seen:'il y a 1 s',info:'p95 requête 0,8 s'},
+  {n:'analyzer-api',role:'API Analyzer',st:'ok',ver:'Analyzer 0.3.0',exp:'0.3.0',cpu:9,mem:[0.4,1],disk:41,seen:'il y a 1 s',info:'p95 requête 0,8 s'},
   {n:'polaris-control',role:'Orchestrateur',st:'ok',ver:'API 0.30.0 · sim 0.13.4',exp:'0.30.0',cpu:12,mem:[0.6,2],disk:41,seen:'il y a 3 s',info:'run 5G #482 terminé'},
   {n:'open5gs-core',role:'Cœur 5G / EPC (observé)',st:'ok',ver:'Open5GS 2.8.0',exp:'2.8.0',cpu:null,mem:null,disk:null,seen:'trafic vu il y a 1 s',info:'AMF, SMF, UPF, MME actifs'},
 ];
@@ -719,7 +769,7 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
                 </button>);})}</div>
             </Card>}
             {sec==='apropos' && <Card title={t("À propos")} desc={t("Versions des composants installés.")}>
-              <div className="grid grid-cols-2 gap-5">{[['POLARIS Analyzer','0.2.0'],['OIRAN','2.10.2']].map(([n,v])=>(
+              <div className="grid grid-cols-2 gap-5">{[['POLARIS Analyzer','0.3.0'],['OIRAN','2.10.2']].map(([n,v])=>(
                 <div key={n} className="rounded-xl border border-[#EBEBEB] p-5"><div className="text-[13px] text-[#666666]">{n}</div><div className="mt-1 text-[26px] font-semibold tracking-tight font-mono" style={{color:accent}}>{v}</div></div>))}</div>
             </Card>}
           </div>
@@ -747,23 +797,42 @@ function App() {
   const s = rows.find(r=>r.id===sel) || rows[0] || SESS[0];
   const [msg,setMsg] = useState(4);
   const [lens,setLens] = useState(null);
+  const L0 = (()=>{ try { return JSON.parse(localStorage.getItem('polaris-layout'))||{}; } catch(e) { return {}; } })();
+  const [gridPct,setGridPct] = useState(L0.gridPct ?? 42);
+  const [gridHidden,setGridHidden] = useState(L0.gridHidden ?? false);
+  const [insW,setInsW] = useState(L0.insW ?? 360);
+  const [insHidden,setInsHidden] = useState(L0.insHidden ?? false);
+  const [full,setFull] = useState(false);
+  useEffect(()=>{ try { localStorage.setItem('polaris-layout',JSON.stringify({gridPct,gridHidden,insW,insHidden})); } catch(e) {} },[gridPct,gridHidden,insW,insHidden]);
+  const mainRef = useRef(null);
+  const drag = (e,kind) => { e.preventDefault(); const r = mainRef.current.getBoundingClientRect();
+    const mv = ev => { if(kind==='h') setGridPct(Math.min(80,Math.max(15,(ev.clientY-r.top)/r.height*100))); else setInsW(Math.min(640,Math.max(280,window.innerWidth-ev.clientX))); };
+    const up = () => { window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up); document.body.style.cursor=''; };
+    document.body.style.cursor = kind==='h'?'row-resize':'col-resize'; window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up); };
+  const ui = {full,setFull,gridHidden,setGridHidden};
   useEffect(()=>{ setMsg(s.d===KO5?4:Math.min(14,s.d.msgs.length-1)); setLens(null); },[s.id]);
   return (
     <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-[13px]">
       <TopBar role={role} setRole={setRole} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')}/>
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · les identités sont visibles · chaque consultation est journalisée</div>}
       {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage}/> : page==='nodes' ? <Nodes/> : page==='templates' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>{setPage('sessions');setAview('results');}}/> : aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={()=>setAview('results')}/> : <>
-      <Tabs onHome={()=>setAview('queries')}/>
+      {!full && <Tabs onHome={()=>setAview('queries')}/>}
       <div className="flex-1 flex min-h-0">
-        <main className="flex-1 min-w-0 flex flex-col">
-          <Grid rows={rows} sel={s.id} setSel={setSel} role={role} conds={conds} setConds={setConds} onEdit={()=>setAview('queries')}/>
-          <Detail s={s} sel={msg} setSel={setMsg} lens={lens}/>
+        <main ref={mainRef} className="flex-1 min-w-0 flex flex-col">
+          {!full && !gridHidden && <>
+            <Grid rows={rows} sel={s.id} setSel={setSel} role={role} conds={conds} setConds={setConds} onEdit={()=>setAview('queries')} height={`${gridPct}%`}/>
+            <div onMouseDown={e=>drag(e,'h')} onDoubleClick={()=>setGridPct(42)} title="Glisser pour redimensionner · double-clic pour réinitialiser" className="group h-[7px] -my-[3px] z-10 shrink-0 cursor-row-resize relative"><div className="absolute inset-x-0 top-[3px] h-px bg-[#EBEBEB] group-hover:bg-[var(--app-accent)] group-hover:h-[2px] transition-colors"/></div>
+          </>}
+          <Detail s={s} sel={msg} setSel={setMsg} lens={lens} ui={ui}/>
         </main>
-        <Inspector s={s} sel={msg} role={role} lens={lens} setLens={setLens}/>
+        {!full && (insHidden
+          ? <button onClick={()=>setInsHidden(false)} title="Afficher le panneau" className="w-9 shrink-0 bg-white border-l border-[#EBEBEB] flex flex-col items-center pt-3 gap-3 text-[#666666] hover:text-[#171717]"><I d="M9 4v16M4 4h16v16H4z" c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[12px]">Décodage</span></button>
+          : <><div onMouseDown={e=>drag(e,'v')} onDoubleClick={()=>setInsW(360)} title="Glisser pour redimensionner" className="group w-[7px] -mx-[3px] z-10 shrink-0 cursor-col-resize relative"><div className="absolute inset-y-0 left-[3px] w-px bg-[#EBEBEB] group-hover:bg-[var(--app-accent)] group-hover:w-[2px] transition-colors"/></div>
+            <Inspector s={s} sel={msg} role={role} lens={lens} setLens={setLens} width={insW} onHide={()=>setInsHidden(true)}/></>)}
       </div></>}
       <footer className="h-7 shrink-0 bg-white border-t border-[#EBEBEB] flex items-center gap-5 px-4 text-[11.5px] text-[#666666]">
         <span className="flex items-center gap-1.5"><span className="w-[6px] h-[6px] rounded-full bg-[#15803D]"/>12/12 dumpcap</span><span>Import à jour</span><span>Segments ignorés : 0</span>
-        <span>{rows.length} sessions · requête 0,8 s</span><span className="ml-auto font-mono">OIRAN 2.10.2 · Analyzer 0.2.0 · données fictives</span>
+        <span>{rows.length} sessions · requête 0,8 s</span><span className="ml-auto font-mono">OIRAN 2.10.2 · Analyzer 0.3.0 · données fictives</span>
       </footer>
     </div>
   );
