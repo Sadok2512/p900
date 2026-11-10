@@ -690,32 +690,61 @@ function AnalyzerHome({conds,setConds,run}) {
 
 const THEMES = [['blue','Bleu','#0062A1'],['black','Noir','#171717'],['green','Vert','#0F5B56']];
 function Settings({theme,setTheme,onClose}) {
+  const [sec,setSec]=useState('apparence');
   const [cur,setCur]=useState(''),[nw,setNw]=useState(''),[cf,setCf]=useState(''),[pm,setPm]=useState(null);
   const accent = THEMES.find(t=>t[0]===theme)[2];
-  const save = e => { e.preventDefault(); if(!cur||nw.length<8) return setPm(['err','Mot de passe actuel requis et 8 caractères minimum.']); if(nw!==cf) return setPm(['err','Les mots de passe ne correspondent pas.']); setPm(['ok','Mot de passe mis à jour (maquette).']); setCur('');setNw('');setCf(''); };
-  const inp = "w-full h-8 rounded-md border border-[#EBEBEB] px-2.5 text-[13px] outline-none focus:border-[#8F8F8F]";
+  const save = e => { e.preventDefault(); if(!cur||nw.length<8) return setPm(['err','Mot de passe actuel requis et 8 caractères minimum.']); if(nw!==cf) return setPm(['err','Les mots de passe ne correspondent pas.']); setPm(['ok','Mot de passe mis à jour.']); setCur('');setNw('');setCf(''); };
+  const strength = Math.min(4,[/.{8,}/,/[A-Z]/,/[0-9]/,/[^A-Za-z0-9]/].filter(r=>r.test(nw)).length);
+  const inp = "w-full h-11 rounded-lg border border-[#E5E5E5] bg-white px-3.5 text-[14px] outline-none transition focus:border-transparent focus:ring-2";
+  const SECS=[['apparence','Apparence','Couleur et thème'],['securite','Sécurité','Mot de passe'],['apropos','À propos','Version et build']];
+  const Card = ({title,desc,children}) => <section className="bg-white rounded-xl border border-[#EBEBEB] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+    <div className="px-7 pt-6 pb-5 border-b border-[#F0F0F0]"><h2 className="text-[18px] font-semibold tracking-tight">{title}</h2><p className="mt-1 text-[14px] text-[#666666]">{desc}</p></div>
+    <div className="p-7">{children}</div></section>;
   return (
-    <div className="flex-1 overflow-auto scroll-thin p-8">
-      <div className="max-w-[560px] mx-auto bg-white rounded-lg border border-[#EBEBEB]">
-        <div className="h-12 px-4 flex items-center gap-3 border-b border-[#EBEBEB]">
-          <div style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white">SD</div>
-          <span className="text-[14px] font-semibold">Paramètres</span>
-          <button onClick={onClose} className="ml-auto text-[12.5px] text-[#666666] hover:text-[#171717]">← Retour</button>
+    <div className="flex-1 overflow-auto scroll-thin">
+      <div className="relative h-36 shrink-0" style={{background:`linear-gradient(120deg, ${accent}, ${accent}CC 60%, ${accent}88)`}}>
+        <button onClick={onClose} className="absolute top-5 left-8 h-9 px-3.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-[13.5px] font-medium backdrop-blur">← Retour</button>
+      </div>
+      <div className="relative z-10 max-w-[1080px] mx-auto px-8 -mt-12 pb-16">
+        <div className="flex items-end gap-5 mb-10">
+          <div style={{background:accent}} className="w-24 h-24 rounded-2xl ring-4 ring-white shadow-lg grid place-items-center text-[30px] font-bold text-white">SD</div>
+          <div className="pb-1 pt-14"><h1 className="text-[28px] font-semibold tracking-tight">Paramètres</h1><p className="text-[14.5px] text-[#666666]">Gérez votre compte et l'apparence de POLARIS</p></div>
         </div>
-        <div className="p-4 space-y-5">
-          <div><Lbl>Version</Lbl>
-            <div className="font-mono text-[12px] text-[#4D4D4D] space-y-0.5"><div>Analyzer 0.1.0</div><div>OIRAN 2.10.2</div></div></div>
-          <div><Lbl>Couleur de l'application</Lbl>
-            <div className="flex gap-2">{THEMES.map(([k,n,c])=>(
-              <button key={k} onClick={()=>setTheme(k)} className={`flex-1 h-9 rounded-md border flex items-center justify-center gap-2 text-[12.5px] ${theme===k?'border-[#171717] font-semibold':'border-[#EBEBEB] text-[#666666]'}`}>
-                <span className="w-3.5 h-3.5 rounded-full" style={{background:c}}/>{n}</button>))}</div></div>
-          <form onSubmit={save} className="space-y-2"><Lbl>Mot de passe</Lbl>
-            <input type="password" placeholder="Mot de passe actuel" value={cur} onChange={e=>setCur(e.target.value)} className={inp}/>
-            <input type="password" placeholder="Nouveau mot de passe" value={nw} onChange={e=>setNw(e.target.value)} className={inp}/>
-            <input type="password" placeholder="Confirmer" value={cf} onChange={e=>setCf(e.target.value)} className={inp}/>
-            {pm && <div className={`text-[12px] ${pm[0]==='ok'?'text-[#15803D]':'text-[#B42318]'}`}>{pm[1]}</div>}
-            <button type="submit" style={{background:accent}} className="h-8 px-3 rounded-md text-white text-[12.5px] font-medium">Changer le mot de passe</button>
-          </form>
+        <div className="grid grid-cols-[240px_minmax(0,1fr)] gap-10">
+          <nav className="space-y-1.5">
+            {SECS.map(([k,n,d])=>{const on=sec===k; return (
+              <button key={k} onClick={()=>setSec(k)} className={`w-full text-left px-4 py-3 rounded-lg transition border ${on?'bg-white border-[#EBEBEB] shadow-sm':'border-transparent hover:bg-white/70'}`}>
+                <div className="flex items-center gap-2.5"><span className="w-1.5 h-5 rounded-full" style={{background:on?accent:'transparent'}}/><div><div className={`text-[14.5px] ${on?'font-semibold text-[#171717]':'text-[#4D4D4D]'}`}>{n}</div><div className="text-[12.5px] text-[#8F8F8F]">{d}</div></div></div>
+              </button>);})}
+          </nav>
+          <div>
+            {sec==='apparence' && <Card title="Couleur de l'application" desc="Choisissez la couleur d'accent utilisée dans toute l'interface.">
+              <div className="grid grid-cols-3 gap-5">{THEMES.map(([k,n,c])=>{const on=theme===k; return (
+                <button key={k} onClick={()=>setTheme(k)} className={`group text-left rounded-xl border-2 overflow-hidden transition ${on?'shadow-md':'border-[#EBEBEB] hover:border-[#D4D4D4]'}`} style={on?{borderColor:c}:{}}>
+                  <div className="h-28 bg-[#FAFAFA] p-3 flex flex-col gap-2">
+                    <div className="h-4 rounded flex items-center gap-1.5 px-1.5 bg-white border border-[#EEE]"><span className="w-2.5 h-2.5 rounded-sm" style={{background:c}}/><span className="h-1 w-8 rounded bg-[#DDD]"/><span className="ml-auto w-2.5 h-2.5 rounded-full" style={{background:c}}/></div>
+                    <div className="flex-1 rounded bg-white border border-[#EEE] p-2 space-y-1.5"><span className="block h-1.5 w-3/4 rounded bg-[#E5E5E5]"/><span className="block h-1.5 w-1/2 rounded bg-[#E5E5E5]"/><span className="block h-4 w-14 rounded mt-2" style={{background:c}}/></div>
+                  </div>
+                  <div className="px-4 py-3 flex items-center gap-2.5 bg-white"><span className="w-5 h-5 rounded-full" style={{background:c}}/><span className="text-[14.5px] font-medium">{n}</span><span className="ml-auto font-mono text-[11.5px] text-[#8F8F8F]">{c}</span>
+                    {on && <span className="w-5 h-5 rounded-full grid place-items-center text-white text-[11px]" style={{background:c}}>✓</span>}</div>
+                </button>);})}</div>
+            </Card>}
+            {sec==='securite' && <Card title="Mot de passe" desc="Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.">
+              <form onSubmit={save} className="space-y-5 max-w-[460px]" style={{'--tw-ring-color':accent+'55'}}>
+                {[['Mot de passe actuel',cur,setCur],['Nouveau mot de passe',nw,setNw],['Confirmer le mot de passe',cf,setCf]].map(([l,v,fn],i)=>(
+                  <label key={l} className="block"><span className="block text-[13.5px] font-medium mb-1.5">{l}</span>
+                    <input type="password" value={v} onChange={e=>fn(e.target.value)} className={inp}/>
+                    {i===1 && nw && <div className="mt-2 flex gap-1.5">{[0,1,2,3].map(j=><span key={j} className="h-1.5 flex-1 rounded-full" style={{background:j<strength?accent:'#EBEBEB'}}/>)}</div>}
+                  </label>))}
+                {pm && <div className={`text-[13.5px] rounded-lg px-3.5 py-2.5 ${pm[0]==='ok'?'bg-[#ECF8F0] text-[#15803D]':'bg-[#FDEFEE] text-[#B42318]'}`}>{pm[1]}</div>}
+                <button type="submit" style={{background:accent}} className="h-11 px-6 rounded-lg text-white text-[14px] font-semibold shadow-sm hover:opacity-90">Mettre à jour le mot de passe</button>
+              </form>
+            </Card>}
+            {sec==='apropos' && <Card title="À propos" desc="Versions des composants installés.">
+              <div className="grid grid-cols-2 gap-5">{[['POLARIS Analyzer','0.1.0'],['OIRAN','2.10.2']].map(([n,v])=>(
+                <div key={n} className="rounded-xl border border-[#EBEBEB] p-5"><div className="text-[13px] text-[#666666]">{n}</div><div className="mt-1 text-[26px] font-semibold tracking-tight font-mono" style={{color:accent}}>{v}</div></div>))}</div>
+            </Card>}
+          </div>
         </div>
       </div>
     </div>);
