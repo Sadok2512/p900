@@ -44,13 +44,13 @@ const ic = {
   lens:'M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Zm9 2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z', pin:'M9 4h6l-1 6 4 3H6l4-3zM12 13v7',
   split:'M4 5h16v14H4zM12 5v14',
 };
-const Tag = ({i}) => <span className="inline-block font-mono text-[10.5px] font-semibold leading-none rounded-[3px] px-1.5 py-[3px]" style={{color:(IFC[i] || IFC.N2)[0],background:(IFC[i] || IFC.N2)[1]}}>{i}</span>;
-const Res = ({r}) => <span className="inline-flex items-center gap-1.5"><span className={`w-[7px] h-[7px] rounded-full ${r==='Succès'||r==='success'?'bg-[#15803D]':r==='Échec'||r==='failed'?'bg-[#C2410C]':'bg-[#D4D4D4]'}`}/>{r}</span>;
+const Tag = ({i}) => <span className="inline-block font-mono text-[11px] font-semibold leading-none rounded-[3px] px-1.5 py-[3px]" style={{color:(IFC[i] || IFC.N2)[0],background:(IFC[i] || IFC.N2)[1]}}>{i}</span>;
+const Res = ({r}) => <span className="inline-flex items-center gap-1.5"><span className={`w-[7px] h-[7px] rounded-full ${r==='Succès'||r==='success'?'bg-success':r==='Échec'||r==='failed'?'bg-warning':'bg-track'}`}/>{r}</span>;
 const Stat = ({s}) => {
-  const m = {'EXACT':'text-[#15803D] bg-[#ECF8F0] border-[#BFE5CC]','OUVERT':'text-[#A15C07] bg-[#FDF6E7] border-[#F1D9A8]','OUVERT':'text-[#B42318] bg-[#FDEFEE] border-[#F5C6C2]'}[s];
-  return <span className={`inline-block text-[10.5px] font-semibold tracking-wide border rounded-[3px] px-1.5 py-[2px] ${m}`}>{s}</span>;
+  const m = {'EXACT':'text-success bg-success-soft border-success-line','OUVERT':'text-warning bg-warning-soft border-warning-line','OUVERT':'text-danger bg-danger-soft border-danger-line'}[s];
+  return <span className={`inline-block text-[11px] font-semibold tracking-wide border rounded-[3px] px-1.5 py-[2px] ${m}`}>{s}</span>;
 };
-const Lbl = ({children}) => <div className="text-[11px] font-semibold text-[#666666] uppercase tracking-[0.06em] mb-1.5">{children}</div>;
+const Lbl = ({children}) => <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.06em] mb-1.5">{children}</div>;
 
 function TopBarLive({metrics,demo,onOpen}) {
   const [pendingHistory,setPendingHistory] = useState([]);
@@ -66,19 +66,19 @@ function TopBarLive({metrics,demo,onOpen}) {
   const indicator=topBarLiveIndicator({demo,apiReachable:!(metrics.isError||metrics.isRefetchError)&&!!data,captureState:data?.capture_state,pendingHistory});
   const sampledAt=metrics.dataUpdatedAt ? new Date(metrics.dataUpdatedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}) : '—';
   const title=`capture_state: ${available(data?.capture_state)}\nsegments ingérés: ${available(data?.segments_ingested)}\npending: ${available(data?.pending_segments)}\ndernier relevé: ${sampledAt}`;
-  return <button type="button" onClick={onOpen} title={title} aria-label={`État capture : ${indicator.label}`} className="h-8 px-2 flex items-center gap-1.5 rounded-md hover:bg-[#F5F5F5] font-semibold text-[11.5px] tracking-wide" style={{color:indicator.color}}><span aria-hidden="true" className={`w-2 h-2 rounded-full shrink-0 ${indicator.pulse?'polaris-live-pulse':''}`} style={{backgroundColor:indicator.color}}/><span>{indicator.label}</span></button>;
+  return <button type="button" onClick={onOpen} title={title} aria-label={`État capture : ${indicator.label}`} className="h-8 px-2 flex items-center gap-1.5 rounded-md hover:bg-muted font-semibold text-[11.5px] tracking-wide" style={{color:indicator.color}}><span aria-hidden="true" className={`w-2 h-2 rounded-full shrink-0 ${indicator.pulse?'polaris-live-pulse':''}`} style={{backgroundColor:indicator.color}}/><span>{indicator.label}</span></button>;
 }
 
 function TopBarVersion({version}) {
   const data=version.data?.data;
   const title=`backend_api: ${available(data?.backend_api)}\nsession_engine: ${available(data?.session_engine)}\ncorrelation_engine: ${available(data?.correlation_engine)}\nevent_schema: ${available(data?.event_schema)}\ndecoders: ${decoderVersions(data?.decoders)}`;
-  return <div title={title} className="flex items-baseline gap-1.5 whitespace-nowrap"><span className="text-[14px] font-semibold tracking-tight text-[#171717]">POLARIS</span><span className="hidden xl:inline text-[11.5px] text-[#666666] font-mono">{available(data?.platform_core)} · UI {UI_VERSION}</span></div>;
+  return <div title={title} className="flex items-baseline gap-1.5 whitespace-nowrap"><span className="text-[14px] font-semibold tracking-tight text-foreground">POLARIS</span><span className="hidden xl:inline text-[11.5px] text-muted-foreground font-mono">{available(data?.platform_core)} · UI {UI_VERSION}</span></div>;
 }
 
 function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,demo,hidden=[]}) {
   const [menu,setMenu] = useState(false);
   return (
-    <header className="h-12 shrink-0 bg-white border-b border-[#EBEBEB] flex items-center px-3 lg:px-4 gap-3 lg:gap-6 min-w-0">
+    <header className="h-12 shrink-0 bg-white border-b border-border flex items-center px-3 lg:px-4 gap-3 lg:gap-6 min-w-0">
       <div className="flex items-center gap-2">
         <div style={{background:accent}} className="w-6 h-6 rounded-[5px] grid place-items-center"><svg viewBox="0 0 24 24" className="w-3.5 h-3.5"><path d="M12 2 13.6 10.4 22 12 13.6 13.6 12 22 10.4 13.6 2 12 10.4 10.4Z" fill="#fff"/></svg></div>
         <TopBarVersion version={version}/>
@@ -86,20 +86,20 @@ function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,
       <nav className="flex h-full min-w-0 overflow-x-auto scroll-thin">
         {[['home','Accueil'],['templates','Dashboard'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],...(TRAFFIC_ENABLED ? [['trafic','Traffic']] : [])].filter(([k])=>isVisible(hidden,k)).map(([k,n]) => {
           const on = page===k, ok = ['home','sessions','nodes','templates','kpi','live','trafic'].includes(k);
-          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative shrink-0 px-2 lg:px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
+          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative shrink-0 px-2 lg:px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-foreground font-semibold':'text-muted-foreground hover:text-foreground'}`}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
         })}
       </nav>
       <div className="ml-auto shrink-0 flex items-center gap-2 lg:gap-4 text-[12.5px]">
         <TopBarLive metrics={metrics} demo={demo} onOpen={()=>setPage('live')}/>
-        <span className="hidden lg:inline text-[#666666]" aria-label="Rôle">{role || '—'}</span>
-        <button type="button" title={t("Notifications")} className="w-8 h-8 rounded-md grid place-items-center text-[#666666] hover:bg-[#F5F5F5] hover:text-[#171717]"><I d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" c="w-4 h-4"/></button>
+        <span className="hidden lg:inline text-muted-foreground" aria-label="Rôle">{role || '—'}</span>
+        <button type="button" title={t("Notifications")} className="w-8 h-8 rounded-md grid place-items-center text-muted-foreground hover:bg-muted hover:text-foreground"><I d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" c="w-4 h-4"/></button>
         <div className="relative">
           <button type="button" onClick={()=>setMenu(m=>!m)} title={t("Compte")} style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white hover:opacity-90">SD</button>
           {menu && <>
             <div className="fixed inset-0 z-40" onClick={()=>setMenu(false)}/>
-            <div className="absolute right-0 top-9 z-50 w-48 bg-white border border-[#EBEBEB] rounded-md shadow-lg py-1 text-[13px]">
-              <div className="px-3 py-2 border-b border-[#EBEBEB]"><div className="font-semibold text-[#171717]">SD</div><div className="text-[11.5px] text-[#8F8F8F]">{role}</div></div>
-              <button type="button" onClick={()=>{setMenu(false);onSettings();}} className="w-full text-left px-3 py-2 hover:bg-[#FAFAFA] text-[#171717]">{t("Paramètres")}</button>
+            <div className="absolute right-0 top-9 z-50 w-48 bg-white border border-border rounded-md shadow-lg py-1 text-[13px]">
+              <div className="px-3 py-2 border-b border-border"><div className="font-semibold text-foreground">SD</div><div className="text-[11.5px] text-subtle">{role}</div></div>
+              <button type="button" onClick={()=>{setMenu(false);onSettings();}} className="w-full text-left px-3 py-2 hover:bg-surface-2 text-foreground">{t("Paramètres")}</button>
             </div></>}
         </div>
       </div>
@@ -109,19 +109,19 @@ function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,
 
 function Tabs({tabs,active,home,onPick,onClose,onHome,onNew}) {
   return (
-    <div className="h-10 shrink-0 bg-white border-b border-[#EBEBEB] flex items-end px-3 gap-px overflow-x-auto scroll-thin">
-      <button onClick={onHome} title={t("Requêtes")} className={`shrink-0 h-8 px-3 flex items-center gap-1.5 text-[12.5px] rounded-t-md border border-b-0 ${home?'bg-white border-[#EBEBEB] text-[#171717] font-medium shadow-[inset_0_2px_0_var(--app-accent)]':'border-transparent text-[#666666] hover:text-[#171717] hover:bg-white/60'}`}><I d={ic.cols} c="w-3.5 h-3.5"/>{t("Requêtes")}</button>
-      <span className="w-px h-4 bg-[#EBEBEB] mb-2 mx-1 shrink-0"/>
+    <div className="h-10 shrink-0 bg-white border-b border-border flex items-end px-3 gap-px overflow-x-auto scroll-thin">
+      <button onClick={onHome} title={t("Requêtes")} className={`shrink-0 h-8 px-3 flex items-center gap-1.5 text-[12.5px] rounded-t-md border border-b-0 ${home?'bg-white border-border text-foreground font-medium shadow-[inset_0_2px_0_var(--app-accent)]':'border-transparent text-muted-foreground hover:text-foreground hover:bg-white/60'}`}><I d={ic.cols} c="w-3.5 h-3.5"/>{t("Requêtes")}</button>
+      <span className="w-px h-4 bg-muted mb-2 mx-1 shrink-0"/>
       {tabs.map(tb => (
-        <div key={tb.id} onClick={()=>onPick(tb.id)} className={`group shrink-0 h-8 pl-3 pr-1.5 flex items-center gap-2 text-[12.5px] rounded-t-md border border-b-0 cursor-pointer max-w-[300px] ${tb.id===active?'bg-white border-[#EBEBEB] text-[#171717] shadow-[inset_0_2px_0_var(--app-accent)]':'border-transparent text-[#666666] hover:bg-white/60'}`}>
-          {tb.live && <span className="w-[6px] h-[6px] rounded-full bg-[#15803D] shrink-0"/>}
-          <span className="text-[11px] text-[#8F8F8F] shrink-0">{t(tb.k)}</span>
-          <span className={`${tb.id===active?'font-medium':''} truncate`}>{tb.n}</span>{tb.dirty && <span title="Modifications non enregistrées" className="w-[7px] h-[7px] rounded-full bg-[#A15C07] shrink-0"/>}{tb.mode==='edit' && <span className="text-[10.5px] text-[#8F8F8F] shrink-0">édition</span>}
-          <button onClick={e=>{e.stopPropagation(); onClose(tb.id);}} title={t("Fermer l'onglet")} aria-label={t("Fermer l'onglet")} className="w-5 h-5 shrink-0 grid place-items-center rounded text-[#8F8F8F] hover:text-[#B42318] hover:bg-[#F2F2F2]"><I d={ic.x} c="w-3 h-3"/></button>
+        <div key={tb.id} onClick={()=>onPick(tb.id)} className={`group shrink-0 h-8 pl-3 pr-1.5 flex items-center gap-2 text-[12.5px] rounded-t-md border border-b-0 cursor-pointer max-w-[300px] ${tb.id===active?'bg-white border-border text-foreground shadow-[inset_0_2px_0_var(--app-accent)]':'border-transparent text-muted-foreground hover:bg-white/60'}`}>
+          {tb.live && <span className="w-[6px] h-[6px] rounded-full bg-success shrink-0"/>}
+          <span className="text-[11px] text-subtle shrink-0">{t(tb.k)}</span>
+          <span className={`${tb.id===active?'font-medium':''} truncate`}>{tb.n}</span>{tb.dirty && <span title="Modifications non enregistrées" className="w-[7px] h-[7px] rounded-full bg-warning shrink-0"/>}{tb.mode==='edit' && <span className="text-[11px] text-subtle shrink-0">édition</span>}
+          <button onClick={e=>{e.stopPropagation(); onClose(tb.id);}} title={t("Fermer l'onglet")} aria-label={t("Fermer l'onglet")} className="w-5 h-5 shrink-0 grid place-items-center rounded text-subtle hover:text-danger hover:bg-muted"><I d={ic.x} c="w-3 h-3"/></button>
         </div>
       ))}
-      <button onClick={onNew} title={t("Nouvel onglet")} aria-label={t("Nouvel onglet")} className="shrink-0 h-8 w-8 grid place-items-center text-[#666666] hover:text-[#171717]"><I d={ic.plus}/></button>
-      <button className="ml-auto mb-1 shrink-0 h-7 px-2 flex items-center gap-1.5 text-[12px] text-[#666666] hover:text-[#171717]"><I d={ic.split} c="w-3.5 h-3.5"/>{t("Vue partagée")}</button>
+      <button onClick={onNew} title={t("Nouvel onglet")} aria-label={t("Nouvel onglet")} className="shrink-0 h-8 w-8 grid place-items-center text-muted-foreground hover:text-foreground"><I d={ic.plus}/></button>
+      <button className="ml-auto mb-1 shrink-0 h-7 px-2 flex items-center gap-1.5 text-[12px] text-muted-foreground hover:text-foreground"><I d={ic.split} c="w-3.5 h-3.5"/>{t("Vue partagée")}</button>
     </div>
   );
 }
@@ -133,43 +133,43 @@ function QueryPanel({conds,setConds}) {
   const [v,setV] = useState(FIELDS[0][1][0]);
   const vals = (FIELDS.find(x=>x[0]===f)||FIELDS[0])[1];
   return (
-    <aside className="w-[264px] shrink-0 bg-white border-r border-[#EBEBEB] flex flex-col">
+    <aside className="w-[264px] shrink-0 bg-white border-r border-border flex flex-col">
       <div className="p-4 space-y-5 overflow-auto scroll-thin flex-1">
         <div><Lbl>Gabarit</Lbl>
-          <div className="grid grid-cols-4 rounded-md border border-[#EBEBEB] p-[2px] bg-[#FAFAFA]">
-            {['Trace','Parcourir','Inspecter','Capture'].map(t => <button key={t} onClick={()=>setTpl(t)} className={`h-6 rounded-[4px] text-[11.5px] ${tpl===t?'bg-white text-[#171717] shadow-sm font-medium':'text-[#666666]'}`}>{t}</button>)}
+          <div className="grid grid-cols-4 rounded-md border border-border p-[2px] bg-surface-2">
+            {['Trace','Parcourir','Inspecter','Capture'].map(t => <button key={t} onClick={()=>setTpl(t)} className={`h-6 rounded-[4px] text-[11.5px] ${tpl===t?'bg-white text-foreground shadow-sm font-medium':'text-muted-foreground'}`}>{t}</button>)}
           </div>
         </div>
         <div><Lbl>Portée</Lbl>
-          <div className="h-8 rounded-md border border-[#EBEBEB] px-2.5 flex items-center text-[13px]">Run 5G #482<span className="ml-auto text-[#8F8F8F] font-mono text-[11.5px]">c41 → c43</span><I d={ic.chev} c="w-3.5 h-3.5 ml-1.5 text-[#8F8F8F]"/></div>
+          <div className="h-8 rounded-md border border-border px-2.5 flex items-center text-[13px]">Run 5G #482<span className="ml-auto text-subtle font-mono text-[11.5px]">c41 → c43</span><I d={ic.chev} c="w-3.5 h-3.5 ml-1.5 text-subtle"/></div>
         </div>
         <div><Lbl>Conditions</Lbl>
           <div className="space-y-1.5">
             {conds.map((c,i) => (
-              <div key={i} className="flex items-center h-8 rounded-md border border-[#EBEBEB] text-[12.5px] overflow-hidden">
-                <span className="px-2 h-full flex items-center bg-[#FAFAFA] border-r border-[#EBEBEB] text-[#666666]">{c[0]}</span>
-                <span className="px-2 text-[#8F8F8F]">=</span>
+              <div key={i} className="flex items-center h-8 rounded-md border border-border text-[12.5px] overflow-hidden">
+                <span className="px-2 h-full flex items-center bg-surface-2 border-r border-border text-muted-foreground">{c[0]}</span>
+                <span className="px-2 text-subtle">=</span>
                 <span className="flex-1 truncate font-medium">{c[1]}</span>
-                <button onClick={()=>setConds(conds.filter((_,j)=>j!==i))} className="w-7 h-full grid place-items-center text-[#8F8F8F] hover:text-[#B42318]"><I d={ic.x} c="w-3.5 h-3.5"/></button>
+                <button onClick={()=>setConds(conds.filter((_,j)=>j!==i))} className="w-7 h-full grid place-items-center text-subtle hover:text-danger"><I d={ic.x} c="w-3.5 h-3.5"/></button>
               </div>
             ))}
             {adding ? (
-              <div className="rounded-md border border-[#171717] p-2 space-y-1.5 bg-[#FAFAFA]">
-                <select value={f} onChange={e=>{setF(e.target.value); setV(FIELDS.find(x=>x[0]===e.target.value)[1][0]);}} className="w-full h-7 rounded border border-[#EBEBEB] text-[12.5px] px-1.5 bg-white">{FIELDS.map(x=><option key={x[0]}>{x[0]}</option>)}</select>
-                <select value={v} onChange={e=>setV(e.target.value)} className="w-full h-7 rounded border border-[#EBEBEB] text-[12.5px] px-1.5 bg-white">{vals.map(x=><option key={x}>{x}</option>)}</select>
-                <div className="flex gap-1.5"><button onClick={()=>{setConds([...conds,[f,v]]); setAdding(false);}} className="flex-1 h-7 rounded bg-[var(--app-accent)] text-white text-[12px] font-medium">Ajouter</button><button onClick={()=>setAdding(false)} className="h-7 px-2 rounded border border-[#EBEBEB] text-[12px] bg-white">Annuler</button></div>
+              <div className="rounded-md border border-foreground p-2 space-y-1.5 bg-surface-2">
+                <select value={f} onChange={e=>{setF(e.target.value); setV(FIELDS.find(x=>x[0]===e.target.value)[1][0]);}} className="w-full h-7 rounded border border-border text-[12.5px] px-1.5 bg-white">{FIELDS.map(x=><option key={x[0]}>{x[0]}</option>)}</select>
+                <select value={v} onChange={e=>setV(e.target.value)} className="w-full h-7 rounded border border-border text-[12.5px] px-1.5 bg-white">{vals.map(x=><option key={x}>{x}</option>)}</select>
+                <div className="flex gap-1.5"><button onClick={()=>{setConds([...conds,[f,v]]); setAdding(false);}} className="flex-1 h-7 rounded bg-[var(--app-accent)] text-white text-[12px] font-medium">Ajouter</button><button onClick={()=>setAdding(false)} className="h-7 px-2 rounded border border-border text-[12px] bg-white">Annuler</button></div>
               </div>
-            ) : <button onClick={()=>setAdding(true)} className="w-full h-8 rounded-md border border-dashed border-[#D4D4D4] text-[12.5px] text-[#666666] hover:border-[#171717] hover:text-[#171717] flex items-center justify-center gap-1.5"><I d={ic.plus} c="w-3.5 h-3.5"/>Ajouter une condition</button>}
-            <div className="flex items-center gap-1.5 pt-1 text-[11.5px] text-[#8F8F8F]"><I d={ic.lock} c="w-3 h-3"/>Identités : rôle operator uniquement</div>
+            ) : <button onClick={()=>setAdding(true)} className="w-full h-8 rounded-md border border-dashed border-border-strong text-[12.5px] text-muted-foreground hover:border-foreground hover:text-foreground flex items-center justify-center gap-1.5"><I d={ic.plus} c="w-3.5 h-3.5"/>Ajouter une condition</button>}
+            <div className="flex items-center gap-1.5 pt-1 text-[11.5px] text-subtle"><I d={ic.lock} c="w-3 h-3"/>Identités : rôle operator uniquement</div>
           </div>
         </div>
         <div><Lbl>Regrouper par</Lbl>
-          <div className="h-8 rounded-md border border-[#EBEBEB] px-2.5 flex items-center text-[13px] text-[#8F8F8F]">Aucun<I d={ic.chev} c="w-3.5 h-3.5 ml-auto"/></div>
+          <div className="h-8 rounded-md border border-border px-2.5 flex items-center text-[13px] text-subtle">Aucun<I d={ic.chev} c="w-3.5 h-3.5 ml-auto"/></div>
         </div>
         <button className="w-full h-8 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium flex items-center justify-center gap-2"><I d={ic.play} c="w-3.5 h-3.5"/>Exécuter</button>
-        <div className="border-t border-[#F2F2F2] pt-4"><Lbl>Requêtes enregistrées</Lbl>
+        <div className="border-t border-border-subtle pt-4"><Lbl>Requêtes enregistrées</Lbl>
           {['Échecs · run 482','PDU Session 5G · toutes causes','Attach LTE · certification','Liens à prouver SBI'].map((q,k) => (
-            <div key={q} className="flex items-center gap-2 h-7 px-1 rounded text-[12.5px] text-[#4D4D4D] hover:bg-[#FAFAFA]"><I d={ic.star} c={`w-3.5 h-3.5 ${k<2?'text-[#A15C07]':'text-[#D4D4D4]'}`}/>{q}</div>
+            <div key={q} className="flex items-center gap-2 h-7 px-1 rounded text-[12.5px] text-ink-2 hover:bg-surface-2"><I d={ic.star} c={`w-3.5 h-3.5 ${k<2?'text-warning':'text-faint'}`}/>{q}</div>
           ))}
         </div>
       </div>
@@ -239,41 +239,41 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
   const cell = (c,r) => {
     const v = c.v(r);
     if (c.k==='res') return <VerdictBadge v={v}/>;
-    if (c.k==='sub') return v==='—' ? <span className="text-[#94A3B8]">—</span> : <span className="inline-flex items-center gap-1">{v}{r.subscriber_session_count!=null && <span className="rounded bg-[#EFF6FF] text-[#0062A1] px-1 text-[10px] font-sans font-semibold">{r.subscriber_session_count} sessions</span>}</span>;
+    if (c.k==='sub') return v==='—' ? <span className="text-subtle">—</span> : <span className="inline-flex items-center gap-1">{v}{r.subscriber_session_count!=null && <span className="rounded bg-brand-soft text-brand px-1 text-[11px] font-sans font-semibold">{r.subscriber_session_count} sessions</span>}</span>;
     if (c.k==='ifc') return <span className="flex gap-1">{[...new Set(r.interfaces ?? [])].map(i=><Tag key={i} i={i}/>)}</span>;
-    if (c.k==='imsi') return <span className="text-[#94A3B8]">masqué</span>;
-    if (c.k==='cause') return <span className={verdict(r.res)==='FAILED'?'text-[#DC2626]':'text-[#64748B]'}>{v}</span>;
+    if (c.k==='imsi') return <span className="text-subtle">masqué</span>;
+    if (c.k==='cause') return <span className={verdict(r.res)==='FAILED'?'text-danger':'text-muted-foreground'}>{v}</span>;
     return v;
   };
   return (
-    <section className="flex flex-col min-h-0 bg-white shrink-0 rounded-xl border border-[#E2E8F0] overflow-hidden" style={{height}}>
-      <div className="h-10 shrink-0 flex items-center gap-3 px-3 border-b border-[#E2E8F0]">
-        <span className="text-[13px] font-semibold text-[#172033]">Sessions</span>
-        <div className="flex-1 h-7 rounded-md border border-[#E2E8F0] flex items-center gap-1.5 px-2 focus-within:border-[var(--app-accent)]">
-          <I d={ic.search} c="w-[14px] h-[14px] text-[#64748B]"/>
-          {conds.map((c,i) => <span key={i} className="flex items-center gap-1 h-5 rounded-[4px] bg-[#F1F5F9] border border-[#E2E8F0] pl-1.5 pr-1 text-[11.5px] text-[#172033] whitespace-nowrap"><span className="text-[#64748B]">{c[0]}</span>{c[1]}<button onClick={()=>setConds(conds.filter((_,j)=>j!==i))}><I d={ic.x} c="w-3 h-3"/></button></span>)}
+    <section className="flex flex-col min-h-0 bg-white shrink-0 rounded-xl border border-border overflow-hidden" style={{height}}>
+      <div className="h-10 shrink-0 flex items-center gap-3 px-3 border-b border-border">
+        <span className="text-[13px] font-semibold text-foreground">Sessions</span>
+        <div className="flex-1 h-7 rounded-md border border-border flex items-center gap-1.5 px-2 focus-within:border-[var(--app-accent)]">
+          <I d={ic.search} c="w-[14px] h-[14px] text-muted-foreground"/>
+          {conds.map((c,i) => <span key={i} className="flex items-center gap-1 h-5 rounded-[4px] bg-muted border border-border pl-1.5 pr-1 text-[11.5px] text-foreground whitespace-nowrap"><span className="text-muted-foreground">{c[0]}</span>{c[1]}<button onClick={()=>setConds(conds.filter((_,j)=>j!==i))}><I d={ic.x} c="w-3 h-3"/></button></span>)}
           <input aria-label="Rechercher dans les sessions" value={txt} onChange={e=>setTxt(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter'&&txt){ const f=FIELDS.find(x=>x[1].some(v=>v.toLowerCase()===txt.toLowerCase())); if(f){ setConds([...conds,[f[0],f[1].find(v=>v.toLowerCase()===txt.toLowerCase())]]); setTxt(''); } } }}
-            placeholder="Rechercher… (Entrée sur Échec, LTE, N4… ajoute un filtre)" className="flex-1 min-w-[140px] outline-none text-[12.5px] placeholder:text-[#94A3B8]"/>
+            placeholder="Rechercher… (Entrée sur Échec, LTE, N4… ajoute un filtre)" className="flex-1 min-w-[140px] outline-none text-[12.5px] placeholder:text-subtle"/>
         </div>
-        <div className="flex items-center gap-2 text-[12px] text-[#64748B]">
-          <span className="font-semibold text-[#172033] tabular-nums">{demo || sessions.data || rows.length ? shown.length : '—'}</span> sessions
-          <div className="w-14 h-1.5 rounded-full bg-[#F1F5F9] overflow-hidden flex"><div className="bg-[#16A34A]" style={{width:`${rows.length?(rows.length-ko)/rows.length*100:0}%`}}/><div className="bg-[#DC2626]" style={{width:`${rows.length?ko/rows.length*100:0}%`}}/></div>
+        <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+          <span className="font-semibold text-foreground tabular-nums">{demo || sessions.data || rows.length ? shown.length : '—'}</span> sessions
+          <div className="w-14 h-1.5 rounded-full bg-muted overflow-hidden flex"><div className="bg-[#16A34A]" style={{width:`${rows.length?(rows.length-ko)/rows.length*100:0}%`}}/><div className="bg-danger" style={{width:`${rows.length?ko/rows.length*100:0}%`}}/></div>
           <span className="tabular-nums">{demo || sessions.data || rows.length ? ko : '—'} échecs</span>
         </div>
-        <button onClick={onEdit} className="h-7 px-2.5 rounded-md border border-[#E2E8F0] text-[12px] flex items-center gap-1.5 text-[#334155] hover:bg-[#F8FAFC]"><I d={ic.search} c="w-3.5 h-3.5"/>Modifier la requête</button>
+        <button onClick={onEdit} className="h-7 px-2.5 rounded-md border border-border text-[12px] flex items-center gap-1.5 text-ink-2 hover:bg-surface-2"><I d={ic.search} c="w-3.5 h-3.5"/>Modifier la requête</button>
         <div className="relative">
-          <button onClick={()=>{setMore(m=>!m);setManageCols(false);}} title="Plus d'actions" aria-expanded={more} className="h-7 w-7 rounded-md border border-[#E2E8F0] grid place-items-center text-[#334155] hover:bg-[#F8FAFC]">⋯</button>
-          {more && <><div className="fixed inset-0 z-30" onClick={closeMore}/>{manageCols ? <div role="dialog" aria-label="Gérer les colonnes" className="absolute right-0 top-8 z-40 w-72 bg-white border border-[#E2E8F0] rounded-lg shadow-lg text-[12.5px] overflow-hidden">
-            <div className="h-9 px-3 flex items-center border-b border-[#E2E8F0]"><button onClick={()=>setManageCols(false)} aria-label="Retour aux actions" className="mr-2 text-[#64748B] hover:text-[#172033]">←</button><span className="font-semibold text-[#172033]">Gérer les colonnes</span><button onClick={()=>setHiddenCols([])} className="ml-auto text-[11.5px] text-[var(--app-accent)]">Tout afficher</button></div>
+          <button onClick={()=>{setMore(m=>!m);setManageCols(false);}} title="Plus d'actions" aria-expanded={more} className="h-7 w-7 rounded-md border border-border grid place-items-center text-ink-2 hover:bg-surface-2">⋯</button>
+          {more && <><div className="fixed inset-0 z-30" onClick={closeMore}/>{manageCols ? <div role="dialog" aria-label="Gérer les colonnes" className="absolute right-0 top-8 z-40 w-72 bg-white border border-border rounded-lg shadow-lg text-[12.5px] overflow-hidden">
+            <div className="h-9 px-3 flex items-center border-b border-border"><button onClick={()=>setManageCols(false)} aria-label="Retour aux actions" className="mr-2 text-muted-foreground hover:text-foreground">←</button><span className="font-semibold text-foreground">Gérer les colonnes</span><button onClick={()=>setHiddenCols([])} className="ml-auto text-[11.5px] text-[var(--app-accent)]">Tout afficher</button></div>
             <div className="max-h-[420px] overflow-auto scroll-thin p-2.5 space-y-3">
-              {GRID_GROUPS.map(group=><section key={group.k} aria-label={group.l}><div className="px-1 mb-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#64748B]">{group.l}</div>{GRID_COLS.filter(c=>c.g===group.k).map(c=><label key={c.k} className={`h-7 px-1 flex items-center gap-2 rounded hover:bg-[#F8FAFC] ${c.required?'cursor-not-allowed':'cursor-pointer'}`}><input type="checkbox" aria-label={c.l} checked={!hiddenCols.includes(c.k)} disabled={c.required} onChange={()=>toggleCol(c)}/><span>{c.l}</span>{c.required&&<span className="ml-auto text-[10.5px] text-[#94A3B8]">obligatoire</span>}</label>)}</section>)}
+              {GRID_GROUPS.map(group=><section key={group.k} aria-label={group.l}><div className="px-1 mb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{group.l}</div>{GRID_COLS.filter(c=>c.g===group.k).map(c=><label key={c.k} className={`h-7 px-1 flex items-center gap-2 rounded hover:bg-surface-2 ${c.required?'cursor-not-allowed':'cursor-pointer'}`}><input type="checkbox" aria-label={c.l} checked={!hiddenCols.includes(c.k)} disabled={c.required} onChange={()=>toggleCol(c)}/><span>{c.l}</span>{c.required&&<span className="ml-auto text-[11px] text-subtle">obligatoire</span>}</label>)}</section>)}
             </div>
-            <div className="p-2 border-t border-[#E2E8F0] text-[11px] text-[#64748B]">Les choix sont enregistrés dans ce navigateur.</div>
-          </div> : <div className="absolute right-0 top-8 z-40 w-52 bg-white border border-[#E2E8F0] rounded-lg shadow-lg py-1 text-[12.5px]">
-            <button onClick={()=>setManageCols(true)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.cols} c="w-3.5 h-3.5 text-[#64748B]"/>Gérer les colonnes</button>
-            <button onClick={()=>{setGrouped(g=>!g);closeMore();}} aria-pressed={grouped} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.cols} c="w-3.5 h-3.5 text-[#64748B]"/>{grouped?'Ne plus grouper':'Grouper par abonné'}</button>
-            <button onClick={resetCols} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.cols} c="w-3.5 h-3.5 text-[#64748B]"/>Réinitialiser les colonnes</button>
-            <button onClick={closeMore} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.dl} c="w-3.5 h-3.5 text-[#64748B]"/>Exporter</button>
+            <div className="p-2 border-t border-border text-[11px] text-muted-foreground">Les choix sont enregistrés dans ce navigateur.</div>
+          </div> : <div className="absolute right-0 top-8 z-40 w-52 bg-white border border-border rounded-lg shadow-lg py-1 text-[12.5px]">
+            <button onClick={()=>setManageCols(true)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.cols} c="w-3.5 h-3.5 text-muted-foreground"/>Gérer les colonnes</button>
+            <button onClick={()=>{setGrouped(g=>!g);closeMore();}} aria-pressed={grouped} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.cols} c="w-3.5 h-3.5 text-muted-foreground"/>{grouped?'Ne plus grouper':'Grouper par abonné'}</button>
+            <button onClick={resetCols} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.cols} c="w-3.5 h-3.5 text-muted-foreground"/>Réinitialiser les colonnes</button>
+            <button onClick={closeMore} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.dl} c="w-3.5 h-3.5 text-muted-foreground"/>Exporter</button>
           </div>}</>}
         </div>
       </div>
@@ -281,33 +281,33 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
         <table className="text-[12px] whitespace-nowrap border-separate border-spacing-0 table-fixed" style={{width:visibleCols.reduce((a,c)=>a+W(c),0)}}>
           <colgroup>{visibleCols.map(c=><col key={c.k} style={{width:W(c)}}/>)}</colgroup>
           <thead className="sticky top-0 z-20">
-            <tr>{visibleCols.map((c,k) => <th key={c.k} aria-sort={sort?.[0]===c.k?(sort[1]>0?'ascending':'descending'):'none'} onClick={()=>setSort(s=>s?.[0]===c.k?(s[1]>0?[c.k,-1]:null):[c.k,1])} className={`relative h-7 px-2 text-left font-medium text-[#64748B] bg-[#F8FAFC] border-b border-[#E2E8F0] cursor-pointer select-none hover:text-[#172033] ${k===0?'sticky left-0 z-30 border-r':''}`}>
-              <span className="inline-flex items-center gap-1 truncate max-w-full">{c.lock && <I d={ic.lock} c="w-3 h-3"/>}{c.l}{sort?.[0]===c.k && <span className="text-[#172033]">{sort[1]>0?'↑':'↓'}</span>}</span>
+            <tr>{visibleCols.map((c,k) => <th key={c.k} aria-sort={sort?.[0]===c.k?(sort[1]>0?'ascending':'descending'):'none'} onClick={()=>setSort(s=>s?.[0]===c.k?(s[1]>0?[c.k,-1]:null):[c.k,1])} className={`relative h-7 px-2 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border cursor-pointer select-none hover:text-foreground ${k===0?'sticky left-0 z-30 border-r':''}`}>
+              <span className="inline-flex items-center gap-1 truncate max-w-full">{c.lock && <I d={ic.lock} c="w-3 h-3"/>}{c.l}{sort?.[0]===c.k && <span className="text-foreground">{sort[1]>0?'↑':'↓'}</span>}</span>
               <span onMouseDown={e=>resize(e,c)} onClick={e=>e.stopPropagation()} onDoubleClick={e=>{e.stopPropagation();setWidths(w=>{const n={...w};delete n[c.k];return n;});}} title="Redimensionner" className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-[var(--app-accent)]/40"/></th>)}</tr>
           </thead>
           <tbody>
             {(grouped ? groupBySubscriber(pageRows).flatMap(g=>{ const open=g.key==null||openGroups.includes(g.key); return [g.key==null?null:{__group:g.key,n:g.rows.length,open}, ...(open?g.rows:[])].filter(Boolean); }) : pageRows).map((r,rowIndex) => {
-              if (r.__group) return <tr key={`g-${r.__group}`} onClick={()=>setOpenGroups(o=>o.includes(r.__group)?o.filter(x=>x!==r.__group):[...o,r.__group])} className="cursor-pointer"><td colSpan={visibleCols.length} className="h-7 px-2 border-b border-[#E2E8F0] bg-[#F8FAFC] text-[12px] font-medium text-[#172033]">{r.open?'▾':'▸'} Abonné <span className="font-mono">{shortPseudo(r.__group)}</span> <span className="ml-1 rounded bg-[#EFF6FF] text-[#0062A1] px-1 text-[10px] font-semibold">{r.n} sessions</span></td></tr>;
+              if (r.__group) return <tr key={`g-${r.__group}`} onClick={()=>setOpenGroups(o=>o.includes(r.__group)?o.filter(x=>x!==r.__group):[...o,r.__group])} className="cursor-pointer"><td colSpan={visibleCols.length} className="h-7 px-2 border-b border-border bg-surface-2 text-[12px] font-medium text-foreground">{r.open?'▾':'▸'} Abonné <span className="font-mono">{shortPseudo(r.__group)}</span> <span className="ml-1 rounded bg-brand-soft text-brand px-1 text-[11px] font-semibold">{r.n} sessions</span></td></tr>;
               const on = sel===r.id;
               const clickable = r.id != null;
               return (
                 <tr key={r.id ?? `missing-session-${rowIndex}`} onClick={()=>{if(clickable)setSel(r.id);}} aria-selected={on} aria-disabled={!clickable} className={`group ${clickable?'cursor-pointer':'cursor-default opacity-70'}`}>
-                  {visibleCols.map((c,k)=>{ const v=c.v(r); return <td key={c.k} title={String(v)} className={`h-7 px-2 border-b border-[#F1F5F9] overflow-hidden text-ellipsis ${c.mono?'font-mono text-[11.5px]':''} ${k===0?'sticky left-0 z-10 border-r border-r-[#E2E8F0] text-[#64748B]':'text-[#172033]'} ${on?'bg-[color-mix(in_oklab,var(--app-accent)_8%,white)]':'bg-white group-hover:bg-[#F8FAFC]'} ${on&&k===0?'shadow-[inset_3px_0_0_var(--app-accent)]':''}`}>{cell(c,r)}</td>; })}
+                  {visibleCols.map((c,k)=>{ const v=c.v(r); return <td key={c.k} title={String(v)} className={`h-7 px-2 border-b border-border-subtle overflow-hidden text-ellipsis ${c.mono?'font-mono text-[11.5px]':''} ${k===0?'sticky left-0 z-10 border-r border-r-[#E2E8F0] text-muted-foreground':'text-foreground'} ${on?'bg-[color-mix(in_oklab,var(--app-accent)_8%,white)]':'bg-white group-hover:bg-surface-2'} ${on&&k===0?'shadow-[inset_3px_0_0_var(--app-accent)]':''}`}>{cell(c,r)}</td>; })}
                 </tr>
               );
             })}
-            {shown.length===0 && <tr><td colSpan={visibleCols.length} className="px-3 py-8 text-left text-[#64748B]">{q ? 'Aucune session ne correspond à la recherche' : demo || sessions.data ? 'Aucune session' : 'POLARIS non connecté'}</td></tr>}
+            {shown.length===0 && <tr><td colSpan={visibleCols.length} className="px-3 py-8 text-left text-muted-foreground">{q ? 'Aucune session ne correspond à la recherche' : demo || sessions.data ? 'Aucune session' : 'POLARIS non connecté'}</td></tr>}
           </tbody>
         </table>
       </div>
-      <div className="h-9 shrink-0 flex items-center gap-3 px-3 border-t border-[#E2E8F0] bg-white text-[12px] text-[#334155] whitespace-nowrap overflow-hidden">
+      <div className="h-9 shrink-0 flex items-center gap-3 px-3 border-t border-border bg-white text-[12px] text-ink-2 whitespace-nowrap overflow-hidden">
         <span className="tabular-nums">{shown.length ? `${(cur-1)*size+1}–${Math.min(cur*size,shown.length)}` : '0'} sur <b>{shown.length}</b> sessions</span>
-        <label className="ml-auto flex items-center gap-1.5 text-[#64748B]">Lignes par page
-          <select aria-label="Lignes par page" value={size} onChange={e=>setSize(Number(e.target.value))} className="h-6 px-1 rounded border border-[#E2E8F0] bg-white text-[#172033] outline-none">{[10,25,50,100].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
+        <label className="ml-auto flex items-center gap-1.5 text-muted-foreground">Lignes par page
+          <select aria-label="Lignes par page" value={size} onChange={e=>setSize(Number(e.target.value))} className="h-6 px-1 rounded border border-border bg-white text-foreground outline-none">{[10,25,50,100].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
         <nav aria-label="Pagination des sessions" className="flex items-center gap-0.5">
-          {[['|<',1,'Première page'],['<',cur-1,'Page précédente']].map(([l,p,a])=><button key={a} aria-label={a} disabled={cur<=1} onClick={()=>setPage(p)} className="h-6 min-w-6 px-1 rounded text-[#334155] hover:bg-[#F1F5F9] disabled:opacity-30 disabled:hover:bg-transparent">{l}</button>)}
-          {pages>1 && pageItems(cur,pages).map((p,i)=>p==='…'?<span key={'g'+i} className="px-1 text-[#94A3B8]">…</span>:<button key={p} aria-current={p===cur?'page':undefined} onClick={()=>setPage(p)} className={`h-6 min-w-6 px-1.5 rounded tabular-nums ${p===cur?'bg-[var(--app-accent)] text-white font-medium':'hover:bg-[#F1F5F9]'}`}>{p}</button>)}
-          {[['>',cur+1,'Page suivante'],['>|',pages,'Dernière page']].map(([l,p,a])=><button key={a} aria-label={a} disabled={cur>=pages} onClick={()=>setPage(p)} className="h-6 min-w-6 px-1 rounded text-[#334155] hover:bg-[#F1F5F9] disabled:opacity-30 disabled:hover:bg-transparent">{l}</button>)}
+          {[['|<',1,'Première page'],['<',cur-1,'Page précédente']].map(([l,p,a])=><button key={a} aria-label={a} disabled={cur<=1} onClick={()=>setPage(p)} className="h-6 min-w-6 px-1 rounded text-ink-2 hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent">{l}</button>)}
+          {pages>1 && pageItems(cur,pages).map((p,i)=>p==='…'?<span key={'g'+i} className="px-1 text-subtle">…</span>:<button key={p} aria-current={p===cur?'page':undefined} onClick={()=>setPage(p)} className={`h-6 min-w-6 px-1.5 rounded tabular-nums ${p===cur?'bg-[var(--app-accent)] text-white font-medium':'hover:bg-muted'}`}>{p}</button>)}
+          {[['>',cur+1,'Page suivante'],['>|',pages,'Dernière page']].map(([l,p,a])=><button key={a} aria-label={a} disabled={cur>=pages} onClick={()=>setPage(p)} className="h-6 min-w-6 px-1 rounded text-ink-2 hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent">{l}</button>)}
         </nav>
       </div>
     </section>
@@ -378,29 +378,29 @@ function LadderFilter({flow,value,onApply}) {
   const opts = useMemo(()=>filterOptions(flow),[flow]);
   const toggle = (key,v) => setDraft(d=>({...d,[key]:d[key].includes(v)?d[key].filter(x=>x!==v):[...d[key],v]}));
   const active = filterActive(value);
-  const H = ({children}) => <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#64748B] mb-1">{children}</div>;
-  const sel = "h-7 w-full px-1.5 rounded border border-[#E2E8F0] bg-white text-[12px] outline-none focus:border-[var(--app-accent)]";
+  const H = ({children}) => <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-1">{children}</div>;
+  const sel = "h-7 w-full px-1.5 rounded border border-border bg-white text-[12px] outline-none focus:border-[var(--app-accent)]";
   return <div ref={ref} className="relative shrink-0">
-    <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} className={`h-7 px-2 rounded-md border text-[12px] flex items-center gap-1.5 ${active?'border-[var(--app-accent)] text-[var(--app-accent)]':'border-[#E2E8F0] text-[#334155] hover:bg-[#F8FAFC]'}`}>
+    <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} className={`h-7 px-2 rounded-md border text-[12px] flex items-center gap-1.5 ${active?'border-[var(--app-accent)] text-[var(--app-accent)]':'border-border text-ink-2 hover:bg-surface-2'}`}>
       <I d="M3 5h18l-7 8v5l-4 2v-7z" c="w-3.5 h-3.5"/>Filter{active && <span aria-label="Filtres actifs" className="w-1.5 h-1.5 rounded-full bg-[var(--app-accent)]"/>}</button>
-    {open && <div role="dialog" aria-label="Filtres du Ladder" className="absolute right-0 top-8 z-40 w-[300px] bg-white border border-[#E2E8F0] rounded-lg shadow-lg flex flex-col max-h-[420px] text-[12px] text-[#172033]">
+    {open && <div role="dialog" aria-label="Filtres du Ladder" className="absolute right-0 top-8 z-40 w-[300px] bg-white border border-border rounded-lg shadow-lg flex flex-col max-h-[420px] text-[12px] text-foreground">
       <div className="flex-1 overflow-auto scroll-thin p-3 space-y-3">
         <section><H>Procédures</H>
           <input aria-label="Rechercher une procédure" value={pq} onChange={e=>setPq(e.target.value)} placeholder="Rechercher…" className={sel+" mb-1.5"}/>
           <div className="flex gap-3 mb-1 text-[11.5px]"><button onClick={()=>setDraft(d=>({...d,procs:[]}))} className="text-[var(--app-accent)]">Tout sélectionner</button><button onClick={()=>setDraft(d=>({...d,procs:opts.procs}))} className="text-[var(--app-accent)]">Tout désélectionner</button></div>
           {opts.procs.filter(p=>p.toLowerCase().includes(pq.toLowerCase())).map(p=><label key={p} className="flex items-center gap-2 h-6 cursor-pointer"><input type="checkbox" checked={!draft.procs.includes(p)} onChange={()=>toggle('procs',p)}/><span className="truncate">{p}</span></label>)}
-          {opts.procs.length===0 && <div className="text-[#64748B]">Aucune procédure.</div>}
+          {opts.procs.length===0 && <div className="text-muted-foreground">Aucune procédure.</div>}
         </section>
         <section><H>Messages</H><div className="space-y-1.5">
           <input aria-label="Nom de message" value={draft.text} onChange={e=>setDraft(d=>({...d,text:e.target.value}))} placeholder="Nom de message…" className={sel}/>
           <select aria-label="Type de message" value={draft.type} onChange={e=>setDraft(d=>({...d,type:e.target.value}))} className={sel}><option value="">Tous les types</option>{opts.types.map(x=><option key={x}>{x}</option>)}</select>
           {opts.dirs.length>0 && <select aria-label="Sens" value={draft.dir} onChange={e=>setDraft(d=>({...d,dir:e.target.value}))} className={sel}><option value="">UL et DL</option>{opts.dirs.map(x=><option key={x}>{x}</option>)}</select>}
-          <div className="text-[11px] text-[#64748B]">Interfaces : boutons N2 / N3 / N4 de la barre.</div>
+          <div className="text-[11px] text-muted-foreground">Interfaces : boutons N2 / N3 / N4 de la barre.</div>
         </div></section>
         {opts.results.length>0 && <section><H>Résultats</H>{opts.results.map(r=><label key={r} className="flex items-center gap-2 h-6 cursor-pointer"><input type="checkbox" checked={!draft.results.includes(r)} onChange={()=>toggle('results',r)}/><VerdictBadge v={r}/></label>)}</section>}
       </div>
-      <div className="shrink-0 flex justify-end gap-2 p-2 border-t border-[#E2E8F0]">
-        <button onClick={()=>{const e=emptyFilter(); setDraft(e); onApply(e);}} className="h-7 px-2.5 rounded-md border border-[#E2E8F0] text-[#334155]">Réinitialiser</button>
+      <div className="shrink-0 flex justify-end gap-2 p-2 border-t border-border">
+        <button onClick={()=>{const e=emptyFilter(); setDraft(e); onApply(e);}} className="h-7 px-2.5 rounded-md border border-border text-ink-2">Réinitialiser</button>
         <button onClick={()=>{onApply(draft); setOpen(false);}} className="h-7 px-3 rounded-md bg-[var(--app-accent)] text-white font-medium">Appliquer</button>
       </div>
     </div>}
@@ -423,38 +423,38 @@ function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
   const tb = "h-7 px-2 rounded-md text-[12px] flex items-center gap-1.5 border transition";
   const d = s.d, ex = d.links.filter(l=>l[5]==='EXACT').length;
   return (
-    <section className="flex-1 min-h-0 flex flex-col bg-white rounded-xl border border-[#EBEBEB] overflow-hidden">
-      <div className="px-3 border-b border-[#E2E8F0]">
-        {s.detailErrors?.map(error => <div key={error.endpoint} role="alert" className="pt-1.5 text-[12px] text-[#B42318]">Détail indisponible · {error.endpoint} · HTTP {error.status}</div>)}
+    <section className="flex-1 min-h-0 flex flex-col bg-white rounded-xl border border-border overflow-hidden">
+      <div className="px-3 border-b border-border">
+        {s.detailErrors?.map(error => <div key={error.endpoint} role="alert" className="pt-1.5 text-[12px] text-danger">Détail indisponible · {error.endpoint} · HTTP {error.status}</div>)}
         <div className="min-h-[42px] flex flex-wrap items-center gap-x-4 gap-y-1 min-w-0">
-          {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-[42px] shrink-0 whitespace-nowrap text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#172033] font-medium':'border-transparent text-[#64748B] hover:text-[#172033]'}`}>{t}</button>)}
+          {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-[42px] shrink-0 whitespace-nowrap text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-foreground font-medium':'border-transparent text-muted-foreground hover:text-foreground'}`}>{t}</button>)}
           <div className="ml-auto flex items-center gap-1 shrink-0">
-            {ifs.map(i=>{const off=hidden.includes(i); return <button key={i} aria-pressed={!off} onClick={()=>setHidden(off?hidden.filter(x=>x!==i):[...hidden,i])} title={off?`Afficher ${i}`:`Masquer ${i}`} className={`h-6 px-0.5 rounded-md border transition ${off?'opacity-35 border-transparent':'border-[#E2E8F0] bg-white'}`}><Tag i={i}/></button>;})}
+            {ifs.map(i=>{const off=hidden.includes(i); return <button key={i} aria-pressed={!off} onClick={()=>setHidden(off?hidden.filter(x=>x!==i):[...hidden,i])} title={off?`Afficher ${i}`:`Masquer ${i}`} className={`h-6 px-0.5 rounded-md border transition ${off?'opacity-35 border-transparent':'border-border bg-white'}`}><Tag i={i}/></button>;})}
           </div>
           <LadderFilter flow={d} value={mf} onApply={setMf}/>
-          <LadderMore><button disabled={demo} onClick={()=>{window.location.href=apiPath(`/exports/callflow/${encodeURIComponent(s.id)}`);}} className={tb+" border-[#EBEBEB]"}>Exporter</button>{auth.data?.data?.role==='operator' && <button disabled={demo || s.cap==='—'} onClick={()=>{if(window.confirm('Télécharger cet extrait pcap ?')) window.location.href=apiPath(`/captures/${encodeURIComponent(s.cap)}/download`);}} className={tb+" border-[#EBEBEB]"}>PCAP</button>}
-          <button onClick={()=>setZoom(z=>Math.max(0.6,+(z-0.2).toFixed(1)))} title="Zoom arrière" className={`${tb} border-[#E2E8F0] text-[#334155]`}>−</button>
-          <button onClick={()=>setZoom(1)} title="Ajuster à la largeur" className={`${tb} border-[#E2E8F0] text-[#334155] tabular-nums`}>{zoom===1?'Ajusté':`${Math.round(zoom*100)} %`}</button>
-          <button onClick={()=>setZoom(z=>Math.min(3,+(z+0.2).toFixed(1)))} title="Zoom avant" className={`${tb} border-[#E2E8F0] text-[#334155]`}>+</button>
-          <button onClick={()=>setTimers(v=>!v)} aria-pressed={timers} title="Afficher les délais entre messages" className={`${tb} ${timers?'border-[var(--app-accent)] text-[var(--app-accent)]':'border-[#E2E8F0] text-[#334155]'}`}>Timers</button>
-          <button onClick={()=>step(-1)} title="Message précédent (↑)" className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>↑</button>
-          <button onClick={()=>step(1)} title="Message suivant (↓)" className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>↓</button>
-          {!ui.full && <button onClick={()=>ui.setGridHidden(v=>!v)} className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>{ui.gridHidden?'Afficher le tableau':'Masquer le tableau'}</button>}
-          <button onClick={()=>ui.setFull(v=>!v)} title="Plein écran (F)" className={`${tb} ${ui.full?'border-transparent bg-[var(--app-accent)] text-white':'border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]'}`}><I d={ui.full?'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5':'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'} c="w-3.5 h-3.5"/>{ui.full?'Quitter':'Plein écran'}</button>
+          <LadderMore><button disabled={demo} onClick={()=>{window.location.href=apiPath(`/exports/callflow/${encodeURIComponent(s.id)}`);}} className={tb+" border-border"}>Exporter</button>{auth.data?.data?.role==='operator' && <button disabled={demo || s.cap==='—'} onClick={()=>{if(window.confirm('Télécharger cet extrait pcap ?')) window.location.href=apiPath(`/captures/${encodeURIComponent(s.cap)}/download`);}} className={tb+" border-border"}>PCAP</button>}
+          <button onClick={()=>setZoom(z=>Math.max(0.6,+(z-0.2).toFixed(1)))} title="Zoom arrière" className={`${tb} border-border text-ink-2`}>−</button>
+          <button onClick={()=>setZoom(1)} title="Ajuster à la largeur" className={`${tb} border-border text-ink-2 tabular-nums`}>{zoom===1?'Ajusté':`${Math.round(zoom*100)} %`}</button>
+          <button onClick={()=>setZoom(z=>Math.min(3,+(z+0.2).toFixed(1)))} title="Zoom avant" className={`${tb} border-border text-ink-2`}>+</button>
+          <button onClick={()=>setTimers(v=>!v)} aria-pressed={timers} title="Afficher les délais entre messages" className={`${tb} ${timers?'border-[var(--app-accent)] text-[var(--app-accent)]':'border-border text-ink-2'}`}>Timers</button>
+          <button onClick={()=>step(-1)} title="Message précédent (↑)" className={`${tb} border-border text-ink-2 hover:bg-surface-2`}>↑</button>
+          <button onClick={()=>step(1)} title="Message suivant (↓)" className={`${tb} border-border text-ink-2 hover:bg-surface-2`}>↓</button>
+          {!ui.full && <button onClick={()=>ui.setGridHidden(v=>!v)} className={`${tb} border-border text-ink-2 hover:bg-surface-2`}>{ui.gridHidden?'Afficher le tableau':'Masquer le tableau'}</button>}
+          <button onClick={()=>ui.setFull(v=>!v)} title="Plein écran (F)" className={`${tb} ${ui.full?'border-transparent bg-[var(--app-accent)] text-white':'border-border text-ink-2 hover:bg-surface-2'}`}><I d={ui.full?'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5':'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'} c="w-3.5 h-3.5"/>{ui.full?'Quitter':'Plein écran'}</button>
 </LadderMore>
-          <span title={`${shownIdx.length} messages affichés sur ${d.msgs.length}`} className="shrink-0 whitespace-nowrap text-[12px] text-[#64748B]"><b className="text-[#172033] tabular-nums">{shownIdx.length}</b> {shownIdx.length>1?'messages':'message'}</span>
+          <span title={`${shownIdx.length} messages affichés sur ${d.msgs.length}`} className="shrink-0 whitespace-nowrap text-[12px] text-muted-foreground"><b className="text-foreground tabular-nums">{shownIdx.length}</b> {shownIdx.length>1?'messages':'message'}</span>
         </div>
       </div>
       <div ref={ref} className="flex-1 overflow-auto scroll-thin">
         {tab==='Ladder' && <Ladder d={d} sel={sel} setSel={setSel} lens={lens} hidden={hidden} collapsed={collapsed} width={width} zoom={zoom} timers={timers} allowed={shownSet}/>}
         {tab==='Messages' && <table className="w-full text-[12.5px]"><tbody>{d.msgs.map((m,k)=>[m,k]).filter(([,k])=>shownSet.has(k)).map(([m,k])=>(
-          <tr key={k} onClick={()=>setSel(k)} className={`cursor-pointer ${sel===k?'bg-[color-mix(in_oklab,var(--app-accent)_9%,white)]':'hover:bg-[#FAFAFA]'}`}>
-            <td className="h-7 px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#8F8F8F] w-12">{available(d.evidence?.[k]?.seq ?? (demoMessageNumber(d,k)))}</td><td className="px-2 border-b border-[#F2F2F2] w-20"><Tag i={m[0]}/></td>
-            <td className="px-2 border-b border-[#F2F2F2]">{m[1]}{m[3]&&<span className="text-[#666666]"> · {m[3]}</span>}</td><td className="px-2 border-b border-[#F2F2F2] text-[#666666]">{m[2]}</td>
-            <td className="px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#666666]">{m[4]?`${m[4]} ${m[5]}`:''}</td></tr>))}</tbody></table>}
-        {tab==='Corrélation' && <table className="w-full text-[12.5px]"><thead><tr>{['De','Vers','Clé','Messages','Statut'].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#EBEBEB]">{h}</th>)}</tr></thead><tbody>{d.links.map((l,k)=>(
-          <tr key={k}><td className="h-8 px-4 border-b border-[#F2F2F2]"><Tag i={l[2]}/></td><td className="px-4 border-b border-[#F2F2F2]"><Tag i={l[3]}/></td><td className="px-4 border-b border-[#F2F2F2] font-mono text-[12px]">{l[4]}</td><td className="px-4 border-b border-[#F2F2F2] font-mono text-[12px] text-[#666666]">{l[0]===null?'—':l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun'}</td><td className="px-4 border-b border-[#F2F2F2]"><Stat s={l[5]}/></td></tr>))}</tbody></table>}
-        {(tab==='Plan usager'||tab==='Comparer') && <div className="p-8 text-[13px] text-[#666666]">{tab==='Plan usager' ? 'Volumes UL / DL par TEID, comparés aux règles N4 et aux rapports d’usage PFCP.' : 'Choisis une session réussie de même procédure pour aligner les deux flux et voir le point de bifurcation.'}</div>}
+          <tr key={k} onClick={()=>setSel(k)} className={`cursor-pointer ${sel===k?'bg-[color-mix(in_oklab,var(--app-accent)_9%,white)]':'hover:bg-surface-2'}`}>
+            <td className="h-7 px-4 border-b border-border-subtle font-mono text-[11.5px] text-subtle w-12">{available(d.evidence?.[k]?.seq ?? (demoMessageNumber(d,k)))}</td><td className="px-2 border-b border-border-subtle w-20"><Tag i={m[0]}/></td>
+            <td className="px-2 border-b border-border-subtle">{m[1]}{m[3]&&<span className="text-muted-foreground"> · {m[3]}</span>}</td><td className="px-2 border-b border-border-subtle text-muted-foreground">{m[2]}</td>
+            <td className="px-4 border-b border-border-subtle font-mono text-[11.5px] text-muted-foreground">{m[4]?`${m[4]} ${m[5]}`:''}</td></tr>))}</tbody></table>}
+        {tab==='Corrélation' && <table className="w-full text-[12.5px]"><thead><tr>{['De','Vers','Clé','Messages','Statut'].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border">{h}</th>)}</tr></thead><tbody>{d.links.map((l,k)=>(
+          <tr key={k}><td className="h-8 px-4 border-b border-border-subtle"><Tag i={l[2]}/></td><td className="px-4 border-b border-border-subtle"><Tag i={l[3]}/></td><td className="px-4 border-b border-border-subtle font-mono text-[12px]">{l[4]}</td><td className="px-4 border-b border-border-subtle font-mono text-[12px] text-muted-foreground">{l[0]===null?'—':l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun'}</td><td className="px-4 border-b border-border-subtle"><Stat s={l[5]}/></td></tr>))}</tbody></table>}
+        {(tab==='Plan usager'||tab==='Comparer') && <div className="p-8 text-[13px] text-muted-foreground">{tab==='Plan usager' ? 'Volumes UL / DL par TEID, comparés aux règles N4 et aux rapports d’usage PFCP.' : 'Choisis une session réussie de même procédure pour aligner les deux flux et voir le point de bifurcation.'}</div>}
       </div>
     </section>
   );
@@ -468,12 +468,12 @@ function DecodeNode({k,v,path,open,toggle,q}) {
   const copy = e => { e.stopPropagation(); try { navigator.clipboard?.writeText(leaf?`${k}: ${text}`:`${k}: ${JSON.stringify(v)}`); } catch(err) {} };
   const hex = leaf && typeof v==='number' ? ` (0x${v.toString(16)})` : '';
   return <div>
-    <div onClick={()=>!leaf&&toggle(path)} className={`group flex items-center gap-1 rounded px-1 ${leaf?'':'cursor-pointer'} hover:bg-[#F1F5F9] ${hit?'bg-[#FFFBEB]':''}`}>
-      <span className="w-3 text-[#94A3B8]">{leaf?'':isOpen?'▾':'▸'}</span><span className="text-[#64748B]">{k}</span>
-      {leaf ? <span className="text-[#172033] truncate">: {text}<span className="text-[#94A3B8]">{hex}</span></span> : <span className="text-[#94A3B8]">{Array.isArray(v)?`[${v.length}]`:`{${Object.keys(v).length}}`}</span>}
-      <button onClick={copy} title="Copier nom et valeur" className="ml-auto opacity-0 group-hover:opacity-100 text-[10px] text-[#64748B] hover:text-[#172033]">copier</button>
+    <div onClick={()=>!leaf&&toggle(path)} className={`group flex items-center gap-1 rounded px-1 ${leaf?'':'cursor-pointer'} hover:bg-muted ${hit?'bg-warning-soft':''}`}>
+      <span className="w-3 text-subtle">{leaf?'':isOpen?'▾':'▸'}</span><span className="text-muted-foreground">{k}</span>
+      {leaf ? <span className="text-foreground truncate">: {text}<span className="text-subtle">{hex}</span></span> : <span className="text-subtle">{Array.isArray(v)?`[${v.length}]`:`{${Object.keys(v).length}}`}</span>}
+      <button onClick={copy} title="Copier nom et valeur" className="ml-auto opacity-0 group-hover:opacity-100 text-[11px] text-muted-foreground hover:text-foreground">copier</button>
     </div>
-    {!leaf && isOpen && <div className="pl-3 border-l border-[#E2E8F0] ml-1.5">{Object.entries(v).map(([ck,cv])=><DecodeNode key={ck} k={ck} v={cv} path={`${path}.${ck}`} open={open} toggle={toggle} q={q}/>)}</div>}
+    {!leaf && isOpen && <div className="pl-3 border-l border-border ml-1.5">{Object.entries(v).map(([ck,cv])=><DecodeNode key={ck} k={ck} v={cv} path={`${path}.${ck}`} open={open} toggle={toggle} q={q}/>)}</div>}
   </div>;
 }
 function DecodeTree({tree}) {
@@ -482,13 +482,13 @@ function DecodeTree({tree}) {
   Object.entries(tree).forEach(([k,v])=>walk(v,k));
   const qq = q.trim().toLowerCase();
   const view = qq ? all : open;
-  return <div className="rounded-md border border-[#E2E8F0]">
-    <div className="flex items-center gap-1 p-1.5 border-b border-[#E2E8F0]">
-      <input aria-label="Rechercher un champ" value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher un champ…" className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[#E2E8F0] text-[11.5px] outline-none focus:border-[var(--app-accent)]"/>
-      <button onClick={()=>setOpen(all)} className="h-6 px-1.5 rounded border border-[#E2E8F0] text-[11px] text-[#334155]">Tout déplier</button>
-      <button onClick={()=>setOpen({})} className="h-6 px-1.5 rounded border border-[#E2E8F0] text-[11px] text-[#334155]">Tout replier</button>
+  return <div className="rounded-md border border-border">
+    <div className="flex items-center gap-1 p-1.5 border-b border-border">
+      <input aria-label="Rechercher un champ" value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher un champ…" className="flex-1 min-w-0 h-6 px-1.5 rounded border border-border text-[11.5px] outline-none focus:border-[var(--app-accent)]"/>
+      <button onClick={()=>setOpen(all)} className="h-6 px-1.5 rounded border border-border text-[11px] text-ink-2">Tout déplier</button>
+      <button onClick={()=>setOpen({})} className="h-6 px-1.5 rounded border border-border text-[11px] text-ink-2">Tout replier</button>
     </div>
-    <div className="p-1.5 font-mono text-[11.5px] leading-[1.7]">{Object.keys(tree).length ? Object.entries(tree).map(([k,v])=><DecodeNode key={k} k={k} v={v} path={k} open={view} toggle={p=>setOpen(o=>({...o,[p]:!o[p]}))} q={qq}/>) : <div className="text-[#64748B] px-1">Arbre de décodage vide.</div>}</div>
+    <div className="p-1.5 font-mono text-[11.5px] leading-[1.7]">{Object.keys(tree).length ? Object.entries(tree).map(([k,v])=><DecodeNode key={k} k={k} v={v} path={k} open={view} toggle={p=>setOpen(o=>({...o,[p]:!o[p]}))} q={qq}/>) : <div className="text-muted-foreground px-1">Arbre de décodage vide.</div>}</div>
   </div>;
 }
 
@@ -499,50 +499,50 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
   const evidence = d.evidence?.[Math.min(sel,d.msgs.length-1)];
   const eventQuery = useEvent(evidence?.event_id ?? evidence?.id); const provenance = useProvenance(evidence?.event_id ?? evidence?.id); const packets = usePackets({capture_id:provenance.data?.data?.capture_id,packet_number:provenance.data?.data?.packet_number}, provenance.data?.data?.capture_id!=null && provenance.data?.data?.packet_number!=null); const rules = useCorrelationRules(); const versions = useVersion();
   const proof = provenance.data?.data ?? evidence ?? {};
-  if (!m) return <aside className="p-4 text-[#666666]">Non disponible</aside>;
+  if (!m) return <aside className="p-4 text-muted-foreground">Non disponible</aside>;
   const shared = m[5] ? d.msgs.filter(x=>x[5]===m[5]).length : 0;
   return (
-    <aside style={{width}} aria-label="Décodage" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-[#E2E8F0] overflow-hidden">
-      <div className="h-10 shrink-0 flex items-end gap-5 px-4 border-b border-[#EBEBEB]">
-        {['Décodage','Preuves','Hex','Identité'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-9 text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#171717] font-medium':'border-transparent text-[#666666] hover:text-[#171717]'}`}>{t}</button>)}
-        <button onClick={onHide} title="Masquer le panneau" className="ml-auto mb-2 w-7 h-7 rounded-md grid place-items-center text-[#8F8F8F] hover:bg-[#F5F5F5] hover:text-[#171717]"><I d="M15 4v16M4 4h16v16H4z" c="w-3.5 h-3.5"/></button>
+    <aside style={{width}} aria-label="Décodage" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-border overflow-hidden">
+      <div className="h-10 shrink-0 flex items-end gap-5 px-4 border-b border-border">
+        {['Décodage','Preuves','Hex','Identité'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-9 text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-foreground font-medium':'border-transparent text-muted-foreground hover:text-foreground'}`}>{t}</button>)}
+        <button onClick={onHide} title="Masquer le panneau" className="ml-auto mb-2 w-7 h-7 rounded-md grid place-items-center text-subtle hover:bg-muted hover:text-foreground"><I d="M15 4v16M4 4h16v16H4z" c="w-3.5 h-3.5"/></button>
       </div>
       <div className="flex-1 overflow-auto scroll-thin p-3 text-[12px]">
         {tab==='Décodage' && <div className="space-y-3">
-          <div><div className="flex items-center gap-2"><Tag i={m[0]}/><span className="font-mono text-[11.5px] text-[#64748B]">message #{available(evidence?.seq ?? Math.min(sel,d.msgs.length-1)+1)}</span>{evidence?.decoding_status && <span className="ml-auto text-[10.5px] font-semibold text-[#64748B] border border-[#E2E8F0] rounded px-1">{String(evidence.decoding_status)}</span>}</div>
-            <div className="mt-1 text-[13px] font-semibold text-[#172033] leading-snug">{m[1]}</div><div className="text-[#64748B] text-[12px]">{m[2]}</div></div>
-          {eventQuery.isPending && evidence && <div className="text-[#64748B]">Chargement du décodage…</div>}
-          {eventQuery.isError && <div role="alert" className="rounded-md border border-[#FECACA] bg-[#FEF2F2] px-2 py-1.5 text-[11.5px] text-[#B42318]">Échec <span className="font-mono">GET {apiPath(`/events/${encodeURIComponent(String(evidence?.event_id ?? evidence?.id ?? ''))}`)}</span> → {eventQuery.error.status ? `HTTP ${eventQuery.error.status}` : 'réseau'}{eventQuery.error.code && eventQuery.error.code!=='HTTP_ERROR' ? ` · ${eventQuery.error.code}` : ''}{evidence?.decoded_ie_tree ? ' — arbre affiché depuis le callflow.' : ''}</div>}
+          <div><div className="flex items-center gap-2"><Tag i={m[0]}/><span className="font-mono text-[11.5px] text-muted-foreground">message #{available(evidence?.seq ?? Math.min(sel,d.msgs.length-1)+1)}</span>{evidence?.decoding_status && <span className="ml-auto text-[11px] font-semibold text-muted-foreground border border-border rounded px-1">{String(evidence.decoding_status)}</span>}</div>
+            <div className="mt-1 text-[13px] font-semibold text-foreground leading-snug">{m[1]}</div><div className="text-muted-foreground text-[12px]">{m[2]}</div></div>
+          {eventQuery.isPending && evidence && <div className="text-muted-foreground">Chargement du décodage…</div>}
+          {eventQuery.isError && <div role="alert" className="rounded-md border border-danger-line bg-danger-soft px-2 py-1.5 text-[11.5px] text-danger">Échec <span className="font-mono">GET {apiPath(`/events/${encodeURIComponent(String(evidence?.event_id ?? evidence?.id ?? ''))}`)}</span> → {eventQuery.error.status ? `HTTP ${eventQuery.error.status}` : 'réseau'}{eventQuery.error.code && eventQuery.error.code!=='HTTP_ERROR' ? ` · ${eventQuery.error.code}` : ''}{evidence?.decoded_ie_tree ? ' — arbre affiché depuis le callflow.' : ''}</div>}
           {(()=>{ const t = eventQuery.data?.data?.decoded_ie_tree ?? evidence?.decoded_ie_tree; return (eventQuery.data || t) ? <DecodeTree key={String(evidence?.event_id ?? sel)} tree={t&&typeof t==='object'?t:t==null?{}:{valeur:t}}/> : null; })()}
-          {!eventQuery.data && !evidence?.decoded_ie_tree && <div className="rounded-md border border-[#EBEBEB] bg-[#FAFAFA] p-3 font-mono text-[11.5px] leading-[1.9] text-[#4D4D4D]">
+          {!eventQuery.data && !evidence?.decoded_ie_tree && <div className="rounded-md border border-border bg-surface-2 p-3 font-mono text-[11.5px] leading-[1.9] text-ink-2">
             <div>▾ {m[1].split(' ')[0]} PDU</div>
             <div className="pl-4">▾ {m[1].split(' ').slice(1).join(' ')}</div>
-            <div className="pl-8">ue : <span className="text-[#171717]">{s.ue}</span> <span className="text-[#8F8F8F]">(pseudonyme)</span></div>
-            {m[3] && <><div className="pl-8">▾ NAS-PDU</div><div className="pl-12">message : <span className="text-[#171717]">{m[3]}</span></div>
-              <div className="pl-12">identité : {<span className="text-[#8F8F8F]">masquée</span>}</div></>}
-            {m[4] && <div className="pl-8">{m[4]} : <span className="text-[#A15C07]">{m[5]}</span></div>}
+            <div className="pl-8">ue : <span className="text-foreground">{s.ue}</span> <span className="text-subtle">(pseudonyme)</span></div>
+            {m[3] && <><div className="pl-8">▾ NAS-PDU</div><div className="pl-12">message : <span className="text-foreground">{m[3]}</span></div>
+              <div className="pl-12">identité : {<span className="text-subtle">masquée</span>}</div></>}
+            {m[4] && <div className="pl-8">{m[4]} : <span className="text-warning">{m[5]}</span></div>}
           </div>}
           <div><Lbl>Informations UE</Lbl><dl className="grid grid-cols-[100px_1fr] gap-y-0.5 text-[11.5px]">
-            {[['IMSI / SUPI','masqué'],['Identifiant UE',s.ue],['Technologie',s.rat],['Cellule',s.cell],['PCI',s.pci],['EARFCN / ARFCN',s.arfcn ?? s.earfcn ?? s.nr_arfcn],['MME / AMF',s.serving_node],['PDU Session ID',s.pdu_session_id],['ID temporaires',s.guti ?? s['5g_guti'] ?? s.ue_context_id]].map(([k,v])=><React.Fragment key={k}><dt className="text-[#64748B]">{k}</dt><dd className="font-mono truncate" title={String(available(v))}>{available(v)}</dd></React.Fragment>)}
+            {[['IMSI / SUPI','masqué'],['Identifiant UE',s.ue],['Technologie',s.rat],['Cellule',s.cell],['PCI',s.pci],['EARFCN / ARFCN',s.arfcn ?? s.earfcn ?? s.nr_arfcn],['MME / AMF',s.serving_node],['PDU Session ID',s.pdu_session_id],['ID temporaires',s.guti ?? s['5g_guti'] ?? s.ue_context_id]].map(([k,v])=><React.Fragment key={k}><dt className="text-muted-foreground">{k}</dt><dd className="font-mono truncate" title={String(available(v))}>{available(v)}</dd></React.Fragment>)}
           </dl></div>
-          <details className="rounded-md border border-[#E2E8F0]"><summary className="px-2 h-7 flex items-center cursor-pointer text-[11.5px] font-medium text-[#334155]">Métadonnées techniques</summary>
+          <details className="rounded-md border border-border"><summary className="px-2 h-7 flex items-center cursor-pointer text-[11.5px] font-medium text-ink-2">Métadonnées techniques</summary>
             <dl className="grid grid-cols-[110px_1fr] gap-y-1 font-mono text-[11.5px] p-2 pt-0">
-              <dt className="text-[#64748B]">capture_id</dt><dd>{available(proof.capture_id)}</dd><dt className="text-[#64748B]">seq</dt><dd>{available(proof.seq)}</dd>
-              <dt className="text-[#64748B]">packet_number</dt><dd>{available(proof.packet_number)}</dd><dt className="text-[#64748B]">décodeurs</dt><dd>{decoderVersions(versions.data?.data?.decoders)}</dd>
+              <dt className="text-muted-foreground">capture_id</dt><dd>{available(proof.capture_id)}</dd><dt className="text-muted-foreground">seq</dt><dd>{available(proof.seq)}</dd>
+              <dt className="text-muted-foreground">packet_number</dt><dd>{available(proof.packet_number)}</dd><dt className="text-muted-foreground">décodeurs</dt><dd>{decoderVersions(versions.data?.data?.decoders)}</dd>
             </dl></details>
-          {m[5] && (isCause(m) ? <div className="rounded-md border border-[#F5C6C2] bg-[#FFFBFA] p-3">
-            <div className="flex items-center gap-2 font-medium text-[#B42318]"><I d="M12 8v5M12 16h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" c="w-4 h-4"/>Lentille de cause</div>
-            <div className="text-[#666666] mt-1"><span className="font-mono text-[#B42318]">{m[4].replace(/^cause /,'')} {m[5]}</span> — cause d'échec, pas une clé de corrélation. Présente dans {shared} message(s).</div>
-            <button onClick={()=>setLens(lens===m[5]?null:m[5])} className={`mt-2 h-7 px-3 rounded-md text-[12px] font-medium ${lens===m[5]?'border border-[#EBEBEB] text-[#4D4D4D]':'bg-[#B42318] text-white'}`}>{lens===m[5]?'Retirer le surlignage':'Surligner la cause'}</button>
-          </div> : <div className="rounded-md border border-[#EBEBEB] p-3">
-            <div className="flex items-center gap-2 font-medium text-[#171717]"><I d={ic.lens} c="w-4 h-4"/>Lentille de clé</div>
-            <div className="text-[#666666] mt-1"><span className="font-mono text-[11.5px] text-[#8F8F8F]">{m[4]}</span> <span className="font-mono text-[#A15C07]">{m[5]}</span> apparaît dans {shared} message(s) de la session.</div>
-            <button onClick={()=>setLens(lens===m[5]?null:m[5])} className={`mt-2 h-7 px-3 rounded-md text-[12px] font-medium ${lens===m[5]?'border border-[#EBEBEB] text-[#4D4D4D]':'bg-[var(--app-accent)] text-white'}`}>{lens===m[5]?'Retirer le surlignage':'Surligner dans la session'}</button>
+          {m[5] && (isCause(m) ? <div className="rounded-md border border-danger-line bg-danger-soft p-3">
+            <div className="flex items-center gap-2 font-medium text-danger"><I d="M12 8v5M12 16h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" c="w-4 h-4"/>Lentille de cause</div>
+            <div className="text-muted-foreground mt-1"><span className="font-mono text-danger">{m[4].replace(/^cause /,'')} {m[5]}</span> — cause d'échec, pas une clé de corrélation. Présente dans {shared} message(s).</div>
+            <button onClick={()=>setLens(lens===m[5]?null:m[5])} className={`mt-2 h-7 px-3 rounded-md text-[12px] font-medium ${lens===m[5]?'border border-border text-ink-2':'bg-danger text-white'}`}>{lens===m[5]?'Retirer le surlignage':'Surligner la cause'}</button>
+          </div> : <div className="rounded-md border border-border p-3">
+            <div className="flex items-center gap-2 font-medium text-foreground"><I d={ic.lens} c="w-4 h-4"/>Lentille de clé</div>
+            <div className="text-muted-foreground mt-1"><span className="font-mono text-[11.5px] text-subtle">{m[4]}</span> <span className="font-mono text-warning">{m[5]}</span> apparaît dans {shared} message(s) de la session.</div>
+            <button onClick={()=>setLens(lens===m[5]?null:m[5])} className={`mt-2 h-7 px-3 rounded-md text-[12px] font-medium ${lens===m[5]?'border border-border text-ink-2':'bg-[var(--app-accent)] text-white'}`}>{lens===m[5]?'Retirer le surlignage':'Surligner dans la session'}</button>
           </div>)}
         </div>}
         {tab==='Preuves' && <div className="space-y-2"><div>event_id : {available(proof.event_id ?? evidence?.id)} · seq : {available(proof.seq)}</div>{provenance.isError && <div>{provenance.error.message}</div>}{packets.data && <div>Paquets : {records(packets.data.data,'packets').length}</div>}<div>Règles : {rules.isError ? rules.error.message : JSON.stringify(rules.data?.data ?? [])}</div>{d.links.map((l,k)=>(
-          <div key={k} className="rounded-md border border-[#EBEBEB] p-3"><div className="flex items-center gap-2"><Tag i={l[2]}/><span className="text-[#8F8F8F]">→</span><Tag i={l[3]}/><span className="ml-auto"><Stat s={l[5]}/></span></div>
-          <div className="font-mono text-[11.5px] mt-2 text-[#4D4D4D]">{l[4]}</div><div className="text-[11.5px] text-[#8F8F8F] mt-0.5">messages {l[0]===null?'—':l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun message N4'} · matched_rules : {JSON.stringify(l[6] ?? [])}</div></div>))}</div>}
+          <div key={k} className="rounded-md border border-border p-3"><div className="flex items-center gap-2"><Tag i={l[2]}/><span className="text-subtle">→</span><Tag i={l[3]}/><span className="ml-auto"><Stat s={l[5]}/></span></div>
+          <div className="font-mono text-[11.5px] mt-2 text-ink-2">{l[4]}</div><div className="text-[11.5px] text-subtle mt-0.5">messages {l[0]===null?'—':l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun message N4'} · matched_rules : {JSON.stringify(l[6] ?? [])}</div></div>))}</div>}
         {tab==='Hex' && <div>Non disponible : backend à venir (octets masqués)</div>}
         {tab==='Identité' && <div><Lbl>Pseudonyme</Lbl><span className="font-mono">{s.ue}</span><div>Identités masquées</div></div>}
       </div>
@@ -553,12 +553,12 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
 
 /* ------------------------------ ACCUEIL ------------------------------ */
 const IFACES = ['N2','N3','N4','SBI','N6','S1-MME','S1-U','S5-U','S11','S5-C','S6a','Sxa/Sxb'];
-const Dot = ({st}) => <span className={`w-[8px] h-[8px] rounded-full ${st==='ok'?'bg-[#15803D]':st==='warn'?'bg-[#D97706]':st==='error'?'bg-[#B42318]':'bg-[#D4D4D4]'}`}/>;
-const Bar = ({v,warn=70,crit=85}) => <div className="flex items-center gap-2"><div className="w-16 h-1.5 rounded-full bg-[#F2F2F2] overflow-hidden"><div className={`h-full ${v>=crit?'bg-[#B42318]':v>=warn?'bg-[#D97706]':'bg-[var(--app-accent)]'}`} style={{width:`${v}%`}}/></div><span className="tabular-nums text-[12px] text-[#4D4D4D] w-9">{v} %</span></div>;
+const Dot = ({st}) => <span className={`w-[8px] h-[8px] rounded-full ${st==='ok'?'bg-success':st==='warn'?'bg-warning':st==='error'?'bg-danger':'bg-track'}`}/>;
+const Bar = ({v,warn=70,crit=85}) => <div className="flex items-center gap-2"><div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden"><div className={`h-full ${v>=crit?'bg-danger':v>=warn?'bg-warning':'bg-[var(--app-accent)]'}`} style={{width:`${v}%`}}/></div><span className="tabular-nums text-[12px] text-ink-2 w-9">{v} %</span></div>;
 const fmtBytes = v => typeof v!=='number'?'—':v>=1024**3?`${(v/1024**3).toFixed(2)} GiB`:v>=1024**2?`${(v/1024**2).toFixed(1)} MiB`:v>=1024?`${(v/1024).toFixed(1)} KiB`:`${v} B`;
 const Card = ({title,action,children,className=''}) => (
-  <section className={`bg-white rounded-lg border border-[#EBEBEB] ${className}`}>
-    <div className="h-11 px-4 flex items-center border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold text-[#171717]">{title}</h3>{action && <span className="ml-auto text-[12px] text-[#171717] font-medium cursor-pointer">{action}</span>}</div>
+  <section className={`bg-white rounded-lg border border-border ${className}`}>
+    <div className="h-11 px-4 flex items-center border-b border-border-subtle"><h3 className="text-[13px] font-semibold text-foreground">{title}</h3>{action && <span className="ml-auto text-[12px] text-foreground font-medium cursor-pointer">{action}</span>}</div>
     {children}
   </section>
 );
@@ -575,7 +575,7 @@ const MODULES = [
   ['Traffic','Débit, santé TCP, applications, congestion','M4 7h16M4 12h16M4 17h16','trafic'],
   ['Polaris Nodes','Topologie et état des nœuds du réseau.','M12 5v4M5 19l4-5M19 19l-4-5M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6ZM12 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM4 18a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM20 18a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z','nodes',true],
 ];
-const Soon = () => <span className="text-[10.5px] font-medium text-[#8F8F8F] border border-[#EBEBEB] rounded px-1.5 py-[1px]">{t("Bientôt")}</span>;
+const Soon = () => <span className="text-[11px] font-medium text-subtle border border-border rounded px-1.5 py-[1px]">{t("Bientôt")}</span>;
 
 function Home({setPage,onNew,hidden=[]}) {
   const { demo } = usePolarisMode();
@@ -588,55 +588,55 @@ function Home({setPage,onNew,hidden=[]}) {
       <div className="polaris-content-shell px-8 pt-14 pb-16">
         <header className="flex flex-wrap items-end justify-between gap-6">
           <div className="min-w-0">
-            <h1 className="text-[30px] leading-[1.15] font-semibold tracking-[-0.02em] text-[#171717]">{t("Bienvenue sur POLARIS")}</h1>
-            <p className="mt-2 text-[15px] text-[#666666]">{t("Analyse, diagnostic et supervision des sessions et du trafic réseau.")}</p>
+            <h1 className="text-[30px] leading-[1.15] font-semibold tracking-[-0.02em] text-foreground">{t("Bienvenue sur POLARIS")}</h1>
+            <p className="mt-2 text-[15px] text-muted-foreground">{t("Analyse, diagnostic et supervision des sessions et du trafic réseau.")}</p>
           </div>
           <button onClick={()=>onNew?onNew():setPage('sessions')} className="h-10 px-5 rounded-lg bg-[var(--app-accent)] text-white text-[14px] font-medium flex items-center gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.12)] hover:opacity-90 transition"><I d={ic.plus} c="w-4 h-4"/>{t("Nouvelle analyse")}</button>
         </header>
         <div className="mt-6 flex flex-wrap gap-2">
           {HOME_ACTIONS.map(([k,n,d,tg])=>(
-            <button key={k} disabled={!tg} onClick={()=>go(tg)} className="h-9 px-3.5 rounded-lg border border-[#EBEBEB] bg-white text-[13.5px] text-[#171717] flex items-center gap-2 hover:border-[#D4D4D4] hover:bg-[#FAFAFA] transition disabled:text-[#A3A3A3] disabled:hover:bg-white disabled:cursor-not-allowed">
-              <I d={d} c="w-4 h-4 text-[#666666]"/>{t(n)}{!tg && <Soon/>}</button>))}
+            <button key={k} disabled={!tg} onClick={()=>go(tg)} className="h-9 px-3.5 rounded-lg border border-border bg-white text-[13px] text-foreground flex items-center gap-2 hover:border-border-strong hover:bg-surface-2 transition disabled:text-subtle disabled:hover:bg-white disabled:cursor-not-allowed">
+              <I d={d} c="w-4 h-4 text-muted-foreground"/>{t(n)}{!tg && <Soon/>}</button>))}
         </div>
 
         <section className="mt-14">
-          <h2 className="text-[13px] font-semibold text-[#171717] mb-4">{t("Modules")}</h2>
+          <h2 className="text-[13px] font-semibold text-foreground mb-4">{t("Modules")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {MODULES.filter(x=>(x[3]!=='trafic'||TRAFFIC_ENABLED) && isVisible(hidden,x[3])).map(([n,desc,d,tg,adm])=>(
-              <button key={n} disabled={!tg} onClick={()=>go(tg)} className="group text-left h-full rounded-xl border border-[#EBEBEB] bg-white p-4 flex flex-col transition hover:border-[#D4D4D4] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:border-[#EBEBEB]">
-                <span className={`w-8 h-8 rounded-lg grid place-items-center ${tg?'bg-[var(--app-accent)] text-white':'bg-[#F2F2F2] text-[#8F8F8F]'}`}><I d={d} c="w-4 h-4"/></span>
-                <span className={`mt-4 text-[14px] font-semibold flex items-center gap-1.5 flex-wrap ${tg?'text-[#171717]':'text-[#666666]'}`}>{t(n)}{adm && <span className="text-[10px] font-semibold uppercase tracking-wide rounded px-1.5 py-[1px] bg-[var(--app-accent)] text-white">{t("Administrateur")}</span>}</span>
-                <span className="mt-1 text-[12.5px] leading-[1.45] text-[#666666] flex-1">{t(desc)}</span>
-                <span className="mt-4 text-[12.5px] font-medium flex items-center gap-1">{tg ? <span className="text-[#171717] group-hover:translate-x-0.5 transition">{t("Ouvrir →")}</span> : <Soon/>}</span>
+              <button key={n} disabled={!tg} onClick={()=>go(tg)} className="group text-left h-full rounded-xl border border-border bg-white p-4 flex flex-col transition hover:border-border-strong hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:border-border">
+                <span className={`w-8 h-8 rounded-lg grid place-items-center ${tg?'bg-[var(--app-accent)] text-white':'bg-muted text-subtle'}`}><I d={d} c="w-4 h-4"/></span>
+                <span className={`mt-4 text-[14px] font-semibold flex items-center gap-1.5 flex-wrap ${tg?'text-foreground':'text-muted-foreground'}`}>{t(n)}{adm && <span className="text-[11px] font-semibold uppercase tracking-wide rounded px-1.5 py-[1px] bg-[var(--app-accent)] text-white">{t("Administrateur")}</span>}</span>
+                <span className="mt-1 text-[12.5px] leading-[1.45] text-muted-foreground flex-1">{t(desc)}</span>
+                <span className="mt-4 text-[12.5px] font-medium flex items-center gap-1">{tg ? <span className="text-foreground group-hover:translate-x-0.5 transition">{t("Ouvrir →")}</span> : <Soon/>}</span>
               </button>))}
           </div>
         </section>
 
         <div className="mt-14 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-10">
           <section>
-            <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-[#171717]">{t("Activité récente")}</h2><button disabled className="ml-auto text-[12.5px] text-[#A3A3A3] cursor-not-allowed">{t("Voir tout")}</button></div>
-            <div className="rounded-xl border border-[#EBEBEB] bg-white divide-y divide-[#F2F2F2]">
+            <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-foreground">{t("Activité récente")}</h2><button disabled className="ml-auto text-[12.5px] text-subtle cursor-not-allowed">{t("Voir tout")}</button></div>
+            <div className="rounded-xl border border-border bg-white divide-y divide-border-subtle">
               {(demo ? [['Analyse','Run 5G #482 · Registration','il y a 3 min','sessions'],['KPI','Succès PDU Session · 15 min','il y a 12 min','kpi'],['Template','Échecs Attach par cellule','il y a 40 min','templates'],['Analyse','Run 4G #219 · E-RAB Setup','il y a 2 h','sessions']] : []).map(([ty,n,w,tg])=>(
-                <button key={n} onClick={()=>setPage(tg)} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[#FAFAFA]"><span className="text-[11px] font-medium text-[#666666] bg-[#F5F5F5] rounded px-1.5 py-[1px] w-16 text-center">{t(ty)}</span><span className="text-[13px] text-[#171717] truncate">{n}</span><span className="ml-auto text-[12px] text-[#8F8F8F] shrink-0">{t(w)}</span></button>))}
+                <button key={n} onClick={()=>setPage(tg)} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-2"><span className="text-[11px] font-medium text-muted-foreground bg-muted rounded px-1.5 py-[1px] w-16 text-center">{t(ty)}</span><span className="text-[13px] text-foreground truncate">{n}</span><span className="ml-auto text-[12px] text-subtle shrink-0">{t(w)}</span></button>))}
             </div>
             <div className={demo ? "hidden" : "py-6 text-center"}>
-              <div className="mx-auto w-9 h-9 rounded-full bg-[#F5F5F5] grid place-items-center text-[#8F8F8F]"><I d="M12 7v5l3 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z" c="w-4 h-4"/></div>
-              <div className="mt-3 text-[14px] font-medium text-[#171717]">{t("Aucune activité pour l'instant")}</div>
-              <div className="mt-1 text-[13px] text-[#666666]">{t("Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.")}</div>
-              <button onClick={()=>onNew?onNew():setPage('sessions')} className="mt-4 text-[13px] font-medium text-[#171717] hover:underline">{t("Lancer une analyse →")}</button>
+              <div className="mx-auto w-9 h-9 rounded-full bg-muted grid place-items-center text-subtle"><I d="M12 7v5l3 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z" c="w-4 h-4"/></div>
+              <div className="mt-3 text-[14px] font-medium text-foreground">{t("Aucune activité pour l'instant")}</div>
+              <div className="mt-1 text-[13px] text-muted-foreground">{t("Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.")}</div>
+              <button onClick={()=>onNew?onNew():setPage('sessions')} className="mt-4 text-[13px] font-medium text-foreground hover:underline">{t("Lancer une analyse →")}</button>
             </div>
           </section>
           <section>
-            <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-[#171717]">{t("État de la plateforme")}</h2><button onClick={()=>setPage('nodes')} className="ml-auto text-[12.5px] font-medium text-[#171717] hover:underline">{t("Voir la supervision")}</button></div>
-            <div className="rounded-xl border border-[#EBEBEB] divide-y divide-[#F2F2F2]">
+            <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-foreground">{t("État de la plateforme")}</h2><button onClick={()=>setPage('nodes')} className="ml-auto text-[12.5px] font-medium text-foreground hover:underline">{t("Voir la supervision")}</button></div>
+            <div className="rounded-xl border border-border divide-y divide-border-subtle">
               {[['Capture','État de capture',available(m?.capture_state ?? h?.capture_state),'var(--muted-foreground)'],['Segments en attente','À importer',available(m?.pending_segments),'var(--muted-foreground)'],['Échecs ingestion','Import',available(m?.ingestion_failures),'var(--muted-foreground)'],['Segments ingérés','Importés',available(m?.segments_ingested),'var(--muted-foreground)'],['Segments ouverts','Capture en cours',available(m?.open_segments),'var(--muted-foreground)'],['Segments sans événement','Décodage',available(m?.zero_event_segments),'var(--muted-foreground)'],['Disque disponible','Stockage',available(safety.data?.data?.free_percent),'var(--muted-foreground)']].map(([n,d,v,c])=>(
                 <div key={n} className="px-4 py-3.5 flex items-center gap-3">
                   <span className="w-[7px] h-[7px] rounded-full" style={{background:c}}/>
-                  <div className="min-w-0"><div className="text-[13.5px] text-[#171717]">{t(n)}</div><div className="text-[12px] text-[#8F8F8F]">{t(d)}</div></div>
-                  <span title={`event_id=${available(m?.event_id)} · seq=${available(m?.seq)}`} className="ml-auto text-[13px] font-medium tabular-nums text-[#171717]">{v}</span>
+                  <div className="min-w-0"><div className="text-[13px] text-foreground">{t(n)}</div><div className="text-[12px] text-subtle">{t(d)}</div></div>
+                  <span title={`event_id=${available(m?.event_id)} · seq=${available(m?.seq)}`} className="ml-auto text-[13px] font-medium tabular-nums text-foreground">{v}</span>
                 </div>))}
             </div>
-            <p className="mt-3 text-[12px] text-[#A15C00]">{t(demo ? 'Données de démo' : health.isError ? health.error.message : 'POLARIS')}</p>
+            <p className="mt-3 text-[12px] text-warning">{t(demo ? 'Données de démo' : health.isError ? health.error.message : 'POLARIS')}</p>
           </section>
         </div>
       </div>
@@ -680,22 +680,22 @@ function ProbeDetails({ node, onBack }) {
   const captures = records(resources.captures.data?.data,'captures');
   const running = captures.find(c => ['CAPTURING','STARTING','RUNNING'].includes(String(c.state ?? c.status ?? '').toUpperCase())
     && String(c.probe_id ?? c.probe ?? c.node ?? '') === String(node.id ?? node.n));
-  const row = (label,value) => <div className="flex justify-between gap-4 border-b border-[#F2F2F2] py-1.5 last:border-0"><span className="text-[#666666]">{label}</span><span className="font-mono text-[12px] text-[#171717] text-right truncate" title={String(value)}>{value}</span></div>;
+  const row = (label,value) => <div className="flex justify-between gap-4 border-b border-border-subtle py-1.5 last:border-0"><span className="text-muted-foreground">{label}</span><span className="font-mono text-[12px] text-foreground text-right truncate" title={String(value)}>{value}</span></div>;
   return (
     <div className="space-y-5">
       <div className="flex items-start gap-3 flex-wrap">
-        <button type="button" onClick={onBack} className="h-8 px-3 rounded-md border border-[#EBEBEB] bg-white text-[12.5px] text-[#4D4D4D] hover:bg-[#FAFAFA]">← Sondes</button>
+        <button type="button" onClick={onBack} className="h-8 px-3 rounded-md border border-border bg-white text-[12.5px] text-ink-2 hover:bg-surface-2">← Sondes</button>
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">
-            <h2 className="font-mono text-[15px] font-semibold text-[#171717] truncate">{node.n}</h2>
-            <span className="inline-flex items-center gap-1.5 text-[12px] text-[#4D4D4D]"><Dot st={node.st}/>{online ? 'En ligne' : 'Hors ligne'}</span>
+            <h2 className="font-mono text-[15px] font-semibold text-foreground truncate">{node.n}</h2>
+            <span className="inline-flex items-center gap-1.5 text-[12px] text-ink-2"><Dot st={node.st}/>{online ? 'En ligne' : 'Hors ligne'}</span>
           </div>
-          <div className="text-[11.5px] text-[#8F8F8F] mt-0.5">{available(node.role)} · {available(node.info)} · ID {available(node.id ?? node.n)}</div>
+          <div className="text-[11.5px] text-subtle mt-0.5">{available(node.role)} · {available(node.info)} · ID {available(node.id ?? node.n)}</div>
         </div>
-        <div className="ml-auto text-[11.5px] text-[#666666]">Rôle {available(auth.data?.data?.role)} · gestion des interfaces réservée à operator</div>
+        <div className="ml-auto text-[11.5px] text-muted-foreground">Rôle {available(auth.data?.data?.role)} · gestion des interfaces réservée à operator</div>
       </div>
-      <div role="tablist" aria-label="Fiche sonde" className="flex gap-1 border-b border-[#EBEBEB] overflow-x-auto scroll-thin">
-        {PROBE_TABS.map(x => <button key={x} role="tab" aria-selected={tab===x} onClick={()=>setTab(x)} className={`relative shrink-0 h-10 px-3 text-[13px] ${tab===x?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{x}{tab===x && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-[var(--app-accent)]"/>}</button>)}
+      <div role="tablist" aria-label="Fiche sonde" className="flex gap-1 border-b border-border overflow-x-auto scroll-thin">
+        {PROBE_TABS.map(x => <button key={x} role="tab" aria-selected={tab===x} onClick={()=>setTab(x)} className={`relative shrink-0 h-10 px-3 text-[13px] ${tab===x?'text-foreground font-semibold':'text-muted-foreground hover:text-foreground'}`}>{x}{tab===x && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-[var(--app-accent)]"/>}</button>)}
       </div>
       <div role="tabpanel" aria-label={tab} className="space-y-5">
         {tab==='Général' && <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
@@ -710,46 +710,46 @@ function ProbeDetails({ node, onBack }) {
           </Card>
           <Card title="Télémétrie de la sonde">
             <div className="p-4 space-y-3 text-[12.5px]">
-              <div className="flex items-center justify-between gap-4"><span className="text-[#666666]">CPU</span>{node.cpu==null ? <span className="text-[#D4D4D4]">—</span> : <Bar v={Math.round(node.cpu)}/>}</div>
-              <div className="flex items-center justify-between gap-4"><span className="text-[#666666]">RAM</span>{node.memoryBytes==null ? <span className="text-[#D4D4D4]">—</span> : <span className="font-mono text-[12px]">{fmtBytes(node.memoryBytes)}<span className="text-[#8F8F8F]"> · anon {fmtBytes(node.memoryAnonBytes)} · file {fmtBytes(node.memoryFileBytes)}</span></span>}</div>
-              <div className="flex items-center justify-between gap-4"><span className="text-[#666666]">Disque</span>{node.disk==null ? <span className="text-[#D4D4D4]">—</span> : <div className="flex items-center gap-2"><Bar v={Math.round(node.disk)} warn={95} crit={99}/><span className="text-[11px] text-[#8F8F8F]">{fmtBytes(node.diskFreeBytes)} libres · seuils 95 / 99 %</span></div>}</div>
-              <div className="pt-1 border-t border-[#F2F2F2]">{row('Disque disponible (plateforme)',available(diskAvailable))}{row('Segments ingérés',available(metrics.data?.data?.segments_ingested))}{row('Échecs ingestion',available(metrics.data?.data?.ingestion_failures))}</div>
+              <div className="flex items-center justify-between gap-4"><span className="text-muted-foreground">CPU</span>{node.cpu==null ? <span className="text-faint">—</span> : <Bar v={Math.round(node.cpu)}/>}</div>
+              <div className="flex items-center justify-between gap-4"><span className="text-muted-foreground">RAM</span>{node.memoryBytes==null ? <span className="text-faint">—</span> : <span className="font-mono text-[12px]">{fmtBytes(node.memoryBytes)}<span className="text-subtle"> · anon {fmtBytes(node.memoryAnonBytes)} · file {fmtBytes(node.memoryFileBytes)}</span></span>}</div>
+              <div className="flex items-center justify-between gap-4"><span className="text-muted-foreground">Disque</span>{node.disk==null ? <span className="text-faint">—</span> : <div className="flex items-center gap-2"><Bar v={Math.round(node.disk)} warn={95} crit={99}/><span className="text-[11px] text-subtle">{fmtBytes(node.diskFreeBytes)} libres · seuils 95 / 99 %</span></div>}</div>
+              <div className="pt-1 border-t border-border-subtle">{row('Disque disponible (plateforme)',available(diskAvailable))}{row('Segments ingérés',available(metrics.data?.data?.segments_ingested))}{row('Échecs ingestion',available(metrics.data?.data?.ingestion_failures))}</div>
             </div>
             {(safety.isError || metrics.isError) && <div className="px-4 pb-4">{failure(safety,'/storage/safety') ?? failure(metrics,'/metrics')}</div>}
           </Card>
         </div>}
         {tab==='Live Capture' && <LiveCapture probe={node}/>}
         {tab==='Interfaces et points de capture' && <Card title="Interfaces et points de capture">
-          <table className="w-full text-[12.5px]"><thead><tr>{['Interface','Protocole','Source de capture','Filtre BPF','Disponibilité'].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#F2F2F2]">{h}</th>)}</tr></thead>
-            <tbody>{ifaceRows.map(x=><tr key={x.name}><td className="h-10 px-4 border-b border-[#F2F2F2] font-mono">{x.name}</td><td className="px-4 border-b border-[#F2F2F2]">{available(x.protocol)}</td><td className="px-4 border-b border-[#F2F2F2] font-mono text-[11.5px]">{available(x.source)}</td><td className="px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] max-w-[220px] truncate" title={String(available(x.bpf))}>{available(x.bpf)}</td>
-              <td className="px-4 border-b border-[#F2F2F2]">{x.active==null ? <span className="text-[#8F8F8F]">—</span> : <span className="inline-flex items-center gap-1.5"><Dot st={x.active?'ok':'error'}/>{x.active?'Disponible':'Indisponible'}</span>}</td></tr>)}
-              {!ifaceRows.length && <tr><td colSpan="5" className="p-4 text-[#8F8F8F]">{resources.probeInterfaces.isPending || resources.interfaces.isPending ? 'Connexion POLARIS…' : 'Aucune interface renvoyée par /probes/{id}/interfaces ni /interfaces'}</td></tr>}
+          <table className="w-full text-[12.5px]"><thead><tr>{['Interface','Protocole','Source de capture','Filtre BPF','Disponibilité'].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border-subtle">{h}</th>)}</tr></thead>
+            <tbody>{ifaceRows.map(x=><tr key={x.name}><td className="h-10 px-4 border-b border-border-subtle font-mono">{x.name}</td><td className="px-4 border-b border-border-subtle">{available(x.protocol)}</td><td className="px-4 border-b border-border-subtle font-mono text-[11.5px]">{available(x.source)}</td><td className="px-4 border-b border-border-subtle font-mono text-[11.5px] max-w-[220px] truncate" title={String(available(x.bpf))}>{available(x.bpf)}</td>
+              <td className="px-4 border-b border-border-subtle">{x.active==null ? <span className="text-subtle">—</span> : <span className="inline-flex items-center gap-1.5"><Dot st={x.active?'ok':'error'}/>{x.active?'Disponible':'Indisponible'}</span>}</td></tr>)}
+              {!ifaceRows.length && <tr><td colSpan="5" className="p-4 text-subtle">{resources.probeInterfaces.isPending || resources.interfaces.isPending ? 'Connexion POLARIS…' : 'Aucune interface renvoyée par /probes/{id}/interfaces ni /interfaces'}</td></tr>}
             </tbody></table>
-          <div className="px-4 py-3 text-[11.5px] text-[#8F8F8F]">{ifaceRows.length ? (records(resources.probeInterfaces.data?.data,'interfaces').length ? 'Liste fournie par /probes/{id}/interfaces · disponibilité par /interfaces/runtime.' : 'Liste fournie par /interfaces · disponibilité par /interfaces/runtime.') : (failure(resources.probeInterfaces,'/probes/'+String(node.id ?? node.n)+'/interfaces') ?? failure(resources.interfaces,'/interfaces'))}</div>
+          <div className="px-4 py-3 text-[11.5px] text-subtle">{ifaceRows.length ? (records(resources.probeInterfaces.data?.data,'interfaces').length ? 'Liste fournie par /probes/{id}/interfaces · disponibilité par /interfaces/runtime.' : 'Liste fournie par /interfaces · disponibilité par /interfaces/runtime.') : (failure(resources.probeInterfaces,'/probes/'+String(node.id ?? node.n)+'/interfaces') ?? failure(resources.interfaces,'/interfaces'))}</div>
         </Card>}
         {tab==='Stockage et ingestion' && <Card title="Stockage et ingestion">
-          <div className="p-4 space-y-3 text-[12.5px]">{[['Disque disponible',diskAvailable],['Segments ingérés',metrics.data?.data?.segments_ingested],['Échecs ingestion',metrics.data?.data?.ingestion_failures],['Segments en attente',metrics.data?.data?.pending_segments],['Segments ouverts',metrics.data?.data?.open_segments]].map(([label,value])=><div key={label} className="flex justify-between border-b border-[#F2F2F2] py-1.5 last:border-0"><span className="text-[#666666]">{label}</span><span className="font-mono text-[12px]">{available(value)}</span></div>)}</div>
-          {(safety.isError || metrics.isError) && <div className="px-4 pb-4 text-[#B42318]">{failure(safety,'/storage/safety') ?? failure(metrics,'/metrics')}</div>}
-          <div className="px-4 py-3 text-[11.5px] text-[#8F8F8F]">Endpoints plateforme : /storage/safety et /metrics.</div>
+          <div className="p-4 space-y-3 text-[12.5px]">{[['Disque disponible',diskAvailable],['Segments ingérés',metrics.data?.data?.segments_ingested],['Échecs ingestion',metrics.data?.data?.ingestion_failures],['Segments en attente',metrics.data?.data?.pending_segments],['Segments ouverts',metrics.data?.data?.open_segments]].map(([label,value])=><div key={label} className="flex justify-between border-b border-border-subtle py-1.5 last:border-0"><span className="text-muted-foreground">{label}</span><span className="font-mono text-[12px]">{available(value)}</span></div>)}</div>
+          {(safety.isError || metrics.isError) && <div className="px-4 pb-4 text-danger">{failure(safety,'/storage/safety') ?? failure(metrics,'/metrics')}</div>}
+          <div className="px-4 py-3 text-[11.5px] text-subtle">Endpoints plateforme : /storage/safety et /metrics.</div>
         </Card>}
         {tab==='Actions' && <Card title="Actions sur la sonde">
           <div className="p-4 space-y-4 text-[12.5px]">
             {operator ? <div className="space-y-2">
               <Lbl>Capture</Lbl>
               <div className="flex items-center gap-2 flex-wrap">
-                <input aria-label="Cible de capture" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)} value={target} onChange={e=>setTarget(e.target.value)} placeholder="Cible de capture" className="h-8 px-3 border border-[#EBEBEB] rounded-md text-[12.5px]"/>
-                <button type="button" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('validate')} className="h-8 px-3 rounded-md border border-[#EBEBEB] bg-white text-[12.5px] text-[#4D4D4D] disabled:opacity-50">Valider la capture</button>
+                <input aria-label="Cible de capture" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)} value={target} onChange={e=>setTarget(e.target.value)} placeholder="Cible de capture" className="h-8 px-3 border border-border rounded-md text-[12.5px]"/>
+                <button type="button" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('validate')} className="h-8 px-3 rounded-md border border-border bg-white text-[12.5px] text-ink-2 disabled:opacity-50">Valider la capture</button>
                 <button type="button" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('start')} className="h-8 px-3 rounded-md bg-[var(--app-accent)] text-white text-[12.5px] font-medium disabled:opacity-50">Démarrer la capture</button>
-                <button type="button" disabled={!running||capture.isPending} onClick={()=>doCapture('stop',running?.id ?? running?.capture_id)} className="h-8 px-3 rounded-md border border-[#F5C6C2] bg-white text-[12.5px] text-[#B42318] disabled:opacity-50">Arrêter la capture</button>
+                <button type="button" disabled={!running||capture.isPending} onClick={()=>doCapture('stop',running?.id ?? running?.capture_id)} className="h-8 px-3 rounded-md border border-danger-line bg-white text-[12.5px] text-danger disabled:opacity-50">Arrêter la capture</button>
               </div>
-              {actionError && <div role="alert" className="text-[12px] text-[#B42318]">{actionError}</div>}
-              {!health.data?.data?.coordination_open && <div className="text-[11.5px] text-[#A15C07]">coordination_open absent de /health : actions de capture désactivées.</div>}
-            </div> : <div className="text-[12px] text-[#666666]">Actions de capture réservées au rôle operator.</div>}
-            <div><Lbl>Cycle de vie</Lbl><div className="text-[12px] text-[#8F8F8F]">Non disponible : backend à venir (démarrer, arrêter, redémarrer la sonde).</div></div>
+              {actionError && <div role="alert" className="text-[12px] text-danger">{actionError}</div>}
+              {!health.data?.data?.coordination_open && <div className="text-[11.5px] text-warning">coordination_open absent de /health : actions de capture désactivées.</div>}
+            </div> : <div className="text-[12px] text-muted-foreground">Actions de capture réservées au rôle operator.</div>}
+            <div><Lbl>Cycle de vie</Lbl><div className="text-[12px] text-subtle">Non disponible : backend à venir (démarrer, arrêter, redémarrer la sonde).</div></div>
           </div>
         </Card>}
       </div>
-      <div className="text-[11.5px] text-[#8F8F8F]">{demo ? 'Données de démo' : 'POLARIS'}</div>
+      <div className="text-[11.5px] text-subtle">{demo ? 'Données de démo' : 'POLARIS'}</div>
     </div>
   );
 }
@@ -769,34 +769,34 @@ function Nodes() {
   return (
     <div className="space-y-5">
       <div className="flex items-center gap-2">
-        <div className="text-[13px] text-[#666666]">{failure(probes,'/probes') ?? `${nodes.length} sondes enregistrées · POLARIS`}</div>
-        <div className="ml-auto text-[11.5px] text-[#666666]">Rôle {available(auth.data?.data?.role)} · gestion des interfaces réservée à operator</div>
+        <div className="text-[13px] text-muted-foreground">{failure(probes,'/probes') ?? `${nodes.length} sondes enregistrées · POLARIS`}</div>
+        <div className="ml-auto text-[11.5px] text-muted-foreground">Rôle {available(auth.data?.data?.role)} · gestion des interfaces réservée à operator</div>
         <button type="button" onClick={()=>setRegistering(true)} className="h-8 px-3 rounded-md bg-[var(--app-accent)] text-white text-[12px] font-medium">Ajouter une sonde</button>
       </div>
       <Card title="Sondes">
         <table className="w-full text-[12.5px]">
-          <thead><tr>{['Sonde','Rôle','État','Version servie','CPU','Mémoire','Disque','Dernier contact',''].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#F2F2F2]">{h}</th>)}</tr></thead>
+          <thead><tr>{['Sonde','Rôle','État','Version servie','CPU','Mémoire','Disque','Dernier contact',''].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border-subtle">{h}</th>)}</tr></thead>
           <tbody>
             {nodes.map(n => (
-              <tr key={n.n} onClick={()=>setOpen(n.n)} className="cursor-pointer hover:bg-[#FAFAFA]">
-                <td className="h-11 px-4 border-b border-[#F2F2F2]"><div className="font-mono text-[12px] text-[#171717]">{n.n}</div><div className="text-[11.5px] text-[#8F8F8F]">{n.info}</div></td>
-                <td className="px-4 border-b border-[#F2F2F2] text-[#4D4D4D]">{n.role}</td>
-                <td className="px-4 border-b border-[#F2F2F2]"><span className="inline-flex items-center gap-1.5"><Dot st={n.st}/>{n.st==='ok'?'Opérationnel':n.st==='warn'?'Vigilance':'—'}</span></td>
-                <td className="px-4 border-b border-[#F2F2F2]"><span className="font-mono text-[11.5px]">{n.ver}</span>{n.exp && n.ver.includes(n.exp) && <span className="ml-1.5 text-[11px] text-[#15803D]">✓ attendue</span>}</td>
-                <td className="px-4 border-b border-[#F2F2F2]">{n.cpu==null?<span className="text-[#D4D4D4]">—</span>:<Bar v={Math.round(n.cpu)}/>}</td>
-                <td className="px-4 border-b border-[#F2F2F2]">{n.memoryBytes==null?<span className="text-[#D4D4D4]">—</span>:<div><div className="font-mono text-[11.5px]">{fmtBytes(n.memoryBytes)}</div><div className="text-[10.5px] text-[#8F8F8F] mt-0.5">anon {fmtBytes(n.memoryAnonBytes)} · file {fmtBytes(n.memoryFileBytes)}</div></div>}</td>
-                <td className="px-4 border-b border-[#F2F2F2]">{n.disk==null?<span className="text-[#D4D4D4]">—</span>:<div><Bar v={Math.round(n.disk)} warn={95} crit={99}/><div className="text-[10.5px] text-[#8F8F8F] mt-0.5">{fmtBytes(n.diskFreeBytes)} libres · seuils 95 / 99 %</div></div>}</td>
-                <td className="px-4 border-b border-[#F2F2F2] text-[#666666]">{n.seen}</td>
-                <td className="relative px-4 border-b border-[#F2F2F2] text-right"><button type="button" aria-label={`Actions ${n.n}`} onClick={event=>{event.stopPropagation();setMenu(menu===n.n?null:n.n);}} className="h-8 w-8 rounded-md text-[18px] leading-none hover:bg-[#F2F2F2]">⋯</button>{menu===n.n&&<><button type="button" aria-label="Fermer le menu" onClick={event=>{event.stopPropagation();setMenu(null);}} className="fixed inset-0 z-40 cursor-default"/><div className="absolute right-3 top-9 z-50 w-52 rounded-md border border-[#EBEBEB] bg-white py-1 text-left shadow-lg"><button type="button" onClick={event=>{event.stopPropagation();setOpen(n.n);setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-[#FAFAFA]">Détails</button><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'edit',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-[#FAFAFA]">Modifier</button><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'software',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-[#FAFAFA]">Mettre à jour le logiciel</button><div className="my-1 border-t border-[#EBEBEB]"/><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'delete',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] text-[#B42318] hover:bg-[#FDEFEE]">Supprimer</button></div></>}</td>
+              <tr key={n.n} onClick={()=>setOpen(n.n)} className="cursor-pointer hover:bg-surface-2">
+                <td className="h-11 px-4 border-b border-border-subtle"><div className="font-mono text-[12px] text-foreground">{n.n}</div><div className="text-[11.5px] text-subtle">{n.info}</div></td>
+                <td className="px-4 border-b border-border-subtle text-ink-2">{n.role}</td>
+                <td className="px-4 border-b border-border-subtle"><span className="inline-flex items-center gap-1.5"><Dot st={n.st}/>{n.st==='ok'?'Opérationnel':n.st==='warn'?'Vigilance':'—'}</span></td>
+                <td className="px-4 border-b border-border-subtle"><span className="font-mono text-[11.5px]">{n.ver}</span>{n.exp && n.ver.includes(n.exp) && <span className="ml-1.5 text-[11px] text-success">✓ attendue</span>}</td>
+                <td className="px-4 border-b border-border-subtle">{n.cpu==null?<span className="text-faint">—</span>:<Bar v={Math.round(n.cpu)}/>}</td>
+                <td className="px-4 border-b border-border-subtle">{n.memoryBytes==null?<span className="text-faint">—</span>:<div><div className="font-mono text-[11.5px]">{fmtBytes(n.memoryBytes)}</div><div className="text-[11px] text-subtle mt-0.5">anon {fmtBytes(n.memoryAnonBytes)} · file {fmtBytes(n.memoryFileBytes)}</div></div>}</td>
+                <td className="px-4 border-b border-border-subtle">{n.disk==null?<span className="text-faint">—</span>:<div><Bar v={Math.round(n.disk)} warn={95} crit={99}/><div className="text-[11px] text-subtle mt-0.5">{fmtBytes(n.diskFreeBytes)} libres · seuils 95 / 99 %</div></div>}</td>
+                <td className="px-4 border-b border-border-subtle text-muted-foreground">{n.seen}</td>
+                <td className="relative px-4 border-b border-border-subtle text-right"><button type="button" aria-label={`Actions ${n.n}`} onClick={event=>{event.stopPropagation();setMenu(menu===n.n?null:n.n);}} className="h-8 w-8 rounded-md text-[18px] leading-none hover:bg-muted">⋯</button>{menu===n.n&&<><button type="button" aria-label="Fermer le menu" onClick={event=>{event.stopPropagation();setMenu(null);}} className="fixed inset-0 z-40 cursor-default"/><div className="absolute right-3 top-9 z-50 w-52 rounded-md border border-border bg-white py-1 text-left shadow-lg"><button type="button" onClick={event=>{event.stopPropagation();setOpen(n.n);setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Détails</button><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'edit',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Modifier</button><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'software',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Mettre à jour le logiciel</button><div className="my-1 border-t border-border"/><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'delete',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] text-danger hover:bg-danger-soft">Supprimer</button></div></>}</td>
               </tr>
             ))}
-            {!nodes.length && <tr><td colSpan="9" className="px-4 py-8 text-center text-[#8F8F8F]">{probes.isPending ? 'Connexion au Node Manager…' : failure(probes,'/probes') ? `${failure(probes,'/probes')} · nouvelle tentative dans 5 s` : 'Aucune sonde renvoyée par /probes'}</td></tr>}
+            {!nodes.length && <tr><td colSpan="9" className="px-4 py-8 text-center text-subtle">{probes.isPending ? 'Connexion au Node Manager…' : failure(probes,'/probes') ? `${failure(probes,'/probes')} · nouvelle tentative dans 5 s` : 'Aucune sonde renvoyée par /probes'}</td></tr>}
           </tbody>
         </table>
       </Card>
       {registering && <ProbeRegistration auth={auth.data?.data} backendVersion={version.data?.data?.backend_api} onClose={()=>setRegistering(false)}/>}
       {managing && <ProbeManagement mode={managing.mode} node={managing.node} auth={auth.data?.data} onClose={()=>setManaging(null)}/>}
-      <div className="text-[11.5px] text-[#8F8F8F]">{demo ? "Données de démo" : "POLARIS"}</div>
+      <div className="text-[11.5px] text-subtle">{demo ? "Données de démo" : "POLARIS"}</div>
     </div>
   );
 }
@@ -821,48 +821,48 @@ function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
     <div className="flex-1 overflow-auto scroll-thin">
       <div className="max-w-[1280px] mx-auto px-8 py-8 space-y-6">
         <div className="flex items-end gap-4">
-          <div><div className="text-[12px] text-[#666666]">POLARIS Analyzer</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">Requêtes</h1>
-            <div className="text-[13px] text-[#666666] mt-1">Consulte et lance tes requêtes. La création s’ouvre dans un nouvel onglet.</div></div>
-          {onDisplayAll && <button onClick={onDisplayAll} disabled={displayingAll} className="ml-auto h-10 px-5 rounded-lg border border-[#D8D8D8] bg-white text-[#171717] text-[14px] font-medium hover:border-[var(--app-accent)] disabled:opacity-50">{t("Afficher toutes les sessions")}</button>}
+          <div><div className="text-[12px] text-muted-foreground">POLARIS Analyzer</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Requêtes</h1>
+            <div className="text-[13px] text-muted-foreground mt-1">Consulte et lance tes requêtes. La création s’ouvre dans un nouvel onglet.</div></div>
+          {onDisplayAll && <button onClick={onDisplayAll} disabled={displayingAll} className="ml-auto h-10 px-5 rounded-lg border border-border bg-white text-foreground text-[14px] font-medium hover:border-[var(--app-accent)] disabled:opacity-50">{t("Afficher toutes les sessions")}</button>}
           <button onClick={()=>onNew()} className={`${onDisplayAll?'':'ml-auto'} h-10 px-5 rounded-lg bg-[var(--app-accent)] text-white text-[14px] font-medium flex items-center gap-2 hover:opacity-90`}><I d={ic.plus} c="w-4 h-4"/>Nouvelle requête</button>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex-1 h-9 rounded-md border border-[#EBEBEB] bg-white flex items-center gap-2 px-3 focus-within:border-[var(--app-accent)]"><I d={ic.search} c="w-4 h-4 text-[#8F8F8F]"/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher une requête…" className="flex-1 outline-none text-[13px] bg-transparent"/></div>
-          <div className="flex rounded-md border border-[#EBEBEB] p-[2px] bg-white">{['Toutes','Favoris','Partagées'].map(f=><button key={f} onClick={()=>setFlt(f)} className={`h-8 px-3 rounded-[4px] text-[12.5px] ${flt===f?'bg-[var(--app-accent)] text-white font-medium':'text-[#666666]'}`}>{f}</button>)}</div>
+          <div className="flex-1 h-9 rounded-md border border-border bg-white flex items-center gap-2 px-3 focus-within:border-[var(--app-accent)]"><I d={ic.search} c="w-4 h-4 text-subtle"/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher une requête…" className="flex-1 outline-none text-[13px] bg-transparent"/></div>
+          <div className="flex rounded-md border border-border p-[2px] bg-white">{['Toutes','Favoris','Partagées'].map(f=><button key={f} onClick={()=>setFlt(f)} className={`h-8 px-3 rounded-[4px] text-[12.5px] ${flt===f?'bg-[var(--app-accent)] text-white font-medium':'text-muted-foreground'}`}>{f}</button>)}</div>
         </div>
         <div>
           <div className="text-[13px] font-semibold mb-3">Démarrer depuis un modèle</div>
           <div className="grid grid-cols-4 gap-3">
             {STARTERS.map(([tt,d,c]) => (
-              <button key={tt} onClick={()=>onNew(mkDraft({tpl:'Parcourir',conds:c.map(x=>[x[0],x[1],'=']),name:tt,group:c[0][0]==='Résultat'?'Cause':'Résultat'}),tt)} className="text-left bg-white rounded-lg border border-[#EBEBEB] hover:border-[var(--app-accent)] p-4 transition">
-                <div className="text-[13px] font-medium">{tt}</div><div className="text-[12px] text-[#666666] mt-1 leading-relaxed">{d}</div>
-                <div className="flex flex-wrap gap-1 mt-3">{c.map(x=><span key={x[1]} className="text-[11px] rounded border border-[#EBEBEB] px-1.5 py-0.5 text-[#4D4D4D]">{x[0]} = {x[1]}</span>)}</div>
+              <button key={tt} onClick={()=>onNew(mkDraft({tpl:'Parcourir',conds:c.map(x=>[x[0],x[1],'=']),name:tt,group:c[0][0]==='Résultat'?'Cause':'Résultat'}),tt)} className="text-left bg-white rounded-lg border border-border hover:border-[var(--app-accent)] p-4 transition">
+                <div className="text-[13px] font-medium">{tt}</div><div className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{d}</div>
+                <div className="flex flex-wrap gap-1 mt-3">{c.map(x=><span key={x[1]} className="text-[11px] rounded border border-border px-1.5 py-0.5 text-ink-2">{x[0]} = {x[1]}</span>)}</div>
               </button>
             ))}
           </div>
         </div>
-        <section className="bg-white rounded-lg border border-[#EBEBEB] overflow-hidden">
-          <div className="px-5 h-12 flex items-center border-b border-[#F2F2F2]"><h3 className="text-[14px] font-semibold">Requêtes enregistrées</h3><span className="ml-auto text-[12px] text-[#666666]">{list.length} requêtes</span></div>
+        <section className="bg-white rounded-lg border border-border overflow-hidden">
+          <div className="px-5 h-12 flex items-center border-b border-border-subtle"><h3 className="text-[14px] font-semibold">Requêtes enregistrées</h3><span className="ml-auto text-[12px] text-muted-foreground">{list.length} requêtes</span></div>
           <table className="w-full text-[12.5px]">
-            <thead><tr>{['','Nom','Gabarit','Portée','Conditions','Dernière exécution','Résultats',''].map((h,k)=><th key={k} className="h-9 px-4 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#EBEBEB]">{h}</th>)}</tr></thead>
+            <thead><tr>{['','Nom','Gabarit','Portée','Conditions','Dernière exécution','Résultats',''].map((h,k)=><th key={k} className="h-9 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border">{h}</th>)}</tr></thead>
             <tbody>
-              {list.length===0 && <tr><td colSpan={8} className="h-16 text-center text-[#8F8F8F]">Aucune requête.</td></tr>}
+              {list.length===0 && <tr><td colSpan={8} className="h-16 text-center text-subtle">Aucune requête.</td></tr>}
               {list.map(x => (
-                <tr key={x.n} onClick={()=>onOpen(x)} className="cursor-pointer hover:bg-[#FAFAFA] group">
-                  <td className="h-11 pl-4 border-b border-[#F2F2F2] w-8"><I d={ic.star} c={`w-3.5 h-3.5 ${x.fav?'text-[#171717]':'text-[#D4D4D4]'}`}/></td>
-                  <td className="px-4 border-b border-[#F2F2F2] font-medium text-[#171717]">{x.n}{x.shared && <span className="ml-2 text-[10.5px] rounded border border-[#EBEBEB] px-1.5 py-0.5 text-[#666666]">partagée</span>}</td>
-                  <td className="px-4 border-b border-[#F2F2F2] text-[#4D4D4D]">{x.g}</td>
-                  <td className="px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#666666]">{x.p}</td>
-                  <td className="px-4 border-b border-[#F2F2F2]"><span className="flex flex-wrap gap-1">{x.c.map((y,k)=><span key={k} className="text-[11px] rounded border border-[#EBEBEB] px-1.5 py-0.5 text-[#4D4D4D]">{y[0]} {y[2]||'='} {y[1]}</span>)}</span></td>
-                  <td className="px-4 border-b border-[#F2F2F2] text-[#666666]">{x.last}</td>
-                  <td className="px-4 border-b border-[#F2F2F2] tabular-nums">{x.r}</td>
-                  <td className="px-4 border-b border-[#F2F2F2] text-right"><span className="inline-flex items-center gap-1 text-[12px] font-medium text-[#171717] opacity-0 group-hover:opacity-100">Ouvrir<I d={ic.chev} c="w-3.5 h-3.5 -rotate-90"/></span></td>
+                <tr key={x.n} onClick={()=>onOpen(x)} className="cursor-pointer hover:bg-surface-2 group">
+                  <td className="h-11 pl-4 border-b border-border-subtle w-8"><I d={ic.star} c={`w-3.5 h-3.5 ${x.fav?'text-foreground':'text-faint'}`}/></td>
+                  <td className="px-4 border-b border-border-subtle font-medium text-foreground">{x.n}{x.shared && <span className="ml-2 text-[11px] rounded border border-border px-1.5 py-0.5 text-muted-foreground">partagée</span>}</td>
+                  <td className="px-4 border-b border-border-subtle text-ink-2">{x.g}</td>
+                  <td className="px-4 border-b border-border-subtle font-mono text-[11.5px] text-muted-foreground">{x.p}</td>
+                  <td className="px-4 border-b border-border-subtle"><span className="flex flex-wrap gap-1">{x.c.map((y,k)=><span key={k} className="text-[11px] rounded border border-border px-1.5 py-0.5 text-ink-2">{y[0]} {y[2]||'='} {y[1]}</span>)}</span></td>
+                  <td className="px-4 border-b border-border-subtle text-muted-foreground">{x.last}</td>
+                  <td className="px-4 border-b border-border-subtle tabular-nums">{x.r}</td>
+                  <td className="px-4 border-b border-border-subtle text-right"><span className="inline-flex items-center gap-1 text-[12px] font-medium text-foreground opacity-0 group-hover:opacity-100">Ouvrir<I d={ic.chev} c="w-3.5 h-3.5 -rotate-90"/></span></td>
                 </tr>
               ))}
             </tbody>
           </table>
         </section>
-        <div className="text-[11.5px] text-[#8F8F8F]">local à ce navigateur</div>
+        <div className="text-[11.5px] text-subtle">local à ce navigateur</div>
       </div>
     </div>
   );
@@ -871,11 +871,11 @@ function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
 function QSec({n,title,sub,children}) {
   const [open,setOpen] = useState(true);
   return (
-    <section className="bg-white rounded-lg border border-[#EBEBEB]">
+    <section className="bg-white rounded-lg border border-border">
       <button onClick={()=>setOpen(!open)} className="w-full px-5 h-11 flex items-center gap-3 text-left">
-        <span className="w-5 h-5 rounded-full bg-[#F2F2F2] text-[11px] font-semibold grid place-items-center text-[#4D4D4D]">{n}</span>
-        <span className="text-[13.5px] font-semibold">{title}</span><span className="text-[11.5px] text-[#8F8F8F]">{sub}</span>
-        <I d={ic.chev} c={`w-3.5 h-3.5 ml-auto text-[#8F8F8F] transition ${open?'':'-rotate-90'}`}/>
+        <span className="w-5 h-5 rounded-full bg-muted text-[11px] font-semibold grid place-items-center text-ink-2">{n}</span>
+        <span className="text-[13px] font-semibold">{title}</span><span className="text-[11.5px] text-subtle">{sub}</span>
+        <I d={ic.chev} c={`w-3.5 h-3.5 ml-auto text-subtle transition ${open?'':'-rotate-90'}`}/>
       </button>
       {open && <div className="px-5 pb-4">{children}</div>}
     </section>
@@ -905,42 +905,42 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]})
     <div className="flex-1 overflow-auto scroll-thin">
       <div className="max-w-[1280px] mx-auto px-8 py-6 space-y-3">
         <div className="flex items-end gap-4 pb-1">
-          <div><div className="text-[12px] text-[#666666]">POLARIS Analyzer · Requête</div>
-            <input value={draft.name} onChange={e=>up({name:e.target.value})} placeholder="Nouvelle requête" className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1 bg-transparent outline-none w-[520px] placeholder:text-[#171717]"/></div>
-          <span className="ml-auto text-[12px] text-[#666666]">{dirty && <span className="mr-3 inline-flex items-center gap-1.5 text-[#A15C07]"><span className="w-1.5 h-1.5 rounded-full bg-[#A15C07]"/>Modifications non enregistrées</span>}Aperçu : <b className="text-[#171717] tabular-nums">{demo ? count : '—'}</b> sessions</span>
+          <div><div className="text-[12px] text-muted-foreground">POLARIS Analyzer · Requête</div>
+            <input value={draft.name} onChange={e=>up({name:e.target.value})} placeholder="Nouvelle requête" className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1 bg-transparent outline-none w-[520px] placeholder:text-foreground"/></div>
+          <span className="ml-auto text-[12px] text-muted-foreground">{dirty && <span className="mr-3 inline-flex items-center gap-1.5 text-warning"><span className="w-1.5 h-1.5 rounded-full bg-warning"/>Modifications non enregistrées</span>}Aperçu : <b className="text-foreground tabular-nums">{demo ? count : '—'}</b> sessions</span>
         </div>
         <QSec n={1} title="Gabarit" sub="ce que la requête retourne">
-          <div className="grid grid-cols-4 gap-2">{TPLS.map(([x,d]) => <button key={x} onClick={()=>up({tpl:x})} className={`text-left rounded-md border px-3 py-2 transition ${draft.tpl===x?'border-[var(--app-accent)] ring-1 ring-[var(--app-accent)]':'border-[#EBEBEB] hover:border-[#D4D4D4]'}`}><div className="text-[13px] font-medium uppercase tracking-wide">{x}</div><div className="text-[11.5px] text-[#8F8F8F] mt-0.5">{d}</div></button>)}</div>
+          <div className="grid grid-cols-4 gap-2">{TPLS.map(([x,d]) => <button key={x} onClick={()=>up({tpl:x})} className={`text-left rounded-md border px-3 py-2 transition ${draft.tpl===x?'border-[var(--app-accent)] ring-1 ring-[var(--app-accent)]':'border-border hover:border-border-strong'}`}><div className="text-[13px] font-medium uppercase tracking-wide">{x}</div><div className="text-[11.5px] text-subtle mt-0.5">{d}</div></button>)}</div>
         </QSec>
         <QSec n={2} title="Portée" sub="run, captures ou fenêtre horaire">
-          <div className="flex flex-wrap gap-2">{(demo ? SCOPES : scopes.map(x=>String(x.id))).map(x => <button key={x} onClick={()=>up({scope:x})} className={`h-8 px-3 rounded-md border text-[12.5px] ${draft.scope===x?'border-[var(--app-accent)] bg-[var(--app-accent)] text-white':'border-[#EBEBEB] text-[#4D4D4D] hover:border-[#D4D4D4]'}`}>{x}</button>)}</div>
+          <div className="flex flex-wrap gap-2">{(demo ? SCOPES : scopes.map(x=>String(x.id))).map(x => <button key={x} onClick={()=>up({scope:x})} className={`h-8 px-3 rounded-md border text-[12.5px] ${draft.scope===x?'border-[var(--app-accent)] bg-[var(--app-accent)] text-white':'border-border text-ink-2 hover:border-border-strong'}`}>{x}</button>)}</div>
         </QSec>
         <QSec n={3} title="Conditions" sub="champ, opérateur, valeur">
           <div className="space-y-2">
-            <div className="flex items-center gap-2 text-[12px] text-[#666666]">Combinaison
-              <div className="flex rounded-md border border-[#EBEBEB] p-[2px]">{['ET','OU'].map(j=><button key={j} onClick={()=>up({join:j})} className={`h-6 px-2.5 rounded-[4px] text-[11.5px] ${draft.join===j?'bg-[var(--app-accent)] text-white font-medium':'text-[#666666]'}`}>{j}</button>)}</div>
-              <span className="text-[#8F8F8F]">· NON via l’opérateur ≠</span></div>
+            <div className="flex items-center gap-2 text-[12px] text-muted-foreground">Combinaison
+              <div className="flex rounded-md border border-border p-[2px]">{['ET','OU'].map(j=><button key={j} onClick={()=>up({join:j})} className={`h-6 px-2.5 rounded-[4px] text-[11.5px] ${draft.join===j?'bg-[var(--app-accent)] text-white font-medium':'text-muted-foreground'}`}>{j}</button>)}</div>
+              <span className="text-subtle">· NON via l’opérateur ≠</span></div>
             <div className="flex flex-wrap gap-2 min-h-[32px]">
-              {draft.conds.length===0 && <span className="text-[12.5px] text-[#8F8F8F] self-center">Aucune condition : toutes les sessions de la portée.</span>}
-              {draft.conds.map((c,i) => <span key={i} className="inline-flex items-center h-8 rounded-md border border-[#EBEBEB] text-[12.5px] overflow-hidden">{i>0 && <span className="px-2 h-full flex items-center text-[10.5px] font-semibold text-[#8F8F8F] border-r border-[#EBEBEB]">{draft.join}</span>}<span className="px-2.5 h-full flex items-center bg-[#FAFAFA] border-r border-[#EBEBEB] text-[#666666]">{c[0]}</span><span className="px-2 text-[#8F8F8F]">{c[2]||'='}</span><span className="pr-2.5 font-medium">{c[1]}</span><button onClick={()=>up({conds:draft.conds.filter((_,j)=>j!==i)})} aria-label="Retirer" className="w-7 h-full grid place-items-center text-[#8F8F8F] hover:text-[#B42318] border-l border-[#EBEBEB]"><I d={ic.x} c="w-3.5 h-3.5"/></button></span>)}
+              {draft.conds.length===0 && <span className="text-[12.5px] text-subtle self-center">Aucune condition : toutes les sessions de la portée.</span>}
+              {draft.conds.map((c,i) => <span key={i} className="inline-flex items-center h-8 rounded-md border border-border text-[12.5px] overflow-hidden">{i>0 && <span className="px-2 h-full flex items-center text-[11px] font-semibold text-subtle border-r border-border">{draft.join}</span>}<span className="px-2.5 h-full flex items-center bg-surface-2 border-r border-border text-muted-foreground">{c[0]}</span><span className="px-2 text-subtle">{c[2]||'='}</span><span className="pr-2.5 font-medium">{c[1]}</span><button onClick={()=>up({conds:draft.conds.filter((_,j)=>j!==i)})} aria-label="Retirer" className="w-7 h-full grid place-items-center text-subtle hover:text-danger border-l border-border"><I d={ic.x} c="w-3.5 h-3.5"/></button></span>)}
             </div>
             <div className="flex items-center gap-2">
-              <select value={f} onChange={e=>{setF(e.target.value); setV(fieldList.find(x=>x[0]===e.target.value)[1][0] || '');}} className="h-8 rounded-md border border-[#EBEBEB] text-[12.5px] px-2 bg-white">{fieldList.map(x=><option key={x[0]} disabled={idField(x[0]) && x[0]==='IMSI' && role!=='operator'}>{x[0]}</option>)}</select>
-              <select value={op} onChange={e=>setOp(e.target.value)} className="h-8 rounded-md border border-[#EBEBEB] text-[12.5px] px-2 bg-white"><option>=</option><option>≠</option></select>
-              <input value={v} onChange={e=>setV(e.target.value)} list="polaris-filter-values" className="h-8 rounded-md border border-[#EBEBEB] text-[12.5px] px-2 bg-white min-w-[180px]"/><datalist id="polaris-filter-values">{vals.map(x=><option key={x} value={x}/>)}</datalist>
-              <button onClick={()=>up({conds:[...draft.conds,[f,v,op]]})} className="h-8 px-3 rounded-md border border-[#EBEBEB] text-[12.5px] hover:bg-[#FAFAFA] flex items-center gap-1.5"><I d={ic.plus} c="w-3.5 h-3.5"/>Ajouter</button>
-              <span className="ml-2 inline-flex items-center gap-1.5 text-[11.5px] text-[#8F8F8F]"><I d={ic.lock} c="w-3 h-3"/>Identités : rôle operator</span>
+              <select value={f} onChange={e=>{setF(e.target.value); setV(fieldList.find(x=>x[0]===e.target.value)[1][0] || '');}} className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-white">{fieldList.map(x=><option key={x[0]} disabled={idField(x[0]) && x[0]==='IMSI' && role!=='operator'}>{x[0]}</option>)}</select>
+              <select value={op} onChange={e=>setOp(e.target.value)} className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-white"><option>=</option><option>≠</option></select>
+              <input value={v} onChange={e=>setV(e.target.value)} list="polaris-filter-values" className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-white min-w-[180px]"/><datalist id="polaris-filter-values">{vals.map(x=><option key={x} value={x}/>)}</datalist>
+              <button onClick={()=>up({conds:[...draft.conds,[f,v,op]]})} className="h-8 px-3 rounded-md border border-border text-[12.5px] hover:bg-surface-2 flex items-center gap-1.5"><I d={ic.plus} c="w-3.5 h-3.5"/>Ajouter</button>
+              <span className="ml-2 inline-flex items-center gap-1.5 text-[11.5px] text-subtle"><I d={ic.lock} c="w-3 h-3"/>Identités : rôle operator</span>
             </div>
           </div>
         </QSec>
         <QSec n={4} title="Regrouper par" sub="facultatif">
-          <div className="flex flex-wrap gap-2">{!demo && <span>Non disponible : backend à venir</span>}{GROUPS.map(g=><button disabled={!demo && g!=='Aucun'} key={g} onClick={()=>up({group:g})} className={`h-8 px-3 rounded-md border text-[12.5px] ${draft.group===g?'border-[var(--app-accent)] text-[#171717] ring-1 ring-[var(--app-accent)]':'border-[#EBEBEB] text-[#666666] hover:border-[#D4D4D4]'}`}>{g}</button>)}</div>
+          <div className="flex flex-wrap gap-2">{!demo && <span>Non disponible : backend à venir</span>}{GROUPS.map(g=><button disabled={!demo && g!=='Aucun'} key={g} onClick={()=>up({group:g})} className={`h-8 px-3 rounded-md border text-[12.5px] ${draft.group===g?'border-[var(--app-accent)] text-foreground ring-1 ring-[var(--app-accent)]':'border-border text-muted-foreground hover:border-border-strong'}`}>{g}</button>)}</div>
         </QSec>
-        <section className="bg-white rounded-lg border border-[#EBEBEB] px-5 h-14 flex items-center gap-2">
-          <span className="w-5 h-5 rounded-full bg-[#F2F2F2] text-[11px] font-semibold grid place-items-center text-[#4D4D4D]">5</span><span className="text-[13.5px] font-semibold mr-3">Actions</span>
-          {err && <span className="text-[12px] text-[#B42318]">{err}</span>}
-          <button onClick={cancel} className="ml-auto h-9 px-3 rounded-md border border-[#EBEBEB] bg-white text-[12.5px] text-[#4D4D4D] hover:bg-[#F2F2F2]">Annuler</button>
-          <button onClick={save} className="h-9 px-3 rounded-md border border-[#EBEBEB] bg-white text-[12.5px] text-[#4D4D4D] hover:bg-[#F2F2F2]">Enregistrer</button>
+        <section className="bg-white rounded-lg border border-border px-5 h-14 flex items-center gap-2">
+          <span className="w-5 h-5 rounded-full bg-muted text-[11px] font-semibold grid place-items-center text-ink-2">5</span><span className="text-[13px] font-semibold mr-3">Actions</span>
+          {err && <span className="text-[12px] text-danger">{err}</span>}
+          <button onClick={cancel} className="ml-auto h-9 px-3 rounded-md border border-border bg-white text-[12.5px] text-ink-2 hover:bg-muted">Annuler</button>
+          <button onClick={save} className="h-9 px-3 rounded-md border border-border bg-white text-[12.5px] text-ink-2 hover:bg-muted">Enregistrer</button>
           <button onClick={exec} className="h-9 px-5 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.play} c="w-3.5 h-3.5"/>Exécuter la requête</button>
         </section>
       </div>
@@ -956,10 +956,10 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
   const accent = THEMES.find(t=>t[0]===theme)[2];
   const save = e => { e.preventDefault(); if(!cur||nw.length<8) return setPm(['err',t("Mot de passe actuel requis et 8 caractères minimum.")]); if(nw!==cf) return setPm(['err',t("Les mots de passe ne correspondent pas.")]); setPm(['err',t("Non disponible : backend à venir — authentification gérée par le proxy.")]); setCur('');setNw('');setCf(''); };
   const strength = Math.min(4,[/.{8,}/,/[A-Z]/,/[0-9]/,/[^A-Za-z0-9]/].filter(r=>r.test(nw)).length);
-  const inp = "w-full h-11 rounded-lg border border-[#E5E5E5] bg-white px-3.5 text-[14px] outline-none transition focus:border-transparent focus:ring-2";
+  const inp = "w-full h-11 rounded-lg border border-border bg-white px-3.5 text-[14px] outline-none transition focus:border-transparent focus:ring-2";
   const SECS=[['apparence','Apparence','Couleur et thème'],['securite','Sécurité','Mot de passe'],['langue','Langue','Français ou English'],['apropos','À propos','Version et build']];
-  const Card = ({title,desc,children}) => <section className="bg-white rounded-xl border border-[#EBEBEB] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-    <div className="px-7 pt-6 pb-5 border-b border-[#F0F0F0]"><h2 className="text-[18px] font-semibold tracking-[-0.01em] text-[#171717]">{title}</h2><p className="mt-1 text-[14px] text-[#666666]">{desc}</p></div>
+  const Card = ({title,desc,children}) => <section className="bg-white rounded-xl border border-border shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+    <div className="px-7 pt-6 pb-5 border-b border-border-subtle"><h2 className="text-[18px] font-semibold tracking-[-0.01em] text-foreground">{title}</h2><p className="mt-1 text-[14px] text-muted-foreground">{desc}</p></div>
     <div className="p-7">{children}</div></section>;
   return (
     <div className="flex-1 overflow-auto scroll-thin">
@@ -974,46 +974,46 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
           <path d="M960 48 L962 58 L972 60 L962 62 L960 72 L958 62 L948 60 L958 58 Z" fill="#fff" transform="rotate(45 960 60)" opacity=".8"/>
           <text x="960" y="104" textAnchor="middle" fill="#fff" fontSize="9" letterSpacing="3" opacity=".75">POLARIS</text>
         </svg>
-        <button onClick={onClose} className="absolute top-5 left-8 h-9 px-3.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-[13.5px] font-medium backdrop-blur">{t("← Retour")}</button>
+        <button onClick={onClose} className="absolute top-5 left-8 h-9 px-3.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-[13px] font-medium backdrop-blur">{t("← Retour")}</button>
       </div>
       <div className="polaris-content-shell relative z-10 px-8 -mt-12 pb-16">
         <div className="flex items-end gap-5 mb-10">
           <div style={{background:accent}} className="w-24 h-24 rounded-2xl ring-4 ring-white shadow-lg grid place-items-center text-[30px] font-bold text-white">SD</div>
-          <div className="pb-1 pt-14"><h1 className="text-[30px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717]">{t("Paramètres")}</h1><p className="text-[14.5px] text-[#666666]">{t("Gérez votre compte et l'apparence de POLARIS")}</p></div>
+          <div className="pb-1 pt-14"><h1 className="text-[30px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground">{t("Paramètres")}</h1><p className="text-[14px] text-muted-foreground">{t("Gérez votre compte et l'apparence de POLARIS")}</p></div>
         </div>
         <div className="grid grid-cols-[240px_minmax(0,1fr)] gap-10">
           <nav className="space-y-1.5">
             {SECS.map(([k,n,d])=>{const on=sec===k; return (
-              <button key={k} onClick={()=>setSec(k)} className={`w-full text-left px-4 py-3 rounded-lg transition border ${on?'bg-white border-[#EBEBEB] shadow-sm':'border-transparent hover:bg-white/70'}`}>
-                <div className="flex items-center gap-2.5"><span className="w-1.5 h-5 rounded-full" style={{background:on?accent:'transparent'}}/><div><div className={`text-[14.5px] ${on?'font-semibold text-[#171717]':'text-[#4D4D4D]'}`}>{t(n)}</div><div className="text-[12.5px] text-[#8F8F8F]">{t(d)}</div></div></div>
+              <button key={k} onClick={()=>setSec(k)} className={`w-full text-left px-4 py-3 rounded-lg transition border ${on?'bg-white border-border shadow-sm':'border-transparent hover:bg-white/70'}`}>
+                <div className="flex items-center gap-2.5"><span className="w-1.5 h-5 rounded-full" style={{background:on?accent:'transparent'}}/><div><div className={`text-[14px] ${on?'font-semibold text-foreground':'text-ink-2'}`}>{t(n)}</div><div className="text-[12.5px] text-subtle">{t(d)}</div></div></div>
               </button>);})}
           </nav>
           <div>
             {sec==='apparence' && <Card title={t("Couleur de l'application")} desc={t("Choisissez la couleur d'accent utilisée dans toute l'interface.")}>
               <div className="grid grid-cols-3 gap-5">{THEMES.map(([k,n,c])=>{const on=theme===k; return (
-                <button key={k} onClick={()=>setTheme(k)} className={`group text-left rounded-xl border-2 overflow-hidden transition ${on?'shadow-md':'border-[#EBEBEB] hover:border-[#D4D4D4]'}`} style={on?{borderColor:c}:{}}>
-                  <div className="h-28 bg-[#FAFAFA] p-3 flex flex-col gap-2">
-                    <div className="h-4 rounded flex items-center gap-1.5 px-1.5 bg-white border border-[#EEE]"><span className="w-2.5 h-2.5 rounded-sm" style={{background:c}}/><span className="h-1 w-8 rounded bg-[#DDD]"/><span className="ml-auto w-2.5 h-2.5 rounded-full" style={{background:c}}/></div>
-                    <div className="flex-1 rounded bg-white border border-[#EEE] p-2 space-y-1.5"><span className="block h-1.5 w-3/4 rounded bg-[#E5E5E5]"/><span className="block h-1.5 w-1/2 rounded bg-[#E5E5E5]"/><span className="block h-4 w-14 rounded mt-2" style={{background:c}}/></div>
+                <button key={k} onClick={()=>setTheme(k)} className={`group text-left rounded-xl border-2 overflow-hidden transition ${on?'shadow-md':'border-border hover:border-border-strong'}`} style={on?{borderColor:c}:{}}>
+                  <div className="h-28 bg-surface-2 p-3 flex flex-col gap-2">
+                    <div className="h-4 rounded flex items-center gap-1.5 px-1.5 bg-white border border-border"><span className="w-2.5 h-2.5 rounded-sm" style={{background:c}}/><span className="h-1 w-8 rounded bg-track"/><span className="ml-auto w-2.5 h-2.5 rounded-full" style={{background:c}}/></div>
+                    <div className="flex-1 rounded bg-white border border-border p-2 space-y-1.5"><span className="block h-1.5 w-3/4 rounded bg-track"/><span className="block h-1.5 w-1/2 rounded bg-track"/><span className="block h-4 w-14 rounded mt-2" style={{background:c}}/></div>
                   </div>
-                  <div className="px-4 py-3 flex items-center gap-2.5 bg-white"><span className="w-5 h-5 rounded-full" style={{background:c}}/><span className="text-[14.5px] font-medium">{t(n)}</span><span className="ml-auto font-mono text-[11.5px] text-[#8F8F8F]">{c}</span>
+                  <div className="px-4 py-3 flex items-center gap-2.5 bg-white"><span className="w-5 h-5 rounded-full" style={{background:c}}/><span className="text-[14px] font-medium">{t(n)}</span><span className="ml-auto font-mono text-[11.5px] text-subtle">{c}</span>
                     {on && <span className="w-5 h-5 rounded-full grid place-items-center text-white text-[11px]" style={{background:c}}>✓</span>}</div>
                 </button>);})}</div>
             </Card>}
             {sec==='securite' && <Card title={t("Mot de passe")} desc={t("Non disponible : backend à venir — authentification gérée par le proxy.")}>
               <form onSubmit={save} className="space-y-5 max-w-[460px]" style={{'--tw-ring-color':accent+'55'}}>
                 {[['Mot de passe actuel',cur,setCur],['Nouveau mot de passe',nw,setNw],['Confirmer le mot de passe',cf,setCf]].map(([l,v,fn],i)=>(
-                  <label key={l} className="block"><span className="block text-[13.5px] font-medium mb-1.5">{t(l)}</span>
+                  <label key={l} className="block"><span className="block text-[13px] font-medium mb-1.5">{t(l)}</span>
                     <input disabled type="password" value={v} onChange={e=>fn(e.target.value)} className={inp}/>
                     {i===1 && nw && <div className="mt-2 flex gap-1.5">{[0,1,2,3].map(j=><span key={j} className="h-1.5 flex-1 rounded-full" style={{background:j<strength?accent:'#EBEBEB'}}/>)}</div>}
                   </label>))}
-                {pm && <div className={`text-[13.5px] rounded-lg px-3.5 py-2.5 ${pm[0]==='ok'?'bg-[#ECF8F0] text-[#15803D]':'bg-[#FDEFEE] text-[#B42318]'}`}>{pm[1]}</div>}
+                {pm && <div className={`text-[13px] rounded-lg px-3.5 py-2.5 ${pm[0]==='ok'?'bg-success-soft text-success':'bg-danger-soft text-danger'}`}>{pm[1]}</div>}
                 <button disabled title="Non disponible : backend à venir" type="submit" style={{background:accent}} className="h-11 px-6 rounded-lg text-white text-[14px] font-semibold shadow-sm hover:opacity-90">{t("Mettre à jour le mot de passe")}</button>
               </form>
             </Card>}
             {sec==='langue' && <Card title={t("Langue de l'interface")} desc={t("Choisissez la langue utilisée dans POLARIS.")}>
               <div className="grid grid-cols-2 gap-5 max-w-[520px]">{[['fr','Français','FR'],['en','English','EN']].map(([k,n,c])=>{const on=lang===k; return (
-                <button key={k} onClick={()=>setLang(k)} className={`rounded-xl border-2 px-5 py-4 flex items-center gap-3 text-left transition ${on?'shadow-md':'border-[#EBEBEB] hover:border-[#D4D4D4]'}`} style={on?{borderColor:accent}:{}}>
+                <button key={k} onClick={()=>setLang(k)} className={`rounded-xl border-2 px-5 py-4 flex items-center gap-3 text-left transition ${on?'shadow-md':'border-border hover:border-border-strong'}`} style={on?{borderColor:accent}:{}}>
                   <span className="w-10 h-10 rounded-lg grid place-items-center text-[13px] font-bold text-white" style={{background:on?accent:'#A3A3A3'}}>{c}</span>
                   <span className="text-[15px] font-medium">{n}</span>
                   {on && <span className="ml-auto w-5 h-5 rounded-full grid place-items-center text-white text-[11px]" style={{background:accent}}>✓</span>}
@@ -1021,7 +1021,7 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
             </Card>}
             {sec==='apropos' && <Card title={t("À propos")} desc={t("Versions des composants installés.")}>
               <div className="grid grid-cols-2 gap-5">{versionComponents(version.data?.data,UI_VERSION).map(([n,v])=>(
-                <div key={n} className="rounded-xl border border-[#EBEBEB] p-5"><div className="text-[13px] text-[#666666]">{n}</div><div className="mt-1 text-[26px] font-semibold tracking-tight font-mono" style={{color:accent}}>{v}</div></div>))}</div>
+                <div key={n} className="rounded-xl border border-border p-5"><div className="text-[13px] text-muted-foreground">{n}</div><div className="mt-1 text-[26px] font-semibold tracking-tight font-mono" style={{color:accent}}>{v}</div></div>))}</div>
             </Card>}
           </div>
         </div>
@@ -1033,54 +1033,54 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
 function Traffic({setPage}){
   const { TR_CATS, TR_APPS, TR_CELLS, TR_V, TR_FLOWS, seedRand } = useTrafficDemo();
   const [sel,setSel]=useState(0); const [by,setBy]=useState('cat');
-  const f=TR_FLOWS[sel]; const card="bg-white rounded-xl border border-[#EBEBEB] overflow-hidden";
-  const head=(n,x)=><div className="h-11 px-4 flex items-center gap-2 border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold text-[#171717]">{t(n)}</h3>{x}</div>;
+  const f=TR_FLOWS[sel]; const card="bg-white rounded-xl border border-border overflow-hidden";
+  const head=(n,x)=><div className="h-11 px-4 flex items-center gap-2 border-b border-border-subtle"><h3 className="text-[13px] font-semibold text-foreground">{t(n)}</h3>{x}</div>;
   const r=seedRand('flow'+sel); const W=600; const pts=k=>Array.from({length:40},()=>r()*k);
   const line=(d,mx)=>d.map((v,i)=>`${i?'L':'M'}${(i*W/39).toFixed(1)},${(70-v/mx*62).toFixed(1)}`).join(' ');
   const bars = by==='cat'?TR_CATS.map(([n,v,c])=>[n,v,c]):by==='app'?TR_APPS.map(([n,v])=>[n,v,'var(--app-accent)']):by==='cell'?TR_CELLS.map((c,i)=>['Cellule '+c,[31,24,18,12,9,6][i],'var(--app-accent)']):by==='dnn'?[['internet',84.1,'var(--app-accent)'],['ims',4.3,'var(--app-accent)'],['iot',2.1,'var(--app-accent)']]:[['5QI 9',82.4,'var(--app-accent)'],['5QI 8',9.9,'var(--app-accent)'],['5QI 1',4.1,'var(--app-accent)'],['5QI 5',0.6,'var(--app-accent)']];
   const mx=Math.max(...bars.map(b=>b[1]));
   return (
-    <div className="flex-1 overflow-auto scroll-thin bg-[#FAFAFA]">
+    <div className="flex-1 overflow-auto scroll-thin bg-surface-2">
       <div className="polaris-content-shell px-8 py-7 space-y-5">
         <div className="flex flex-wrap items-end gap-6">
-          <div><div className="text-[12px] text-[#666666]">POLARIS Traffic</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">Traffic</h1><div className="text-[13px] text-[#666666] mt-1">{t("Débit, santé TCP, applications, congestion")}</div></div>
-          <div className="ml-auto flex items-center gap-3"><span className="text-[11px] font-medium text-[#A15C00] bg-[#FFF7E6] border border-[#FCE2B0] rounded px-1.5 py-[1px]">{t("Données de démo")}</span><span className="text-[12px] text-[#8F8F8F]">{t("Aucune charge utile, aucune URL complète stockée.")}</span></div>
+          <div><div className="text-[12px] text-muted-foreground">POLARIS Traffic</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Traffic</h1><div className="text-[13px] text-muted-foreground mt-1">{t("Débit, santé TCP, applications, congestion")}</div></div>
+          <div className="ml-auto flex items-center gap-3"><span className="text-[11px] font-medium text-warning bg-warning-soft border border-warning-line rounded px-1.5 py-[1px]">{t("Données de démo")}</span><span className="text-[12px] text-subtle">{t("Aucune charge utile, aucune URL complète stockée.")}</span></div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-          {[['Volume','412 Go'],['Débit DL','1,84 Gb/s'],['Flux actifs','18 240'],['Établissement TCP','98,6 %'],['RTT médian','31 ms'],['Flux congestionnés','6,2 %']].map(([n,v])=><div key={n} className="bg-white rounded-xl border border-[#EBEBEB] px-4 py-3"><div className="text-[12px] text-[#8F8F8F]">{t(n)}</div><div className="text-[20px] font-semibold tabular-nums text-[#171717] mt-0.5">{v}</div></div>)}
+          {[['Volume','412 Go'],['Débit DL','1,84 Gb/s'],['Flux actifs','18 240'],['Établissement TCP','98,6 %'],['RTT médian','31 ms'],['Flux congestionnés','6,2 %']].map(([n,v])=><div key={n} className="bg-white rounded-xl border border-border px-4 py-3"><div className="text-[12px] text-subtle">{t(n)}</div><div className="text-[20px] font-semibold tabular-nums text-foreground mt-0.5">{v}</div></div>)}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
           <div className={card}>
-            {head("Vue d'ensemble",<div className="ml-auto flex gap-1">{[['cat','Catégorie'],['app','Application'],['cell','Cellule'],['dnn','DNN'],['qi','5QI']].map(([k,n])=><button key={k} onClick={()=>setBy(k)} className={`h-7 px-2.5 rounded-md text-[12px] ${by===k?'bg-[#F2F2F2] font-semibold text-[#171717]':'text-[#666666]'}`}>{t(n)}</button>)}</div>)}
-            <div className="p-4 space-y-2.5">{bars.map(([n,v,c])=><div key={n} className="flex items-center gap-3 text-[12.5px]"><span className={`w-32 truncate ${n==='Non identifié'?'text-[#8F8F8F] italic':'text-[#4D4D4D]'}`}>{t(n)}</span><div className="flex-1 h-2.5 rounded-full bg-[#F2F2F2]"><div className="h-2.5 rounded-full" style={{width:(v/mx*100)+'%',background:c}}/></div><span className="w-14 text-right tabular-nums">{v} %</span></div>)}
-              {by==='app'&&<div className="text-[11px] text-[#8F8F8F] pt-1">{t("Réseau réel : agrégé uniquement, sans historique par abonné.")}</div>}</div>
+            {head("Vue d'ensemble",<div className="ml-auto flex gap-1">{[['cat','Catégorie'],['app','Application'],['cell','Cellule'],['dnn','DNN'],['qi','5QI']].map(([k,n])=><button key={k} onClick={()=>setBy(k)} className={`h-7 px-2.5 rounded-md text-[12px] ${by===k?'bg-muted font-semibold text-foreground':'text-muted-foreground'}`}>{t(n)}</button>)}</div>)}
+            <div className="p-4 space-y-2.5">{bars.map(([n,v,c])=><div key={n} className="flex items-center gap-3 text-[12.5px]"><span className={`w-32 truncate ${n==='Non identifié'?'text-subtle italic':'text-ink-2'}`}>{t(n)}</span><div className="flex-1 h-2.5 rounded-full bg-muted"><div className="h-2.5 rounded-full" style={{width:(v/mx*100)+'%',background:c}}/></div><span className="w-14 text-right tabular-nums">{v} %</span></div>)}
+              {by==='app'&&<div className="text-[11px] text-subtle pt-1">{t("Réseau réel : agrégé uniquement, sans historique par abonné.")}</div>}</div>
           </div>
           <div className={card}>
             {head("Santé TCP")}
             <div className="p-4 grid grid-cols-3 gap-4 text-[12px]">
-              {[['SYN → SYN-ACK (réseau)','14 ms'],['SYN-ACK → ACK (UE/radio)','17 ms'],['Sans réponse','0,9 %'],['RST','0,5 %'],['Retransmissions','1,1 %'],['Déséquencements','0,3 %'],['ACK dupliqués','0,7 %'],['Fenêtre nulle','0,2 %'],['ECN CE','0,04 %'],['MSS médian','1 360'],['UDP/QUIC volume','38 %'],['QUIC durée méd.','42 s']].map(([n,v])=><div key={n}><div className="text-[#8F8F8F]">{t(n)}</div><div className="text-[15px] font-semibold tabular-nums text-[#171717]">{v}</div></div>)}
-              <div className="col-span-3 text-[11px] text-[#8F8F8F]">{t("RTT intra-capture et même interface uniquement.")}</div>
+              {[['SYN → SYN-ACK (réseau)','14 ms'],['SYN-ACK → ACK (UE/radio)','17 ms'],['Sans réponse','0,9 %'],['RST','0,5 %'],['Retransmissions','1,1 %'],['Déséquencements','0,3 %'],['ACK dupliqués','0,7 %'],['Fenêtre nulle','0,2 %'],['ECN CE','0,04 %'],['MSS médian','1 360'],['UDP/QUIC volume','38 %'],['QUIC durée méd.','42 s']].map(([n,v])=><div key={n}><div className="text-subtle">{t(n)}</div><div className="text-[15px] font-semibold tabular-nums text-foreground">{v}</div></div>)}
+              <div className="col-span-3 text-[11px] text-subtle">{t("RTT intra-capture et même interface uniquement.")}</div>
             </div>
           </div>
         </div>
         <div className={card}>
           {head("Congestion cellules × temps",<span className="ml-auto flex gap-3 text-[11px]">{Object.values(TR_V).map(([n,c])=><span key={n} className="flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{background:c}}/>{t(n)}</span>)}</span>)}
-          <div className="p-4"><table className="w-full text-[11px]"><tbody>{TR_CELLS.map(c=>{const rr=seedRand('cg'+c);return <tr key={c}><td className="pr-3 font-mono text-[#4D4D4D] w-14">{c}</td>{Array.from({length:48},(_,i)=>{const x=rr();const k=x>0.93?'RADIO':x>0.9?'CORE':x>0.88?'QOS':x>0.87?'IND':'OK';return <td key={i} className="p-[1px]"><div title={t(TR_V[k][0])} className="h-5 rounded-[2px]" style={{background:TR_V[k][1],opacity:k==='OK'?0.15:0.9}}/></td>;})}</tr>;})}</tbody></table>
-          <div className="mt-2 flex justify-between text-[10.5px] text-[#A3A3A3]"><span>−12 h</span><span>{t("maintenant")}</span></div></div>
+          <div className="p-4"><table className="w-full text-[11px]"><tbody>{TR_CELLS.map(c=>{const rr=seedRand('cg'+c);return <tr key={c}><td className="pr-3 font-mono text-ink-2 w-14">{c}</td>{Array.from({length:48},(_,i)=>{const x=rr();const k=x>0.93?'RADIO':x>0.9?'CORE':x>0.88?'QOS':x>0.87?'IND':'OK';return <td key={i} className="p-[1px]"><div title={t(TR_V[k][0])} className="h-5 rounded-[2px]" style={{background:TR_V[k][1],opacity:k==='OK'?0.15:0.9}}/></td>;})}</tr>;})}</tbody></table>
+          <div className="mt-2 flex justify-between text-[11px] text-subtle"><span>−12 h</span><span>{t("maintenant")}</span></div></div>
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_400px] gap-4 items-start">
           <div className={card}>
             {head("Flux")}
-            <div className="overflow-x-auto"><table className="w-full text-[12px]"><thead><tr className="text-left text-[11px] text-[#8F8F8F]">{['UE','Proto','5-uplet','Application','Catégorie','Règle','Cellule','Débit','RTT','Retrans.','Verdict'].map(h=><th key={h} className="px-3 py-2 font-medium border-b border-[#F2F2F2] whitespace-nowrap">{t(h)}</th>)}</tr></thead>
-            <tbody>{TR_FLOWS.map((x,i)=><tr key={i} onClick={()=>setSel(i)} className={`cursor-pointer whitespace-nowrap ${sel===i?'bg-[#FAFAFA] shadow-[inset_2px_0_0_var(--app-accent)]':'hover:bg-[#FAFAFA]'}`}>
-              <td className="px-3 py-2 font-mono">{x[0]}</td><td className="px-3">{x[1]}</td><td className="px-3 font-mono text-[11px] text-[#666666] whitespace-nowrap">{x[2]} → {x[3]}</td><td className="px-3">{x[4]}</td><td className={`px-3 ${x[5]==='Non identifié'?'italic text-[#8F8F8F]':''}`}>{t(x[5])}</td><td className="px-3 font-mono text-[11px] text-[#8F8F8F]">{x[6]}</td><td className="px-3 font-mono">{x[8]}</td><td className="px-3 tabular-nums">{x[9]} Mb/s</td><td className="px-3 tabular-nums">{x[10]} ms</td><td className="px-3 tabular-nums">{x[11]} %</td>
-              <td className="px-3"><span className="text-[10.5px] font-medium rounded px-1.5 py-[1px] text-white whitespace-nowrap" style={{background:TR_V[x[12]][1]}}>{t(TR_V[x[12]][0])}</span></td></tr>)}</tbody></table></div>
+            <div className="overflow-x-auto"><table className="w-full text-[12px]"><thead><tr className="text-left text-[11px] text-subtle">{['UE','Proto','5-uplet','Application','Catégorie','Règle','Cellule','Débit','RTT','Retrans.','Verdict'].map(h=><th key={h} className="px-3 py-2 font-medium border-b border-border-subtle whitespace-nowrap">{t(h)}</th>)}</tr></thead>
+            <tbody>{TR_FLOWS.map((x,i)=><tr key={i} onClick={()=>setSel(i)} className={`cursor-pointer whitespace-nowrap ${sel===i?'bg-surface-2 shadow-[inset_2px_0_0_var(--app-accent)]':'hover:bg-surface-2'}`}>
+              <td className="px-3 py-2 font-mono">{x[0]}</td><td className="px-3">{x[1]}</td><td className="px-3 font-mono text-[11px] text-muted-foreground whitespace-nowrap">{x[2]} → {x[3]}</td><td className="px-3">{x[4]}</td><td className={`px-3 ${x[5]==='Non identifié'?'italic text-subtle':''}`}>{t(x[5])}</td><td className="px-3 font-mono text-[11px] text-subtle">{x[6]}</td><td className="px-3 font-mono">{x[8]}</td><td className="px-3 tabular-nums">{x[9]} Mb/s</td><td className="px-3 tabular-nums">{x[10]} ms</td><td className="px-3 tabular-nums">{x[11]} %</td>
+              <td className="px-3"><span className="text-[11px] font-medium rounded px-1.5 py-[1px] text-white whitespace-nowrap" style={{background:TR_V[x[12]][1]}}>{t(TR_V[x[12]][0])}</span></td></tr>)}</tbody></table></div>
           </div>
           <div className={card}>
-            {head("Détail du flux",<span className="ml-auto font-mono text-[11px] text-[#8F8F8F]">{f[0]} · {f[7]}</span>)}
+            {head("Détail du flux",<span className="ml-auto font-mono text-[11px] text-subtle">{f[0]} · {f[7]}</span>)}
             <div className="p-4 space-y-3">
-              {[['Débit',f[9]*1.4,'Mb/s'],['RTT',f[10]*1.5,'ms'],['Retransmissions',Math.max(1,f[11]*2),'%']].map(([n,k,u])=><div key={n}><div className="text-[11.5px] text-[#8F8F8F]">{t(n)} ({u})</div><svg viewBox={`0 0 ${W} 72`} className="w-full h-[56px]"><path d={line(pts(k),k)} fill="none" stroke="var(--app-accent)" strokeWidth="1.6"/></svg></div>)}
-              <div className="rounded-md border border-[#F2F2F2] p-3 text-[12px]"><div className="flex items-center gap-2"><span className="text-[#8F8F8F]">{t("Verdict")}</span><span className="text-[10.5px] font-medium rounded px-1.5 text-white" style={{background:TR_V[f[12]][1]}}>{t(TR_V[f[12]][0])}</span></div><div className="mt-1 text-[#4D4D4D]">{f[13]}</div><div className="mt-1 text-[11px] text-[#8F8F8F]">{t("Règle appliquée")} : {f[6]} · {f[5]}</div></div>
+              {[['Débit',f[9]*1.4,'Mb/s'],['RTT',f[10]*1.5,'ms'],['Retransmissions',Math.max(1,f[11]*2),'%']].map(([n,k,u])=><div key={n}><div className="text-[11.5px] text-subtle">{t(n)} ({u})</div><svg viewBox={`0 0 ${W} 72`} className="w-full h-[56px]"><path d={line(pts(k),k)} fill="none" stroke="var(--app-accent)" strokeWidth="1.6"/></svg></div>)}
+              <div className="rounded-md border border-border-subtle p-3 text-[12px]"><div className="flex items-center gap-2"><span className="text-subtle">{t("Verdict")}</span><span className="text-[11px] font-medium rounded px-1.5 text-white" style={{background:TR_V[f[12]][1]}}>{t(TR_V[f[12]][0])}</span></div><div className="mt-1 text-ink-2">{f[13]}</div><div className="mt-1 text-[11px] text-subtle">{t("Règle appliquée")} : {f[6]} · {f[5]}</div></div>
               <button onClick={()=>setPage('sessions')} className="w-full h-9 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[12.5px] font-medium">{t("Ouvrir la session dans l'Analyzer →")}</button>
             </div>
           </div>
@@ -1234,30 +1234,30 @@ function App() {
   const ui = {full,setFull,gridHidden,setGridHidden};
   useEffect(()=>{ setMsg(0); setLens(null); },[s?.id]);
   return (
-    <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-base">
+    <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-surface-2 text-foreground text-base">
       <TopBar role={role} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')} metrics={metrics} version={version} demo={demo} hidden={navHidden}/>
       <DataStatus t={t}/>
-      {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · identités masquées · actions soumises au proxy</div>}
+      {role==='operator' && <div className="h-7 shrink-0 bg-warning-soft border-b border-warning-line text-warning text-[12px] flex items-center px-4">Rôle operator actif · identités masquées · actions soumises au proxy</div>}
       {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={navHidden} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : page==='templates' ? <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
       {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
-      {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-[#F8FAFC]">
+      {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">
         <main ref={mainRef} className="flex-1 min-w-0 flex flex-col">
           {!full && !gridHidden && <>
             <Grid rows={rows} sel={s?.id} setSel={setSel} role={role} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`}/>
-            <div onMouseDown={e=>drag(e,'h')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group h-2 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[2px] w-10 rounded-full bg-[#E2E8F0] group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
+            <div onMouseDown={e=>drag(e,'h')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group h-2 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[2px] w-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
           </>}
           <div ref={lowRef} className="flex-1 min-h-0 flex">
-            <div className="flex-1 min-w-[280px] flex flex-col">{selected ? <Detail s={selected} sel={msg} setSel={setMsg} lens={lens} ui={ui} onOpenSession={id=>setSel(id)}/> : <div className="p-8 text-[#64748B] bg-white rounded-xl border border-[#E2E8F0] flex-1">{sessionsQuery.isError ? sessionsQuery.error.message : sessionsQuery.isPending ? "Connexion POLARIS…" : "Aucune session"}</div>}</div>
+            <div className="flex-1 min-w-[280px] flex flex-col">{selected ? <Detail s={selected} sel={msg} setSel={setMsg} lens={lens} ui={ui} onOpenSession={id=>setSel(id)}/> : <div className="p-8 text-muted-foreground bg-white rounded-xl border border-border flex-1">{sessionsQuery.isError ? sessionsQuery.error.message : sessionsQuery.isPending ? "Connexion POLARIS…" : "Aucune session"}</div>}</div>
           </div>
         </main>
-        {selected && !full && (jouHidden ? null : <><div onMouseDown={e=>drag(e,'jou')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-[#E2E8F0] group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><aside style={{width:`${jouPct}%`}} aria-label="Parcours abonné" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-[#E2E8F0] overflow-hidden"><div className="h-[42px] shrink-0 px-4 flex items-center border-b border-[#E2E8F0]"><span className="text-[13px] font-semibold text-[#172033]">Parcours abonné</span><button onClick={()=>setJouHidden(true)} title="Masquer Parcours abonné" className="ml-auto w-7 h-7 rounded-md grid place-items-center text-[#64748B] hover:bg-[#F1F5F9]">×</button></div><div className="flex-1 overflow-auto scroll-thin"><SubscriberJourney s={selected} role={role} onOpen={id=>{ if(id) setSel(id); }}/></div></aside></>)}
-        {selected && !full && (insHidden ? null : <><div onMouseDown={e=>drag(e,'ins')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-[#E2E8F0] group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><Inspector key={selected.id} s={selected} sel={msg} role={role} lens={lens} setLens={setLens} width={`${insPct}%`} onHide={()=>setInsHidden(true)}/></>)}
-        {selected && !full && (anaHidden ? null : <><div onMouseDown={e=>drag(e,'ana')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-[#E2E8F0] group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><SessionAnalysis onOpenSession={id=>setSel(id)} s={selected} width={`${anaPct}%`} loading={bundle.callflow.isFetching || bundle.events.isFetching} onPick={k=>setMsg(Math.max(0,k))} onHide={()=>setAnaHidden(true)}/></>)}
-        {selected && !full && <nav aria-label="Panneaux" className="ml-2 w-10 shrink-0 self-stretch bg-white rounded-xl border border-[#E2E8F0] flex flex-col items-center py-2 gap-1">
-          {[['Parcours abonné',jouHidden,setJouHidden,'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6'],['Décodage',insHidden,setInsHidden,'M8 6l-6 6 6 6M16 6l6 6-6 6'],['Analyse sessions',anaHidden,setAnaHidden,'M4 20V10M10 20V4M16 20v-7M22 20H2']].map(([l,h,set,d])=><button key={l} type="button" onClick={()=>set(!h)} aria-pressed={!h} title={`${h?'Afficher':'Masquer'} ${l}`} className={`w-8 rounded-lg flex flex-col items-center gap-2 py-2.5 transition ${!h?'bg-[#EFF6FF] text-[var(--app-accent)]':'text-[#64748B] hover:bg-[#F1F5F9] hover:text-[#172033]'}`}><I d={d} c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[11.5px] font-medium">{l}</span></button>)}
+        {selected && !full && (jouHidden ? null : <><div onMouseDown={e=>drag(e,'jou')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><aside style={{width:`${jouPct}%`}} aria-label="Parcours abonné" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-border overflow-hidden"><div className="h-[42px] shrink-0 px-4 flex items-center border-b border-border"><span className="text-[13px] font-semibold text-foreground">Parcours abonné</span><button onClick={()=>setJouHidden(true)} title="Masquer Parcours abonné" className="ml-auto w-7 h-7 rounded-md grid place-items-center text-muted-foreground hover:bg-muted">×</button></div><div className="flex-1 overflow-auto scroll-thin"><SubscriberJourney s={selected} role={role} onOpen={id=>{ if(id) setSel(id); }}/></div></aside></>)}
+        {selected && !full && (insHidden ? null : <><div onMouseDown={e=>drag(e,'ins')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><Inspector key={selected.id} s={selected} sel={msg} role={role} lens={lens} setLens={setLens} width={`${insPct}%`} onHide={()=>setInsHidden(true)}/></>)}
+        {selected && !full && (anaHidden ? null : <><div onMouseDown={e=>drag(e,'ana')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><SessionAnalysis onOpenSession={id=>setSel(id)} s={selected} width={`${anaPct}%`} loading={bundle.callflow.isFetching || bundle.events.isFetching} onPick={k=>setMsg(Math.max(0,k))} onHide={()=>setAnaHidden(true)}/></>)}
+        {selected && !full && <nav aria-label="Panneaux" className="ml-2 w-10 shrink-0 self-stretch bg-white rounded-xl border border-border flex flex-col items-center py-2 gap-1">
+          {[['Parcours abonné',jouHidden,setJouHidden,'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6'],['Décodage',insHidden,setInsHidden,'M8 6l-6 6 6 6M16 6l6 6-6 6'],['Analyse sessions',anaHidden,setAnaHidden,'M4 20V10M10 20V4M16 20v-7M22 20H2']].map(([l,h,set,d])=><button key={l} type="button" onClick={()=>set(!h)} aria-pressed={!h} title={`${h?'Afficher':'Masquer'} ${l}`} className={`w-8 rounded-lg flex flex-col items-center gap-2 py-2.5 transition ${!h?'bg-brand-soft text-[var(--app-accent)]':'text-muted-foreground hover:bg-muted hover:text-foreground'}`}><I d={d} c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[11.5px] font-medium">{l}</span></button>)}
         </nav>}
       </div>}</>}
-      <footer className="h-7 shrink-0 bg-white border-t border-[#EBEBEB] flex items-center gap-5 px-4 text-[11.5px] text-[#666666]">
+      <footer className="h-7 shrink-0 bg-white border-t border-border flex items-center gap-5 px-4 text-[11.5px] text-muted-foreground">
         <span>Capture : {available(metrics.data?.data?.capture_state)}</span><span>Segments ingérés : {available(metrics.data?.data?.segments_ingested)}</span>
         <span className="ml-auto font-mono">POLARIS {available(version.data?.data?.platform_core)} · API {available(version.data?.data?.backend_api)} · UI {UI_VERSION}{demo ? ' · Données de démo' : ''}</span>
       </footer>

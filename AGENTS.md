@@ -36,3 +36,4 @@ use the editor.
 - The /api/v1 relay route forwards to the lab server (POLARIS_UPSTREAM_URL); it lets the hosted preview reach the lab.
 - Analyzer session verdicts, chronology and KPIs live in src/components/polaris/analyzer/analysis.ts as pure, tested rules; keeps conclusions traceable to observed messages.
 - Administration tabs live in src/components/polaris/admin/; module visibility only filters navigation (never access) and Home/Administration are locked visible to prevent lockout.
+- POLARIS UI colours come from semantic tokens in src/styles.css (foreground, ink-2, muted-foreground, subtle, border, border-subtle, surface-2, success/warning/danger + -soft/-line, brand); never add raw hex classes in components — keeps one visual identity. Signalling/procedure colours in inline styles are exempt.

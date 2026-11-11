@@ -6,9 +6,9 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 const fingerprint = (s) => { let h = 5381; for (const c of s) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return 'sha256:' + h.toString(16).padStart(8,'0') + '…'; };
 
 const useStore = (key, init) => { const [v,setV] = useState(init); useEffect(()=>{ try{ const s=localStorage.getItem(key); if(s) setV(JSON.parse(s)); }catch{} },[key]); const set=(x)=>setV(p=>{ const n=typeof x==='function'?x(p):x; try{localStorage.setItem(key,JSON.stringify(n));}catch{} return n; }); return [v,set]; };
-const card = 'bg-white rounded-xl border border-[#EBEBEB]';
-const Btn = ({ primary, on, children, className='', ...p }) => <button {...p} className={`h-8 px-3 rounded-md text-[12.5px] font-medium whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${primary?'bg-[var(--app-accent)] text-white hover:opacity-90':on?'bg-[#F2F2F2] text-[#171717] border border-[#E5E5E5]':'border border-[#EBEBEB] bg-white text-[#171717] hover:bg-[#FAFAFA]'} ${className}`}>{children}</button>;
-const Tag = ({ c='#666666', children }) => <span className="text-[10.5px] font-medium rounded px-1.5 py-[1px] border whitespace-nowrap" style={{ color:c, borderColor:c+'33', background:c+'0D' }}>{children}</span>;
+const card = 'bg-white rounded-xl border border-border';
+const Btn = ({ primary, on, children, className='', ...p }) => <button {...p} className={`h-8 px-3 rounded-md text-[12.5px] font-medium whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${primary?'bg-[var(--app-accent)] text-white hover:opacity-90':on?'bg-muted text-foreground border border-border':'border border-border bg-white text-foreground hover:bg-surface-2'} ${className}`}>{children}</button>;
+const Tag = ({ c='#666666', children }) => <span className="text-[11px] font-medium rounded px-1.5 py-[1px] border whitespace-nowrap" style={{ color:c, borderColor:c+'33', background:c+'0D' }}>{children}</span>;
 const IFC_C = { N2:'#0062A1', SBI:'#0F5B56', N4:'#A15C07', 'S1-MME':'#0062A1', S6a:'#7C3AED', S11:'#A15C07', S5:'#DB2777' };
 const RES_C = (r) => r==='Échec'?'#B42318':r==='Succès'||r==='Accepted'||/^2\d\d/.test(r)?'#15803D':'#8F8F8F';
 const fmtRate = (v) => v>=1000?(v/1000).toFixed(2)+' Gb/s':v>=1?v.toFixed(1)+' Mb/s':(v*1000).toFixed(0)+' kb/s';
@@ -73,56 +73,56 @@ export default function LiveModule({ t, role, setPage }) {
   const exportCsv = () => { const h='capture_id,seq,t_rel,interface,protocol,message,src,dst,procedure,result,cause\n'; const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([h+shown.map(m=>[m.cap,m.seq,m.rel,m.ifc,m.proto,m.name,m.from,m.to,m.proc,m.res,m.cause].map(x=>`"${x}"`).join(',')).join('\n')],{type:'text/csv'})); a.download='live-'+res.ue+'.csv'; a.click(); };
 
   const sig = <div className={card+' overflow-hidden flex flex-col'} style={full==='sig'?{height:'calc(100vh - 220px)'}:{}}>
-    <div className="h-11 px-3 flex items-center gap-2 border-b border-[#F2F2F2]">
-      <div className="flex rounded-md border border-[#EBEBEB] p-0.5 bg-[#FAFAFA]">{[['ladder','Flèches'],['table','Lignes']].map(([k,n])=><button key={k} onClick={()=>setMode(k)} className={`h-7 px-3 rounded text-[12px] ${mode===k?'bg-white shadow-sm font-semibold text-[#171717]':'text-[#666666]'}`}>{t(n)}</button>)}</div>
-      <div className="flex gap-1 ml-1">{ifcs.map(i=>{const off=hide.includes(i);return <button key={i} onClick={()=>setHide(h=>off?h.filter(x=>x!==i):[...h,i])} className={`h-6 px-2 rounded-full text-[11px] font-medium border ${off?'border-[#EBEBEB] text-[#A3A3A3] line-through':'border-transparent text-white'}`} style={off?{}:{background:IFC_C[i]}}>{i}</button>;})}</div>
-      <input value={fq} onChange={e=>setFq(e.target.value)} placeholder={t('Filtrer messages…')} className="h-7 w-44 px-2.5 rounded-md border border-[#EBEBEB] text-[12px] outline-none focus:border-[var(--app-accent)]"/>
-      <span className="ml-auto text-[11px] text-[#8F8F8F] tabular-nums">{shown.length}/{msgs.length}</span>
+    <div className="h-11 px-3 flex items-center gap-2 border-b border-border-subtle">
+      <div className="flex rounded-md border border-border p-0.5 bg-surface-2">{[['ladder','Flèches'],['table','Lignes']].map(([k,n])=><button key={k} onClick={()=>setMode(k)} className={`h-7 px-3 rounded text-[12px] ${mode===k?'bg-white shadow-sm font-semibold text-foreground':'text-muted-foreground'}`}>{t(n)}</button>)}</div>
+      <div className="flex gap-1 ml-1">{ifcs.map(i=>{const off=hide.includes(i);return <button key={i} onClick={()=>setHide(h=>off?h.filter(x=>x!==i):[...h,i])} className={`h-6 px-2 rounded-full text-[11px] font-medium border ${off?'border-border text-subtle line-through':'border-transparent text-white'}`} style={off?{}:{background:IFC_C[i]}}>{i}</button>;})}</div>
+      <input value={fq} onChange={e=>setFq(e.target.value)} placeholder={t('Filtrer messages…')} className="h-7 w-44 px-2.5 rounded-md border border-border text-[12px] outline-none focus:border-[var(--app-accent)]"/>
+      <span className="ml-auto text-[11px] text-subtle tabular-nums">{shown.length}/{msgs.length}</span>
       {mode==='table' && <Btn disabled={!op||!shown.length} onClick={exportCsv} title={!op?t('Rôle operator requis'):''}>CSV</Btn>}
       <Btn onClick={()=>setFull(full==='sig'?null:'sig')}>{full==='sig'?t('Quitter'):'⤢'}</Btn>
     </div>
     <div ref={sigBox} onScroll={onSigScroll} className="overflow-auto scroll-thin flex-1" style={full==='sig'?{}:{height:ladH}}>
       {!tracking ? <Empty t={t} demo={demo} res={res}/> : mode==='ladder' ? <Ladder t={t} msgs={shown} nodes={NODES[tech]} sel={sel} setSel={setSel} marks={marks} atEnd={atEnd}/> :
-        <table className="w-full text-[12px]"><thead className="sticky top-0 bg-white"><tr className="text-left text-[11px] text-[#8F8F8F]">{['Capture','Seq','t (s)','Interface','Protocole','Message','Source','Destination','Procédure','Résultat','Cause',''].map(h=><th key={h} className="px-2.5 py-2 font-medium border-b border-[#F2F2F2] whitespace-nowrap">{t(h)}</th>)}</tr></thead>
-          <tbody>{shown.map(m=><tr key={m.seq} onClick={()=>setSel(m.seq)} className={`cursor-pointer whitespace-nowrap ${sel===m.seq?'bg-[#FAFAFA] shadow-[inset_2px_0_0_var(--app-accent)]':'hover:bg-[#FAFAFA]'} ${marks.includes(m.seq)?'bg-[#FFFBEB]':''}`}>
-            <td className="px-2.5 py-1.5 font-mono text-[#8F8F8F]">{m.cap}</td><td className="px-2.5 font-mono">{m.seq}</td><td className="px-2.5 font-mono text-[#8F8F8F]">{m.rel}</td><td className="px-2.5"><span className="font-medium" style={{color:IFC_C[m.ifc]}}>{m.ifc}</span></td><td className="px-2.5 text-[#666666]">{m.proto}</td><td className="px-2.5 text-[#171717]">{m.name}</td><td className="px-2.5">{m.from}</td><td className="px-2.5">{m.to}</td><td className="px-2.5 text-[#666666]">{m.proc}</td><td className="px-2.5" style={{color:RES_C(m.res)}}>{m.res}</td><td className="px-2.5 text-[#B42318]">{m.cause}</td>
+        <table className="w-full text-[12px]"><thead className="sticky top-0 bg-white"><tr className="text-left text-[11px] text-subtle">{['Capture','Seq','t (s)','Interface','Protocole','Message','Source','Destination','Procédure','Résultat','Cause',''].map(h=><th key={h} className="px-2.5 py-2 font-medium border-b border-border-subtle whitespace-nowrap">{t(h)}</th>)}</tr></thead>
+          <tbody>{shown.map(m=><tr key={m.seq} onClick={()=>setSel(m.seq)} className={`cursor-pointer whitespace-nowrap ${sel===m.seq?'bg-surface-2 shadow-[inset_2px_0_0_var(--app-accent)]':'hover:bg-surface-2'} ${marks.includes(m.seq)?'bg-warning-soft':''}`}>
+            <td className="px-2.5 py-1.5 font-mono text-subtle">{m.cap}</td><td className="px-2.5 font-mono">{m.seq}</td><td className="px-2.5 font-mono text-subtle">{m.rel}</td><td className="px-2.5"><span className="font-medium" style={{color:IFC_C[m.ifc]}}>{m.ifc}</span></td><td className="px-2.5 text-muted-foreground">{m.proto}</td><td className="px-2.5 text-foreground">{m.name}</td><td className="px-2.5">{m.from}</td><td className="px-2.5">{m.to}</td><td className="px-2.5 text-muted-foreground">{m.proc}</td><td className="px-2.5" style={{color:RES_C(m.res)}}>{m.res}</td><td className="px-2.5 text-danger">{m.cause}</td>
             <td className="px-2.5"><button onClick={e=>{e.stopPropagation();setSel(m.seq);setMode('ladder');}} className="text-[11px] text-[var(--app-accent)]">{t('→ ladder')}</button></td></tr>)}</tbody></table>}
     </div>
-    {selM && <div className="border-t border-[#F2F2F2] px-4 py-3 grid grid-cols-[1fr_auto] gap-3 text-[12px] bg-[#FCFCFC]">
+    {selM && <div className="border-t border-border-subtle px-4 py-3 grid grid-cols-[1fr_auto] gap-3 text-[12px] bg-surface-2">
       <div className="min-w-0"><div className="flex items-center gap-2"><b className="text-[13px]">{selM.name}</b><Tag c={IFC_C[selM.ifc]}>{selM.ifc}</Tag><Tag c={selM.corr==='EXACT'?'#15803D':'#A15C07'}>{selM.corr}</Tag>{selM.cause&&<Tag c="#B42318">{selM.cause}</Tag>}</div>
-        <pre className="mt-2 font-mono text-[11px] text-[#4D4D4D] whitespace-pre-wrap">{`capture_id=${selM.cap}  seq=${selM.seq}  t_rel=${selM.rel}s\n${selM.proto.split('/').map((l,i)=>'  '.repeat(i)+'▸ '+l).join('\n')}\n${'  '.repeat(selM.proto.split('/').length)}▸ ${selM.name}  (${selM.from} → ${selM.to})`}</pre></div>
+        <pre className="mt-2 font-mono text-[11px] text-ink-2 whitespace-pre-wrap">{`capture_id=${selM.cap}  seq=${selM.seq}  t_rel=${selM.rel}s\n${selM.proto.split('/').map((l,i)=>'  '.repeat(i)+'▸ '+l).join('\n')}\n${'  '.repeat(selM.proto.split('/').length)}▸ ${selM.name}  (${selM.from} → ${selM.to})`}</pre></div>
       <div className="flex flex-col gap-1.5"><Btn onClick={()=>setPage('sessions')}>{t('Décodage complet')} →</Btn><Btn onClick={()=>setPage('sessions')}>{t('Preuves')} →</Btn><Btn onClick={()=>setSel(null)}>✕</Btn></div>
     </div>}
   </div>;
 
   return (
-    <div className="flex-1 overflow-auto scroll-thin bg-[#FAFAFA]">
+    <div className="flex-1 overflow-auto scroll-thin bg-surface-2">
       {/* Top zone */}
-      <div className="bg-white border-b border-[#EBEBEB]">
+      <div className="bg-white border-b border-border">
         <div className="max-w-[1600px] mx-auto px-6 py-4 flex flex-wrap items-center gap-3">
-          <div className="mr-2"><div className="text-[12px] text-[#666666]">POLARIS Live</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">Live Trace</h1></div>
-          <form onSubmit={find} className="flex items-center h-9 rounded-lg border border-[#EBEBEB] bg-white focus-within:border-[var(--app-accent)] overflow-hidden">
-            <select value={ttype} onChange={e=>{setTtype(e.target.value);setQ('');}} className="h-full px-2 text-[12px] bg-[#FAFAFA] border-r border-[#EBEBEB] outline-none">
+          <div className="mr-2"><div className="text-[12px] text-muted-foreground">POLARIS Live</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Live Trace</h1></div>
+          <form onSubmit={find} className="flex items-center h-9 rounded-lg border border-border bg-white focus-within:border-[var(--app-accent)] overflow-hidden">
+            <select value={ttype} onChange={e=>{setTtype(e.target.value);setQ('');}} className="h-full px-2 text-[12px] bg-surface-2 border-r border-border outline-none">
               <option value="pseudo">{t('Pseudonyme')}</option><option disabled value="imsi">IMSI / SUPI — Non disponible</option><option disabled value="guti">GUTI / TMSI — Non disponible</option><option value="cell">{t('Cellule')}</option><option value="run">Run</option>
             </select>
             <input value={q} onChange={e=>setQ(e.target.value)} type={ttype==='imsi'?'password':'text'} autoComplete="off" disabled={!demo} placeholder={{pseudo:'ue-7f3a',imsi:'masqué',guti:'masqué',cell:'0A1F',run:'482'}[ttype]} className="w-48 px-3 text-[13px] font-mono outline-none"/>
             <button disabled={!demo} title={!demo ? t('Non disponible : backend à venir') : ''} className="h-full px-3 bg-[var(--app-accent)] text-white text-[12.5px] font-medium hover:opacity-90">{ttype==='imsi'?'Find IMSI':t('Rechercher')}</button>
           </form>
-          {res && <span className="flex items-center gap-1.5 text-[12px]"><Tag c={ST_C[res.st]||'#666'}>{t(res.st)}</Tag>{res.ue && <span className="font-mono text-[#171717]">{res.ue}</span>}{res.err && <span className="text-[#B42318]">{res.err}</span>}</span>}
+          {res && <span className="flex items-center gap-1.5 text-[12px]"><Tag c={ST_C[res.st]||'#666'}>{t(res.st)}</Tag>{res.ue && <span className="font-mono text-foreground">{res.ue}</span>}{res.err && <span className="text-danger">{res.err}</span>}</span>}
           <div className="ml-auto flex items-center gap-2">
-            <span className="flex items-center gap-1.5 text-[12px] text-[#666666]"><span className={`w-[7px] h-[7px] rounded-full ${tracking&&running?'bg-[#15803D] animate-pulse':'bg-[#D4D4D4]'}`}/>{tracking?(running?t('Live'):t('En pause')):t('Inactif')}</span>
-            {tracking && <span className="text-[12px] text-[#A15C00] bg-[#FFF7E6] border border-[#FCE2B0] rounded px-1.5 h-6 grid place-items-center">{t('Retard import')} {delay} s</span>}
+            <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground"><span className={`w-[7px] h-[7px] rounded-full ${tracking&&running?'bg-success animate-pulse':'bg-track'}`}/>{tracking?(running?t('Live'):t('En pause')):t('Inactif')}</span>
+            {tracking && <span className="text-[12px] text-warning bg-warning-soft border border-warning-line rounded px-1.5 h-6 grid place-items-center">{t('Retard import')} {delay} s</span>}
             <Btn disabled={!tracking} onClick={()=>running?setRunning(false):resume()}>{running?'❚❚ '+t('Pause'):'▶ '+t('Reprendre')+(buf.length?` (+${buf.length})`:'')}</Btn>
             <Btn disabled={!tracking||!msgs.length} onClick={()=>{const s=msgs[msgs.length-1].seq; setMarks(m=>[...m,s]);}}>⚑ {t('Marqueur')}</Btn>
             <Btn onClick={()=>setPage('sessions')}>Session Explorer →</Btn>
-            <button onClick={()=>setDemo(!demo)} className={`h-7 px-2.5 rounded-full text-[11.5px] font-medium border flex items-center gap-1.5 ${demo?'bg-[#FFF7E6] border-[#FCE2B0] text-[#A15C00]':'border-[#EBEBEB] text-[#666666]'}`}><span className={`w-6 h-3.5 rounded-full relative ${demo?'bg-[#A15C00]':'bg-[#D4D4D4]'}`}><span className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all ${demo?'left-[12px]':'left-[2px]'}`}/></span>{t('Démo')}</button>
+            <button onClick={()=>setDemo(!demo)} className={`h-7 px-2.5 rounded-full text-[11.5px] font-medium border flex items-center gap-1.5 ${demo?'bg-warning-soft border-warning-line text-warning':'border-border text-muted-foreground'}`}><span className={`w-6 h-3.5 rounded-full relative ${demo?'bg-warning':'bg-track'}`}><span className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all ${demo?'left-[12px]':'left-[2px]'}`}/></span>{t('Démo')}</button>
           </div>
         </div>
         {/* compact counters */}
-        <div className="max-w-[1600px] mx-auto px-6 h-8 flex items-center gap-5 text-[11.5px] text-[#666666] border-t border-[#F5F5F5]">
-          {[['Traces actives', tracking?'2 / 5':'—'],['Expiration', tracking?`${Math.floor(ttl/60)}:${String(ttl%60).padStart(2,'0')}`:'—'],['Messages', demo ? msgs.length : '—'],['Tampon', demo ? buf.length : '—'],['Marqueurs', demo ? marks.length : '—'],['Techno', ue?(ue.tech==='LTE'?'LTE':'5G SA'):'—']].map(([n,v])=><span key={n}>{t(n)} <b className="text-[#171717] tabular-nums">{v}</b></span>)}
-          {!op && <span className="text-[#8F8F8F]">· {t('viewer : recherche IMSI masquée, pseudonymes uniquement')}</span>}
-          {demo && <span className="ml-auto text-[#A15C00]">{t('Données de démo — API live POLARIS (WebSocket) non connectée')}</span>}
+        <div className="max-w-[1600px] mx-auto px-6 h-8 flex items-center gap-5 text-[11.5px] text-muted-foreground border-t border-border-subtle">
+          {[['Traces actives', tracking?'2 / 5':'—'],['Expiration', tracking?`${Math.floor(ttl/60)}:${String(ttl%60).padStart(2,'0')}`:'—'],['Messages', demo ? msgs.length : '—'],['Tampon', demo ? buf.length : '—'],['Marqueurs', demo ? marks.length : '—'],['Techno', ue?(ue.tech==='LTE'?'LTE':'5G SA'):'—']].map(([n,v])=><span key={n}>{t(n)} <b className="text-foreground tabular-nums">{v}</b></span>)}
+          {!op && <span className="text-subtle">· {t('viewer : recherche IMSI masquée, pseudonymes uniquement')}</span>}
+          {demo && <span className="ml-auto text-warning">{t('Données de démo — API live POLARIS (WebSocket) non connectée')}</span>}
         </div>
       </div>
 
@@ -131,17 +131,17 @@ export default function LiveModule({ t, role, setPage }) {
         <div className="flex items-start">
           <div className="flex-1 min-w-0 space-y-0">
             {sig}
-            <div onPointerDown={e=>drag(e,'h')} onDoubleClick={()=>setLadH(380)} className="h-3 cursor-row-resize grid place-items-center group"><span className="h-1 w-10 rounded-full bg-[#E5E5E5] group-hover:bg-[var(--app-accent)]"/></div>
+            <div onPointerDown={e=>drag(e,'h')} onDoubleClick={()=>setLadH(380)} className="h-3 cursor-row-resize grid place-items-center group"><span className="h-1 w-10 rounded-full bg-track group-hover:bg-[var(--app-accent)]"/></div>
             <Throughput t={t} data={thr} running={running} delay={delay} tracking={tracking} onFull={()=>setFull('thr')} ue={ue}/>
           </div>
           {rightOpen ? <>
-            <div onPointerDown={e=>drag(e,'w')} onDoubleClick={()=>setRightW(360)} className="w-3 self-stretch cursor-col-resize grid place-items-center group"><span className="w-1 h-10 rounded-full bg-[#E5E5E5] group-hover:bg-[var(--app-accent)]"/></div>
+            <div onPointerDown={e=>drag(e,'w')} onDoubleClick={()=>setRightW(360)} className="w-3 self-stretch cursor-col-resize grid place-items-center group"><span className="w-1 h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)]"/></div>
             <div className="shrink-0 space-y-3" style={{width:rightW}}>
               <UeInfo t={t} ue={ue} res={res} op={op} tracking={tracking} msgs={msgs} onHide={()=>setRightOpen(false)}/>
               <Procedures t={t} msgs={msgs} tracking={tracking} onGo={(s)=>{setSel(s);}}/>
-              <div className={card+' overflow-hidden'}><div className="h-10 px-4 flex items-center border-b border-[#F2F2F2] text-[12.5px] font-semibold">{t('Journal des recherches')}</div>
-                {journal.length===0?<div className="px-4 py-3 text-[12px] text-[#8F8F8F]">{t('Aucune recherche dans cette session.')}</div>:journal.slice(0,6).map((j,i)=><div key={i} className="px-4 py-2 border-b border-[#F7F7F7] text-[11.5px] flex gap-2"><span className="font-mono text-[#8F8F8F]">{j.ts}</span><span>{t(j.a)}</span><span className="font-mono text-[#666666] truncate">{j.c}</span><span className="ml-auto" style={{color:ST_C[j.r]}}>{t(j.r)}</span></div>)}</div>
-            </div></> : <button onClick={()=>setRightOpen(true)} className={card+' ml-3 w-8 self-stretch text-[11px] text-[#666666] [writing-mode:vertical-rl] py-3'}>UE Info</button>}
+              <div className={card+' overflow-hidden'}><div className="h-10 px-4 flex items-center border-b border-border-subtle text-[12.5px] font-semibold">{t('Journal des recherches')}</div>
+                {journal.length===0?<div className="px-4 py-3 text-[12px] text-subtle">{t('Aucune recherche dans cette session.')}</div>:journal.slice(0,6).map((j,i)=><div key={i} className="px-4 py-2 border-b border-border-subtle text-[11.5px] flex gap-2"><span className="font-mono text-subtle">{j.ts}</span><span>{t(j.a)}</span><span className="font-mono text-muted-foreground truncate">{j.c}</span><span className="ml-auto" style={{color:ST_C[j.r]}}>{t(j.r)}</span></div>)}</div>
+            </div></> : <button onClick={()=>setRightOpen(true)} className={card+' ml-3 w-8 self-stretch text-[11px] text-muted-foreground [writing-mode:vertical-rl] py-3'}>UE Info</button>}
         </div>}
       </div>
     </div>
@@ -150,9 +150,9 @@ export default function LiveModule({ t, role, setPage }) {
 
 function Empty({ t, demo, res }) {
   return <div className="h-full min-h-[240px] grid place-items-center text-center px-6"><div>
-    <div className="mx-auto w-9 h-9 rounded-full bg-[#F5F5F5] grid place-items-center text-[#8F8F8F]">⌕</div>
-    <div className="mt-3 text-[13.5px] font-medium text-[#171717]">{!demo?t('Non disponible : backend à venir — Live (WebSocket)'):res?.st==='Non trouvé'?t('Aucun abonné rattaché à cet identifiant'):t('Recherchez un UE pour démarrer le suivi')}</div>
-    <div className="mt-1 text-[12.5px] text-[#666666]">{!demo?t('Aucune donnée simulée n’est affichée. Activez « Démo » pour un aperçu.'):t('Exemples : ue-7f3a (5G, EXACT) · ue-21c0 (LTE, OUVERT) · cellule 0A1F · run 482')}</div></div></div>;
+    <div className="mx-auto w-9 h-9 rounded-full bg-muted grid place-items-center text-subtle">⌕</div>
+    <div className="mt-3 text-[13px] font-medium text-foreground">{!demo?t('Non disponible : backend à venir — Live (WebSocket)'):res?.st==='Non trouvé'?t('Aucun abonné rattaché à cet identifiant'):t('Recherchez un UE pour démarrer le suivi')}</div>
+    <div className="mt-1 text-[12.5px] text-muted-foreground">{!demo?t('Aucune donnée simulée n’est affichée. Activez « Démo » pour un aperçu.'):t('Exemples : ue-7f3a (5G, EXACT) · ue-21c0 (LTE, OUVERT) · cellule 0A1F · run 482')}</div></div></div>;
 }
 
 function Ladder({ t, msgs, nodes, sel, setSel, marks, atEnd }) {
@@ -160,7 +160,7 @@ function Ladder({ t, msgs, nodes, sel, setSel, marks, atEnd }) {
   const box = useRef(null);
   useEffect(() => { const b = box.current?.parentElement; if (b && atEnd.current) b.scrollTop = b.scrollHeight; }, [msgs.length]);
   return <div ref={box}>
-    <div className="sticky top-0 z-10 bg-white grid border-b border-[#F2F2F2]" style={{ gridTemplateColumns: `repeat(${nodes.length},1fr)` }}>{nodes.map(n => <div key={n} className="text-center text-[11.5px] font-semibold text-[#4D4D4D] py-2">{n}</div>)}</div>
+    <div className="sticky top-0 z-10 bg-white grid border-b border-border-subtle" style={{ gridTemplateColumns: `repeat(${nodes.length},1fr)` }}>{nodes.map(n => <div key={n} className="text-center text-[11.5px] font-semibold text-ink-2 py-2">{n}</div>)}</div>
     <svg viewBox={`0 0 ${W} ${msgs.length * RH + 12}`} className="w-full block" style={{ height: msgs.length * RH + 12 }} preserveAspectRatio="none">
       {nodes.map(n => <line key={n} x1={cx(n)} x2={cx(n)} y1={0} y2={msgs.length * RH + 12} stroke="#EFEFEF" />)}
       {msgs.map((m, i) => { const y = i * RH + 22, a = cx(m.from), b = cx(m.to), c = IFC_C[m.ifc] || '#666', on = sel === m.seq, fail = m.res === 'Échec';
@@ -192,20 +192,20 @@ function Throughput({ t, data, running, delay, tracking, onFull, full, ue }) {
   const toTs = (e) => { const r = svg.current.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * W; return lo + (x - L) / (W - L - R) * (hi - lo); };
   const S = { dl: ['DL', 'var(--app-accent)'], ul: ['UL', '#A15C07'] };
   return <div className={card + ' overflow-hidden'}>
-    <div className="h-11 px-4 flex items-center gap-3 border-b border-[#F2F2F2]">
+    <div className="h-11 px-4 flex items-center gap-3 border-b border-border-subtle">
       <h3 className="text-[13px] font-semibold">Throughput UL / DL</h3>
-      {ue && <span className="text-[11px] text-[#8F8F8F] font-mono">{ue.tech === 'LTE' ? 'Bearer 5 · QCI 9 · APN internet' : 'PDU #1 · 5QI 9 · QFI 1 · DNN internet'} · GTP-U {ue.tech === 'LTE' ? 'S1-U' : 'N3'}</span>}
+      {ue && <span className="text-[11px] text-subtle font-mono">{ue.tech === 'LTE' ? 'Bearer 5 · QCI 9 · APN internet' : 'PDU #1 · 5QI 9 · QFI 1 · DNN internet'} · GTP-U {ue.tech === 'LTE' ? 'S1-U' : 'N3'}</span>}
       <div className="ml-auto flex items-center gap-2">
-        {['dl', 'ul'].map(k => <button key={k} onClick={() => setShow(s => ({ ...s, [k]: !s[k] }))} className={`flex items-center gap-1.5 text-[12px] ${show[k] ? 'text-[#171717]' : 'text-[#A3A3A3] line-through'}`}><span className="w-3 h-[3px] rounded" style={{ background: S[k][1], opacity: show[k] ? 1 : 0.3 }} />{S[k][0]}</button>)}
-        <div className="flex rounded-md border border-[#EBEBEB] overflow-hidden ml-2">{[1, 5, 15, 30].map(w => <button key={w} onClick={() => { setWin(w); setZoom(null); }} className={`h-7 px-2.5 text-[12px] whitespace-nowrap ${win === w && !zoom ? 'bg-[var(--app-accent)] text-white' : 'text-[#4D4D4D] hover:bg-[#FAFAFA]'}`}>{w} min</button>)}</div>
+        {['dl', 'ul'].map(k => <button key={k} onClick={() => setShow(s => ({ ...s, [k]: !s[k] }))} className={`flex items-center gap-1.5 text-[12px] ${show[k] ? 'text-foreground' : 'text-subtle line-through'}`}><span className="w-3 h-[3px] rounded" style={{ background: S[k][1], opacity: show[k] ? 1 : 0.3 }} />{S[k][0]}</button>)}
+        <div className="flex rounded-md border border-border overflow-hidden ml-2">{[1, 5, 15, 30].map(w => <button key={w} onClick={() => { setWin(w); setZoom(null); }} className={`h-7 px-2.5 text-[12px] whitespace-nowrap ${win === w && !zoom ? 'bg-[var(--app-accent)] text-white' : 'text-ink-2 hover:bg-surface-2'}`}>{w} min</button>)}</div>
         {zoom && <Btn onClick={() => setZoom(null)}>{t('Réinitialiser zoom')}</Btn>}
         <Btn onClick={onFull}>{full ? t('Quitter') : '⤢'}</Btn>
       </div>
     </div>
-    <div className="px-4 pt-3 flex gap-8 text-[12px]">{['dl', 'ul'].map(k => { const s = stats(k); return <div key={k} className="flex items-baseline gap-3"><span className="font-semibold" style={{ color: S[k][1] }}>{S[k][0]}</span><span className="text-[20px] font-semibold tabular-nums whitespace-nowrap text-[#171717]">{s ? fmtRate(s.cur) : '—'}</span>{s && <span className="text-[#8F8F8F] tabular-nums whitespace-nowrap text-[11.5px]">min {fmtRate(s.min)} · max {fmtRate(s.max)} · moy {fmtRate(s.avg)}</span>}</div>; })}
-      <span className="ml-auto text-[11.5px] text-[#8F8F8F]">{!running && tracking ? t('Affichage en pause — acquisition continue') : tracking ? `${t('Retard import')} ${delay} s` : ''}</span></div>
+    <div className="px-4 pt-3 flex gap-8 text-[12px]">{['dl', 'ul'].map(k => { const s = stats(k); return <div key={k} className="flex items-baseline gap-3"><span className="font-semibold" style={{ color: S[k][1] }}>{S[k][0]}</span><span className="text-[20px] font-semibold tabular-nums whitespace-nowrap text-foreground">{s ? fmtRate(s.cur) : '—'}</span>{s && <span className="text-subtle tabular-nums whitespace-nowrap text-[11.5px]">min {fmtRate(s.min)} · max {fmtRate(s.max)} · moy {fmtRate(s.avg)}</span>}</div>; })}
+      <span className="ml-auto text-[11.5px] text-subtle">{!running && tracking ? t('Affichage en pause — acquisition continue') : tracking ? `${t('Retard import')} ${delay} s` : ''}</span></div>
     <div className="p-2 relative">
-      {!tracking || pts.length < 2 ? <div className="grid place-items-center text-[12.5px] text-[#8F8F8F]" style={{ height: H }}>{tracking ? t('En attente de mesures GTP-U…') : t('Aucune mesure — aucun UE suivi.')}</div> :
+      {!tracking || pts.length < 2 ? <div className="grid place-items-center text-[12.5px] text-subtle" style={{ height: H }}>{tracking ? t('En attente de mesures GTP-U…') : t('Aucune mesure — aucun UE suivi.')}</div> :
         <svg ref={svg} viewBox={`0 0 ${W} ${H}`} className="w-full select-none" style={{ height: H }} preserveAspectRatio="none"
           onPointerDown={e => setDragSel([toTs(e), toTs(e)])} onPointerMove={e => { const ts = toTs(e); if (dragSel) setDragSel([dragSel[0], ts]); const p = pts.reduce((a, b) => Math.abs(b.ts - ts) < Math.abs(a.ts - ts) ? b : a, pts[0]); setHover(p); }}
           onPointerUp={() => { if (dragSel && Math.abs(dragSel[1] - dragSel[0]) > 2000) setZoom([Math.min(...dragSel), Math.max(...dragSel)]); setDragSel(null); }} onPointerLeave={() => { setHover(null); setDragSel(null); }}>
@@ -216,8 +216,8 @@ function Throughput({ t, data, running, delay, tracking, onFull, full, ue }) {
           {dragSel && <rect x={Math.min(X(dragSel[0]), X(dragSel[1]))} y={T} width={Math.abs(X(dragSel[1]) - X(dragSel[0]))} height={H - T - B} fill="var(--app-accent)" opacity="0.1" />}
           {hover && <line x1={X(hover.ts)} x2={X(hover.ts)} y1={T} y2={H - B} stroke="#A3A3A3" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />}
         </svg>}
-      {hover && tracking && <div className="absolute top-3 right-6 bg-white border border-[#EBEBEB] rounded-md shadow-sm px-3 py-2 text-[11.5px] pointer-events-none"><div className="font-mono text-[#8F8F8F]">{new Date(hover.ts).toLocaleTimeString('fr-FR')}</div><div><span style={{ color: 'var(--app-accent)' }}>DL</span> {fmtRate(hover.dl)}</div><div><span className="text-[#A15C07]">UL</span> {fmtRate(hover.ul)}</div><div className="text-[#A3A3A3]">{t('source GTP-U, 1 s')}</div></div>}
-      {tracking && <div className="px-2 text-[11px] text-[#A3A3A3]">{t('Glissez sur le graphique pour zoomer sur une plage.')}</div>}
+      {hover && tracking && <div className="absolute top-3 right-6 bg-white border border-border rounded-md shadow-sm px-3 py-2 text-[11.5px] pointer-events-none"><div className="font-mono text-subtle">{new Date(hover.ts).toLocaleTimeString('fr-FR')}</div><div><span style={{ color: 'var(--app-accent)' }}>DL</span> {fmtRate(hover.dl)}</div><div><span className="text-warning">UL</span> {fmtRate(hover.ul)}</div><div className="text-subtle">{t('source GTP-U, 1 s')}</div></div>}
+      {tracking && <div className="px-2 text-[11px] text-subtle">{t('Glissez sur le graphique pour zoomer sur une plage.')}</div>}
     </div>
   </div>;
 }
@@ -225,19 +225,19 @@ function Throughput({ t, data, running, delay, tracking, onFull, full, ue }) {
 function UeInfo({ t, ue, res, op, tracking, msgs, onHide }) {
   const last = msgs[msgs.length - 1]; const lastFail = [...msgs].reverse().find(m => m.res === 'Échec');
   const reg = msgs.find(m => /Registration Accept|Attach Accept/.test(m.name)); const pdu = [...msgs].reverse().find(m => /PDU Session Establishment (Accept|Reject)|Create Session Response/.test(m.name));
-  const Row = ({ n, v, s }) => <div className="flex items-baseline gap-2 py-[5px] text-[12px]"><span className="w-[120px] shrink-0 text-[#8F8F8F]">{n}</span>{v ? <span className="text-[#171717] font-mono text-[11.5px] truncate" title={s ? 'preuve : seq ' + s : ''}>{v}</span> : <span className="text-[#A3A3A3] italic">{t('Non disponible')}</span>}{v && s && <span className="ml-auto shrink-0 font-mono text-[10px] text-[var(--app-accent)]">#{s}</span>}</div>;
-  const Sec = ({ title, children }) => <div className="px-4 py-2.5 border-b border-[#F5F5F5]"><div className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mb-1">{t(title)}</div>{children}</div>;
+  const Row = ({ n, v, s }) => <div className="flex items-baseline gap-2 py-[5px] text-[12px]"><span className="w-[120px] shrink-0 text-subtle">{n}</span>{v ? <span className="text-foreground font-mono text-[11.5px] truncate" title={s ? 'preuve : seq ' + s : ''}>{v}</span> : <span className="text-subtle italic">{t('Non disponible')}</span>}{v && s && <span className="ml-auto shrink-0 font-mono text-[11px] text-[var(--app-accent)]">#{s}</span>}</div>;
+  const Sec = ({ title, children }) => <div className="px-4 py-2.5 border-b border-border-subtle"><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle mb-1">{t(title)}</div>{children}</div>;
   const [proof, setProof] = useState(false);
   const I = ue?.info || {}; const has = (k) => { const v = I[k]; if (!tracking || !v || !v[0]) return [null, null]; if (v[1] == null) return v; const need = v[1] < 1000 ? v[1] + 400 : v[1]; return msgs.some(m => m.seq >= need) ? [v[0], need] : [null, null]; };
   return <div className={card + ' overflow-hidden'}>
-    <div className="h-10 px-4 flex items-center gap-2 border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold">UE Info</h3>{tracking && <span className="text-[10.5px] text-[#8F8F8F]">{t('màj')} {last?.ts}</span>}<button onClick={onHide} className="ml-auto text-[12px] text-[#8F8F8F] hover:text-[#171717]">⟩</button></div>
-    {!tracking ? <div className="px-4 py-6 text-[12.5px] text-[#8F8F8F]">{t('Aucun UE suivi.')}</div> : <>
+    <div className="h-10 px-4 flex items-center gap-2 border-b border-border-subtle"><h3 className="text-[13px] font-semibold">UE Info</h3>{tracking && <span className="text-[11px] text-subtle">{t('màj')} {last?.ts}</span>}<button onClick={onHide} className="ml-auto text-[12px] text-subtle hover:text-foreground">⟩</button></div>
+    {!tracking ? <div className="px-4 py-6 text-[12.5px] text-subtle">{t('Aucun UE suivi.')}</div> : <>
       <Sec title="Identité">
         <Row n={t('Pseudonyme')} v={res.ue} s={null} />
         <Row n="IMSI / SUPI" v={null} s={null} />
-        {!op && <div className="text-[11px] text-[#A3A3A3] -mt-0.5 mb-1">{t('masqué en rôle viewer')}</div>}
-        <div className="flex items-center gap-2 py-1 text-[12px]"><span className="w-[120px] text-[#8F8F8F]">{t('Rattachement')}</span><Tag c={res.st === 'Trouvé' ? '#15803D' : '#A15C07'}>{res.st === 'Trouvé' ? 'EXACT' : 'OUVERT'}</Tag><button onClick={() => setProof(!proof)} className="ml-auto text-[11px] text-[var(--app-accent)]">{proof ? t('masquer') : t('preuve')}</button></div>
-        {proof && <div className="text-[11px] text-[#4D4D4D] bg-[#FAFAFA] rounded p-2 mb-1">{ue.proof}</div>}
+        {!op && <div className="text-[11px] text-subtle -mt-0.5 mb-1">{t('masqué en rôle viewer')}</div>}
+        <div className="flex items-center gap-2 py-1 text-[12px]"><span className="w-[120px] text-subtle">{t('Rattachement')}</span><Tag c={res.st === 'Trouvé' ? '#15803D' : '#A15C07'}>{res.st === 'Trouvé' ? 'EXACT' : 'OUVERT'}</Tag><button onClick={() => setProof(!proof)} className="ml-auto text-[11px] text-[var(--app-accent)]">{proof ? t('masquer') : t('preuve')}</button></div>
+        {proof && <div className="text-[11px] text-ink-2 bg-surface-2 rounded p-2 mb-1">{ue.proof}</div>}
       </Sec>
       <Sec title="Réseau radio">{['Technologie', 'PLMN', 'Site', 'Cell Name', ue.tech === 'LTE' ? 'ECGI' : 'NR-CGI', 'TAC', ue.tech === 'LTE' ? 'eNB ID' : 'gNB ID'].map(k => { const [v, s] = has(k); return <Row key={k} n={k} v={v} s={s} />; })}</Sec>
       <Sec title="Cœur réseau">{(ue.tech === 'LTE' ? ['MME', 'SGW', 'APN', 'Bearer ID', 'QCI'] : ['AMF', 'SMF', 'UPF', 'DNN', 'S-NSSAI', 'PDU Session ID', '5QI', 'QFI']).map(k => { const [v, s] = has(k); return <Row key={k} n={k} v={v} s={s} />; })}</Sec>
@@ -259,13 +259,13 @@ function Procedures({ t, msgs, tracking, onGo }) {
     return out.reverse(); }, [msgs]);
   const C = { 'En cours': '#0062A1', 'Succès': '#15803D', 'Échec': '#B42318', 'Incomplète': '#8F8F8F' };
   return <div className={card + ' overflow-hidden'}>
-    <div className="h-10 px-4 flex items-center border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold">UE Procedure Updates</h3><span className="ml-auto text-[11px] text-[#8F8F8F]">{list.length}</span></div>
-    <div className="max-h-[320px] overflow-auto scroll-thin">{!tracking || !list.length ? <div className="px-4 py-4 text-[12px] text-[#8F8F8F]">{t('Aucune procédure observée.')}</div> :
-      list.map((p, i) => <button key={i} onClick={() => onGo(p.last.seq)} className="w-full text-left px-4 py-2 border-b border-[#F7F7F7] hover:bg-[#FAFAFA] flex items-start gap-2.5">
+    <div className="h-10 px-4 flex items-center border-b border-border-subtle"><h3 className="text-[13px] font-semibold">UE Procedure Updates</h3><span className="ml-auto text-[11px] text-subtle">{list.length}</span></div>
+    <div className="max-h-[320px] overflow-auto scroll-thin">{!tracking || !list.length ? <div className="px-4 py-4 text-[12px] text-subtle">{t('Aucune procédure observée.')}</div> :
+      list.map((p, i) => <button key={i} onClick={() => onGo(p.last.seq)} className="w-full text-left px-4 py-2 border-b border-border-subtle hover:bg-surface-2 flex items-start gap-2.5">
         <span className={`mt-1.5 w-[7px] h-[7px] rounded-full shrink-0 ${p.status === 'En cours' ? 'animate-pulse' : ''}`} style={{ background: C[p.status] }} />
-        <span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="text-[12.5px] font-medium text-[#171717] truncate">{p.name}</span><span className="ml-auto text-[10.5px] font-medium" style={{ color: C[p.status] }}>{t(p.status)}</span></span>
-          <span className="block text-[11px] text-[#8F8F8F] truncate font-mono">{p.start.cap}·{p.start.seq}→{p.last.seq} · {p.last.ts}</span>
-          <span className="block text-[11px] text-[#666666] truncate">{p.last.name}{p.cause && <span className="text-[#B42318]"> · {p.cause}</span>}</span></span>
+        <span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="text-[12.5px] font-medium text-foreground truncate">{p.name}</span><span className="ml-auto text-[11px] font-medium" style={{ color: C[p.status] }}>{t(p.status)}</span></span>
+          <span className="block text-[11px] text-subtle truncate font-mono">{p.start.cap}·{p.start.seq}→{p.last.seq} · {p.last.ts}</span>
+          <span className="block text-[11px] text-muted-foreground truncate">{p.last.name}{p.cause && <span className="text-danger"> · {p.cause}</span>}</span></span>
       </button>)}</div>
   </div>;
 }
