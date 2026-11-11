@@ -23,7 +23,7 @@ describe('p900 proxy request target validation', () => {
   it('replaces browser credentials and derives the OIRAN CSRF proof server-side', () => {
     const target=targetFor('/api/v1/probes');
     const headers=forwardedHeaders({authorization:'browser-secret','x-csrf-token':'browser-proof'},target!,'POST','server-token');
-    expect(headers.authorization).toBe('Bearer server-token');
+    expect(headers['authorization']).toBe('Bearer server-token');
     expect(headers['x-csrf-token']).toBe(csrfForToken('server-token'));
     expect(headers['x-csrf-token']).not.toBe('browser-proof');
   });

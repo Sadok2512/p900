@@ -25,18 +25,18 @@ export const emptyProbeDraft = (): ProbeRegistrationDraft => ({
 });
 
 export function probeDraftFromRecord(record: Record<string, unknown> = {}, interfaces: Array<Record<string, unknown>> = []): ProbeRegistrationDraft {
-  const sourceInterfaces = interfaces.length ? interfaces : Array.isArray(record.interfaces) ? record.interfaces as Array<Record<string, unknown>> : [];
-  const type = String(record.probe_type ?? '').toLowerCase();
+  const sourceInterfaces = interfaces.length ? interfaces : Array.isArray(record['interfaces']) ? record['interfaces'] as Array<Record<string, unknown>> : [];
+  const type = String(record['probe_type'] ?? '').toLowerCase();
   return {
     probe_type: type === 'physical' ? 'physical' : 'virtual',
-    name: String(record.name ?? ''),
-    host: String(record.host ?? ''),
-    mgmt_ip: String(record.mgmt_ip ?? ''),
-    site: String(record.site ?? ''),
+    name: String(record['name'] ?? ''),
+    host: String(record['host'] ?? ''),
+    mgmt_ip: String(record['mgmt_ip'] ?? ''),
+    site: String(record['site'] ?? ''),
     interfaces: sourceInterfaces.map(item => ({
-      interface: String(item.interface ?? item.name ?? item.device ?? ''),
-      role: (['N2','N3','N4','S1','N6'].includes(String(item.role)) ? String(item.role) : 'N2') as ProbeInterfaceInput['role'],
-      bpf_filter: String(item.bpf_filter ?? item.filter ?? ''),
+      interface: String(item['interface'] ?? item['name'] ?? item['device'] ?? ''),
+      role: (['N2','N3','N4','S1','N6'].includes(String(item['role'])) ? String(item['role']) : 'N2') as ProbeInterfaceInput['role'],
+      bpf_filter: String(item['bpf_filter'] ?? item['filter'] ?? ''),
     })),
   };
 }
