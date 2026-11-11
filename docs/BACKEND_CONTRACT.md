@@ -148,3 +148,7 @@ Attendu : JSON (jamais de HTML), `data` présent, `session_id` sur chaque ligne,
 - Activité récente de l'accueil et recherche Live par IMSI/GUTI : aucune route aujourd'hui.
 - KPI / tableaux de bord / anomalies : aucune route d'agrégation ; l'UI reste en démo étiquetée.
 - Traffic (N6) masqué par défaut (`VITE_FEATURE_TRAFFIC=false`).
+
+## Per-user module visibility (UI 0.11.x)
+- `POST /users` body: `{ name, username, email, role, password, hidden_modules: string[], visible_modules: string[] }` (keys: templates, sessions, kpi, live, trafic; home/nodes are always visible).
+- `GET /users` items and `GET /auth/me` should return `hidden_modules`; the UI hides those modules from the navigation (navigation only, never access).
