@@ -11,7 +11,7 @@ import type { AuthMe, Health, Version, Metrics, Safety, Session, Event, Probe, R
 const Mode = createContext({ demo: false, setDemo: (_value: boolean) => {} });
 export function PolarisDataProvider({ children }: { children: ReactNode }) { const [demo, setDemo] = useState(false); return <Mode.Provider value={{ demo, setDemo }}>{children}</Mode.Provider>; }
 export const usePolarisMode = () => useContext(Mode);
-export const resourceOptions = <T,>(path: string, params: QueryParams = {}, demo = false) => queryOptions({ queryKey: ['polaris', demo ? 'demo' : 'api', path, params], queryFn: ({ signal }) => { const fixture = demo ? demoResponse<T>(path) : undefined; return fixture ? Promise.resolve(fixture) : request<T>(path, { params, signal }); }, staleTime: path === '/auth/me' ? 30_000 : 15_000, retry: false, refetchOnWindowFocus: false });
+export const resourceOptions = <T,>(path: string, params: QueryParams = {}, demo = false) => queryOptions({ queryKey: ['polaris', demo ? 'demo' : 'api', path, params], queryFn: ({ signal }) => { const fixture = demo ? demoResponse<T>(path, params) : undefined; return fixture ? Promise.resolve(fixture) : request<T>(path, { params, signal }); }, staleTime: path === '/auth/me' ? 30_000 : 15_000, retry: false, refetchOnWindowFocus: false });
 export function useResource<T>(path: string, params: QueryParams = {}, enabled = true, allowDemo = true) {
   const { demo } = usePolarisMode();
   return useQuery({ ...resourceOptions<T>(path, params, allowDemo && demo), enabled });
@@ -89,10 +89,10 @@ export function useKpiDemo() { const { demo } = usePolarisMode(); return { dashb
 
 // Subscriber journey (OIRAN 2.13.0) and identity vault (operator, 2.12.0). Absent routes surface as errors, never as invented data.
 const pseudoPath = (p?: string | null) => encodeURIComponent(String(p ?? ''));
-export const useSubscriberJourney = (p?: string | null) => useResource<RecordData>(`/subscribers/${pseudoPath(p)}/journey`, {}, !!p, false);
-export const useSubscriberTmsi = (p?: string | null) => useResource<RecordData[]>(`/subscribers/${pseudoPath(p)}/tmsi`, {}, !!p, false);
-export const useSessionIdentities = (id?: string | null, enabled = true) => useResource<RecordData>(`/sessions/${idPath(id)}/identities`, {}, !!id && enabled, false);
-export const useIdentityLookup = (q: string) => useResource<RecordData>('/identities', { q }, q.trim().length >= 4, false);
+export const useSubscriberJourney = (p?: string | null) => useResource<RecordData>(`/subscribers/${pseudoPath(p)}/journey`, {}, !!p, true);
+export const useSubscriberTmsi = (p?: string | null) => useResource<RecordData[]>(`/subscribers/${pseudoPath(p)}/tmsi`, {}, !!p, true);
+export const useSessionIdentities = (id?: string | null, enabled = true) => useResource<RecordData>(`/sessions/${idPath(id)}/identities`, {}, !!id && enabled, true);
+export const useIdentityLookup = (q: string) => useResource<RecordData>('/identities', { q }, q.trim().length >= 4, true);
 // Administration (no demo): users, roles and audit come only from the lab server, which enforces permissions.
 export const useAdminUsers = () => useResource<RecordData[]>('/users', {}, true, false);
 export const useAdminRoles = () => useResource<RecordData[]>('/roles', {}, true, false);

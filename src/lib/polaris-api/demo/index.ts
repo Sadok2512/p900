@@ -1,7 +1,10 @@
 import { SESS, NODES } from './catalogue';
 import { redact } from '../client';
+import { demoSubscriber } from './subscribers';
 import type { Envelope } from '../types';
-export function demoResponse<T>(path: string): Envelope<T> | undefined {
+export function demoResponse<T>(path: string, params: Record<string, unknown> = {}): Envelope<T> | undefined {
+  const sub = demoSubscriber(path, params);
+  if (sub !== undefined) return { data: sub as T, meta: { demo: true } }; // invented pseudonyms only, nothing to redact
   let data: unknown;
   if (path === '/sessions' || path === '/sessions/filter' || /^\/datasets\/[^/]+\/sessions$/.test(path) || /^\/ues\/[^/]+\/sessions$/.test(path)) data = SESS;
   else if (path === '/probes') data = NODES;
