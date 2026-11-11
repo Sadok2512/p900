@@ -93,3 +93,7 @@ export const useSubscriberJourney = (p?: string | null) => useResource<RecordDat
 export const useSubscriberTmsi = (p?: string | null) => useResource<RecordData[]>(`/subscribers/${pseudoPath(p)}/tmsi`, {}, !!p, false);
 export const useSessionIdentities = (id?: string | null, enabled = true) => useResource<RecordData>(`/sessions/${idPath(id)}/identities`, {}, !!id && enabled, false);
 export const useIdentityLookup = (q: string) => useResource<RecordData>('/identities', { q }, q.trim().length >= 4, false);
+// Administration (no demo): users, roles and audit come only from the lab server, which enforces permissions.
+export const useAdminUsers = () => useResource<RecordData[]>('/users', {}, true, false);
+export const useAdminRoles = () => useResource<RecordData[]>('/roles', {}, true, false);
+export const useAuditLog = () => useResource<RecordData[]>('/audit', {}, true, false);

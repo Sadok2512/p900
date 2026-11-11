@@ -35,3 +35,4 @@ use the editor.
 - PolarisDataProvider owns the explicit demo mode; caches separate API/demo keys so simulations cannot silently replace real data.
 - The /api/v1 relay route forwards to the lab server (POLARIS_UPSTREAM_URL); it lets the hosted preview reach the lab.
 - Analyzer session verdicts, chronology and KPIs live in src/components/polaris/analyzer/analysis.ts as pure, tested rules; keeps conclusions traceable to observed messages.
+- Administration tabs live in src/components/polaris/admin/; module visibility only filters navigation (never access) and Home/Administration are locked visible to prevent lockout.

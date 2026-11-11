@@ -6,7 +6,7 @@ import { toJourney, toTmsiList, shortPseudo, refLabel } from './subscriber';
 export const KIND = { attach:['#0062A1','Attach / Registration'], pdu:['#0F5B56','PDU / PDN'], release:['#64748B','Idle / Release'], service:['#7C3AED','Service Request'], tau:['#D97706','TAU'], handover:['#DB2777','Handover'], detach:['#DC2626','Detach'], other:['#94A3B8','Autre'] };
 const H = ({children}) => <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#64748B] mb-1.5">{children}</div>;
 const pending = 'Non disponible : backend à venir';
-function Fail({q, path}) {
+export function Fail({q, path}) {
   if (!q.isError) return null;
   const st = q.error?.status;
   return <div role="alert" className="rounded-md border border-[#E2E8F0] bg-[#F8FAFC] px-2 py-1.5 text-[11.5px] text-[#64748B]">{st===404||st===405||st===501 ? pending : 'Échec'} · <span className="font-mono">GET {apiPath(path)}</span> → {st ? `HTTP ${st}` : 'réseau'}</div>;

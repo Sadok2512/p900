@@ -3,6 +3,8 @@ import LiveModule from './live/LiveModule';
 import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useStorageSafety, useSessions, useSessionAnchors, useSessionFlows, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
+import Administration from './admin/Administration';
+import { loadHidden, saveHidden, toggleHidden, isVisible } from './admin/modules';
 import SubscriberJourney, { OtherSessions } from './analyzer/SubscriberJourney';
 import { shortPseudo, groupBySubscriber } from './analyzer/subscriber';
 import { visibleMessages, filterOptions, emptyFilter, filterActive, pageItems, pageSlice, verdict, timeOf, toMs, fmtUtc, fmtDuration, sessionSummary } from './analyzer/analysis';
@@ -70,7 +72,7 @@ function TopBarVersion({version}) {
   return <div title={title} className="flex items-baseline gap-1.5 whitespace-nowrap"><span className="text-[14px] font-semibold tracking-tight text-[#171717]">POLARIS</span><span className="hidden xl:inline text-[11.5px] text-[#666666] font-mono">{available(data?.platform_core)} · UI {UI_VERSION}</span></div>;
 }
 
-function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,demo}) {
+function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,demo,hidden=[]}) {
   const [menu,setMenu] = useState(false);
   return (
     <header className="h-12 shrink-0 bg-white border-b border-[#EBEBEB] flex items-center px-3 lg:px-4 gap-3 lg:gap-6 min-w-0">
@@ -79,7 +81,7 @@ function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,
         <TopBarVersion version={version}/>
       </div>
       <nav className="flex h-full min-w-0 overflow-x-auto scroll-thin">
-        {[['home','Accueil'],['templates','Dashboard'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],...(TRAFFIC_ENABLED ? [['trafic','Traffic']] : [])].map(([k,n]) => {
+        {[['home','Accueil'],['templates','Dashboard'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],...(TRAFFIC_ENABLED ? [['trafic','Traffic']] : [])].filter(([k])=>isVisible(hidden,k)).map(([k,n]) => {
           const on = page===k, ok = ['home','sessions','nodes','templates','kpi','live','trafic'].includes(k);
           return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative shrink-0 px-2 lg:px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
         })}
@@ -652,15 +654,12 @@ function Nodes() {
   const doCapture = (action,id) => { if (!window.confirm('Confirmer cette action de capture ?')) return; capture.mutate({action,id,target,confirmed:true},{onError:e=>setActionError(e.message)}); };
 
   return (
-    <div className="flex-1 overflow-auto scroll-thin">
-      <div className="polaris-content-shell px-8 py-7 space-y-5">
-        <div className="flex items-end gap-6">
-          <div><div className="text-[12px] text-[#666666]">POLARIS Nœuds</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">Gestion des nœuds</h1>
-            <div className="text-[13px] text-[#666666] mt-1">{probes.isError ? probes.error.message : `${nodes.length} nœuds · POLARIS`}</div></div>
+      <div className="space-y-5">
+        <div className="flex items-center gap-2">
+          <div className="text-[13px] text-[#666666]">{probes.isError ? probes.error.message : `${nodes.length} nœuds · POLARIS`}</div>
           <div className="ml-auto flex gap-2">
-            <button disabled title="Non disponible : backend à venir" className="h-9 px-4 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.plus} c="w-4 h-4"/>Ajouter un nœud</button>
-            <button disabled title="Non disponible : backend à venir" className="h-9 px-4 rounded-md border border-[#EBEBEB] bg-white text-[13px] text-[#4D4D4D] hover:bg-[#FAFAFA]">Déploiements</button>
-            <button disabled title="Non disponible : backend à venir" className="h-9 px-4 rounded-md border border-[#EBEBEB] bg-white text-[13px] text-[#4D4D4D] hover:bg-[#FAFAFA]">Journal d’audit</button>
+            <button disabled title="Non disponible : backend à venir" className="h-8 px-3 rounded-md bg-[var(--app-accent)] text-white text-[12.5px] font-medium flex items-center gap-2 disabled:opacity-50"><I d={ic.plus} c="w-4 h-4"/>Ajouter un nœud</button>
+            <button disabled title="Non disponible : backend à venir" className="h-8 px-3 rounded-md border border-[#EBEBEB] bg-white text-[12.5px] text-[#4D4D4D] disabled:opacity-50">Déploiements</button>
           </div>
         </div>
         <div className="space-y-5">
@@ -704,10 +703,8 @@ function Nodes() {
             </div>
             {auth.data?.data?.role==='operator' && <section className="flex items-center gap-2"><input aria-label="Cible de capture" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)} value={target} onChange={e=>setTarget(e.target.value)} placeholder="Cible de capture" className="h-8 px-3 border rounded-md"/><button disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('validate')}>Valider la capture</button><button disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('start')}>Démarrer la capture</button>{actionError && <span>{actionError}</span>}</section>}
           </div>
-
         <div className="text-[11.5px] text-[#8F8F8F]">{demo ? "Données de démo" : "POLARIS"}</div>
       </div>
-    </div>
   );
 }
 
@@ -1026,6 +1023,9 @@ function App() {
   LANG = lang;
   const [theme,setThemeS] = useState(()=>{ try { return localStorage.getItem('polaris-theme')||'blue'; } catch(e) { return 'blue'; } });
   const setTheme = t => { try { localStorage.setItem('polaris-theme',t); } catch(e) {} setThemeS(t); };
+  const [hiddenMods,setHiddenMods] = useState([]);
+  useEffect(()=>{ setHiddenMods(loadHidden()); },[]);
+  const toggleMod = k => setHiddenMods(h=>{ const n=toggleHidden(h,k); saveHidden(n); return n; });
   const accent = THEMES.find(t=>t[0]===theme)?.[2] || '#0062A1';
     const readP = () => { const h=(location.hash||'').replace('#',''); return (h!=='trafic'||TRAFFIC_ENABLED) && ['sessions','nodes','settings','templates','kpi','live','trafic'].includes(h) ? h : 'home'; };
   const [page,setPageS] = useState(readP);
@@ -1138,10 +1138,10 @@ function App() {
   useEffect(()=>{ setMsg(0); setLens(null); },[s?.id]);
   return (
     <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-base">
-      <TopBar role={role} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')} metrics={metrics} version={version} demo={demo}/>
+      <TopBar role={role} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')} metrics={metrics} version={version} demo={demo} hidden={hiddenMods}/>
       <DataStatus t={t}/>
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · identités masquées · actions soumises au proxy</div>}
-      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Nodes/> : page==='templates' ? <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
+      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : page==='templates' ? <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
       {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
       {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-[#F8FAFC]">
         <main ref={mainRef} className="flex-1 min-w-0 flex flex-col">
