@@ -80,7 +80,8 @@ describe('main screens with simulated REST responses',()=>{
     const consoleError=vi.spyOn(console,'error').mockImplementation(()=>{});
     try {
       open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'})); fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
-      expect(await screen.findAllByRole('button',{name:/PFCP Session/})).toHaveLength(2);
+      expect((await screen.findAllByRole('button',{name:/PFCP Session/})).filter(b=>!b.closest('[aria-label="Analyse sessions"]'))).toHaveLength(2);
+      expect(screen.getByRole('complementary',{name:'Analyse sessions'})).toBeTruthy();
       expect(consoleError.mock.calls.flat().join(' ')).not.toContain('same key');
     } finally { payloads['/sessions/s1/callflow']=previous; consoleError.mockRestore(); }
   });

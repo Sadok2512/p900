@@ -34,3 +34,4 @@ use the editor.
 - External lab authentication stays with the same-origin reverse proxy; the browser reads its role and never creates a local authority or backend.
 - PolarisDataProvider owns the explicit demo mode; caches separate API/demo keys so simulations cannot silently replace real data.
 - The /api/v1 relay route forwards to the lab server (POLARIS_UPSTREAM_URL); it lets the hosted preview reach the lab.
+- Analyzer session verdicts, chronology and KPIs live in src/components/polaris/analyzer/analysis.ts as pure, tested rules; keeps conclusions traceable to observed messages.

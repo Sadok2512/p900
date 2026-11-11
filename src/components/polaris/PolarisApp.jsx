@@ -2,6 +2,8 @@ import KpiModule from './kpi/KpiModule';
 import LiveModule from './live/LiveModule';
 import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useStorageSafety, useSessions, useSessionAnchors, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
+import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
+import { verdict, timeOf, toMs, fmtUtc, fmtDuration } from './analyzer/analysis';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 /* Données fictives — PLMN de test 001/01. Tri canonique (capture_id, seq). */
@@ -168,62 +170,96 @@ function QueryPanel({conds,setConds}) {
   );
 }
 
+const durOf = r => { const a=toMs(r.start_timestamp), b=toMs(r.end_timestamp); return a!=null&&b!=null ? b-a : null; };
+const GRID_COLS = [
+  {k:'num',l:'Numéro',w:112,v:r=>r.id!=null?`c${r.cap} · ${r.seq}`:'identifiant absent',mono:true},
+  {k:'start',l:'Début UTC',w:118,v:r=>fmtUtc(toMs(r.start_timestamp)),mono:true},
+  {k:'imsi',l:'IMSI',w:78,v:()=>'masqué',lock:true},
+  {k:'sid',l:'Session ID',w:120,v:r=>r.session_id??'—',mono:true},
+  {k:'res',l:'Résultat',w:96,v:r=>verdict(r.res)},
+  {k:'cause',l:'Cause',w:120,v:r=>r.cause||'—'},
+  {k:'ifc',l:'Interfaces',w:132,v:r=>[...new Set(r.interfaces??[])].join(' ')},
+  {k:'pdu',l:'PDU Session',w:88,v:r=>r.pdu_session_id??'—',mono:true},
+  {k:'dur',l:'Durée',w:76,v:r=>{const d=durOf(r);return d==null?(r.dur??'—'):fmtDuration(d);},sort:r=>durOf(r)??-1},
+  {k:'cell',l:'Cellule',w:84,v:r=>r.cell??'—'},
+  {k:'core',l:'AMF/MME',w:90,v:r=>r.serving_node??'—'},
+  {k:'ran',l:'gNB/eNB',w:90,v:r=>r.ran_node??r.gnb??r.enb??'—'},
+  {k:'ue',l:'UE',w:96,v:r=>r.ue,mono:true},
+  {k:'rat',l:'RAT',w:64,v:r=>r.rat},
+  {k:'proc',l:'Procédure',w:130,v:r=>r.proc},
+  {k:'ex',l:'Liens EXACT',w:90,v:r=>r.ex,mono:true},
+  {k:'comp',l:'Compl.',w:68,v:r=>r.comp==='—'?'—':`${r.comp} %`,sort:r=>Number(r.comp)||-1},
+];
 function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
   const { demo } = usePolarisMode(); const sessions = useSessions({ page:1, page_size:100, sort:'capture_id', order:'asc' },false);
   const [more,setMore] = useState(false);
   const [txt,setTxt] = useState('');
-  const ko = rows.filter(r=>r.res==='Échec').length;
-  const cols = ['capture · seq','UE','RAT','Procédure','Résultat','Cause','Interfaces','Liens EXACT','Compl.','Durée','Cellule','IMSI'];
+  const [sort,setSort] = useState(null);
+  const [widths,setWidths] = useState(()=>{ try { return JSON.parse(localStorage.getItem('polaris-grid-cols'))||{}; } catch(e) { return {}; } });
+  useEffect(()=>{ try { localStorage.setItem('polaris-grid-cols',JSON.stringify(widths)); } catch(e) {} },[widths]);
+  const W = c => widths[c.k] ?? c.w;
+  const resize = (e,c) => { e.preventDefault(); e.stopPropagation(); const x0=e.clientX, w0=W(c);
+    const mv = ev => setWidths(w=>({...w,[c.k]:Math.max(48,w0+ev.clientX-x0)}));
+    const up = () => { window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up); document.body.style.cursor=''; };
+    document.body.style.cursor='col-resize'; window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up); };
+  const q = txt.trim().toLowerCase();
+  const shown = useMemo(()=>{
+    let out = q ? rows.filter(r=>GRID_COLS.some(c=>String(c.v(r)).toLowerCase().includes(q))) : rows;
+    if (sort) { const c=GRID_COLS.find(x=>x.k===sort[0]); const f=c.sort||c.v; out=[...out].sort((a,b)=>{const x=f(a),y=f(b); return (typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),undefined,{numeric:true}))*sort[1];}); }
+    return out;
+  },[rows,q,sort]);
+  const ko = rows.filter(r=>verdict(r.res)==='FAILED').length;
+  const cell = (c,r) => {
+    const v = c.v(r);
+    if (c.k==='res') return <VerdictBadge v={v}/>;
+    if (c.k==='ifc') return <span className="flex gap-1">{[...new Set(r.interfaces ?? [])].map(i=><Tag key={i} i={i}/>)}</span>;
+    if (c.k==='imsi') return <span className="text-[#94A3B8]">masqué</span>;
+    if (c.k==='cause') return <span className={verdict(r.res)==='FAILED'?'text-[#DC2626]':'text-[#64748B]'}>{v}</span>;
+    return v;
+  };
   return (
-    <section className="flex flex-col min-h-0 bg-white shrink-0 rounded-xl border border-[#EBEBEB] overflow-hidden" style={{height}}>
-      <div className="h-11 shrink-0 flex items-center gap-3 px-3 border-b border-[#EBEBEB]">
-        <div className="flex-1 h-8 rounded-md border border-[#EBEBEB] flex items-center gap-1.5 px-2 focus-within:border-[var(--app-accent)]">
-          <I d={ic.search} c="w-[15px] h-[15px] text-[#8F8F8F]"/>
-          {conds.map((c,i) => <span key={i} className="flex items-center gap-1 h-6 rounded-[4px] bg-[#F2F2F2] border border-[#E5E5E5] pl-1.5 pr-1 text-[12px] text-[#171717] whitespace-nowrap"><span className="text-[#8F8F8F]">{c[0]}</span>{c[1]}<button onClick={()=>setConds(conds.filter((_,j)=>j!==i))}><I d={ic.x} c="w-3 h-3"/></button></span>)}
-          <input value={txt} onChange={e=>setTxt(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter'&&txt){ const f=FIELDS.find(x=>x[1].some(v=>v.toLowerCase()===txt.toLowerCase())); if(f){ setConds([...conds,[f[0],f[1].find(v=>v.toLowerCase()===txt.toLowerCase())]]); setTxt(''); } } }}
-            placeholder="Filtrer : tape Échec, LTE, N4, 5GSM #27… puis Entrée" className="flex-1 min-w-[160px] outline-none text-[13px] placeholder:text-[#8F8F8F]"/>
+    <section className="flex flex-col min-h-0 bg-white shrink-0 rounded-xl border border-[#E2E8F0] overflow-hidden" style={{height}}>
+      <div className="h-10 shrink-0 flex items-center gap-3 px-3 border-b border-[#E2E8F0]">
+        <span className="text-[13px] font-semibold text-[#172033]">Sessions</span>
+        <div className="flex-1 h-7 rounded-md border border-[#E2E8F0] flex items-center gap-1.5 px-2 focus-within:border-[var(--app-accent)]">
+          <I d={ic.search} c="w-[14px] h-[14px] text-[#64748B]"/>
+          {conds.map((c,i) => <span key={i} className="flex items-center gap-1 h-5 rounded-[4px] bg-[#F1F5F9] border border-[#E2E8F0] pl-1.5 pr-1 text-[11.5px] text-[#172033] whitespace-nowrap"><span className="text-[#64748B]">{c[0]}</span>{c[1]}<button onClick={()=>setConds(conds.filter((_,j)=>j!==i))}><I d={ic.x} c="w-3 h-3"/></button></span>)}
+          <input aria-label="Rechercher dans les sessions" value={txt} onChange={e=>setTxt(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter'&&txt){ const f=FIELDS.find(x=>x[1].some(v=>v.toLowerCase()===txt.toLowerCase())); if(f){ setConds([...conds,[f[0],f[1].find(v=>v.toLowerCase()===txt.toLowerCase())]]); setTxt(''); } } }}
+            placeholder="Rechercher… (Entrée sur Échec, LTE, N4… ajoute un filtre)" className="flex-1 min-w-[140px] outline-none text-[12.5px] placeholder:text-[#94A3B8]"/>
         </div>
-        <div className="flex items-center gap-2 text-[12.5px] text-[#666666]">
-          <span className="font-semibold text-[#171717] tabular-nums">{demo || sessions.data ? rows.length : '—'}</span> sessions
-          <div className="w-16 h-1.5 rounded-full bg-[#F2F2F2] overflow-hidden flex"><div className="bg-[#15803D]" style={{width:`${rows.length?(rows.length-ko)/rows.length*100:0}%`}}/><div className="bg-[#C2410C]" style={{width:`${rows.length?ko/rows.length*100:0}%`}}/></div>
-          <span className="tabular-nums">{demo || sessions.data ? ko : '—'} échecs</span>
+        <div className="flex items-center gap-2 text-[12px] text-[#64748B]">
+          <span className="font-semibold text-[#172033] tabular-nums">{demo || sessions.data || rows.length ? shown.length : '—'}</span> sessions
+          <div className="w-14 h-1.5 rounded-full bg-[#F1F5F9] overflow-hidden flex"><div className="bg-[#16A34A]" style={{width:`${rows.length?(rows.length-ko)/rows.length*100:0}%`}}/><div className="bg-[#DC2626]" style={{width:`${rows.length?ko/rows.length*100:0}%`}}/></div>
+          <span className="tabular-nums">{demo || sessions.data || rows.length ? ko : '—'} échecs</span>
         </div>
-        <button onClick={onEdit} className="h-8 px-2.5 rounded-md border border-[#EBEBEB] text-[12.5px] flex items-center gap-1.5 text-[#4D4D4D] hover:bg-[#FAFAFA]"><I d={ic.search} c="w-3.5 h-3.5"/>Modifier la requête</button>
+        <button onClick={onEdit} className="h-7 px-2.5 rounded-md border border-[#E2E8F0] text-[12px] flex items-center gap-1.5 text-[#334155] hover:bg-[#F8FAFC]"><I d={ic.search} c="w-3.5 h-3.5"/>Modifier la requête</button>
         <div className="relative">
-          <button onClick={()=>setMore(m=>!m)} title="Plus d'actions" className="h-8 w-8 rounded-md border border-[#EBEBEB] grid place-items-center text-[#4D4D4D] hover:bg-[#FAFAFA]">⋯</button>
-          {more && <><div className="fixed inset-0 z-30" onClick={()=>setMore(false)}/><div className="absolute right-0 top-9 z-40 w-44 bg-white border border-[#EBEBEB] rounded-lg shadow-lg py-1 text-[13px]">
-            <button onClick={()=>setMore(false)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#FAFAFA]"><I d={ic.cols} c="w-3.5 h-3.5 text-[#666666]"/>Colonnes</button>
-            <button onClick={()=>setMore(false)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#FAFAFA]"><I d={ic.dl} c="w-3.5 h-3.5 text-[#666666]"/>Exporter</button>
+          <button onClick={()=>setMore(m=>!m)} title="Plus d'actions" className="h-7 w-7 rounded-md border border-[#E2E8F0] grid place-items-center text-[#334155] hover:bg-[#F8FAFC]">⋯</button>
+          {more && <><div className="fixed inset-0 z-30" onClick={()=>setMore(false)}/><div className="absolute right-0 top-8 z-40 w-48 bg-white border border-[#E2E8F0] rounded-lg shadow-lg py-1 text-[12.5px]">
+            <button onClick={()=>{setWidths({});setMore(false);}} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.cols} c="w-3.5 h-3.5 text-[#64748B]"/>Réinitialiser les colonnes</button>
+            <button onClick={()=>setMore(false)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.dl} c="w-3.5 h-3.5 text-[#64748B]"/>Exporter</button>
           </div></>}
         </div>
       </div>
       <div className="flex-1 overflow-auto scroll-thin">
-        <table className="w-full text-[12.5px] whitespace-nowrap border-separate border-spacing-0">
-          <thead className="sticky top-0 z-10">
-            <tr>{cols.map((c,k) => <th key={c} className="h-8 px-3 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#EBEBEB]">{c==='IMSI' ? <span className="inline-flex items-center gap-1"><I d={ic.lock} c="w-3 h-3"/>IMSI</span> : c}{k===0 && <span className="ml-1 text-[#171717]">↑</span>}</th>)}</tr>
+        <table className="text-[12px] whitespace-nowrap border-separate border-spacing-0 table-fixed" style={{width:GRID_COLS.reduce((a,c)=>a+W(c),0)}}>
+          <colgroup>{GRID_COLS.map(c=><col key={c.k} style={{width:W(c)}}/>)}</colgroup>
+          <thead className="sticky top-0 z-20">
+            <tr>{GRID_COLS.map((c,k) => <th key={c.k} aria-sort={sort?.[0]===c.k?(sort[1]>0?'ascending':'descending'):'none'} onClick={()=>setSort(s=>s?.[0]===c.k?(s[1]>0?[c.k,-1]:null):[c.k,1])} className={`relative h-7 px-2 text-left font-medium text-[#64748B] bg-[#F8FAFC] border-b border-[#E2E8F0] cursor-pointer select-none hover:text-[#172033] ${k===0?'sticky left-0 z-30 border-r':''}`}>
+              <span className="inline-flex items-center gap-1 truncate max-w-full">{c.lock && <I d={ic.lock} c="w-3 h-3"/>}{c.l}{sort?.[0]===c.k && <span className="text-[#172033]">{sort[1]>0?'↑':'↓'}</span>}</span>
+              <span onMouseDown={e=>resize(e,c)} onClick={e=>e.stopPropagation()} onDoubleClick={e=>{e.stopPropagation();setWidths(w=>{const n={...w};delete n[c.k];return n;});}} title="Redimensionner" className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-[var(--app-accent)]/40"/></th>)}</tr>
           </thead>
           <tbody>
-            {rows.map((r,rowIndex) => {
+            {shown.map((r,rowIndex) => {
               const on = sel===r.id;
               const clickable = r.id != null;
               return (
-                <tr key={r.id ?? `missing-session-${rowIndex}`} onClick={()=>{if(clickable)setSel(r.id);}} aria-disabled={!clickable} className={`${clickable?'cursor-pointer':'cursor-default opacity-70'} ${on?'bg-[color-mix(in_oklab,var(--app-accent)_8%,white)]':clickable?'hover:bg-[#FAFAFA]':''}`}>
-                  <td className={`h-8 px-3 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#666666] ${on?'shadow-[inset_3px_0_0_var(--app-accent)]':''}`}>{clickable?`c${r.cap} · ${r.seq}`:'identifiant absent'}</td>
-                  <td className="px-3 border-b border-[#F2F2F2] font-mono text-[12px] text-[#171717]">{r.ue}</td>
-                  <td className="px-3 border-b border-[#F2F2F2]">{r.rat}</td>
-                  <td className="px-3 border-b border-[#F2F2F2] text-[#171717]">{r.proc}</td>
-                  <td className="px-3 border-b border-[#F2F2F2]"><Res r={r.res}/></td>
-                  <td className={`px-3 border-b border-[#F2F2F2] ${r.res==='Échec'?'text-[#B42318]':'text-[#666666]'}`}>{r.cause || '—'}</td>
-                  <td className="px-3 border-b border-[#F2F2F2]"><span className="flex gap-1">{[...new Set(r.interfaces ?? [])].map(i=><Tag key={i} i={i}/>)}</span></td>
-                  <td className="px-3 border-b border-[#F2F2F2] font-mono text-[12px]">{r.ex}</td>
-                  <td className="px-3 border-b border-[#F2F2F2] tabular-nums">{r.comp==='—'?'—':`${r.comp} %`}</td>
-                  <td className="px-3 border-b border-[#F2F2F2] tabular-nums text-[#666666]">{r.dur}</td>
-                  <td className="px-3 border-b border-[#F2F2F2] text-[#666666]">{r.cell}</td>
-                  <td className="px-3 border-b border-[#F2F2F2] font-mono text-[11.5px]">{<span className="text-[#D4D4D4]">masqué</span>}</td>
+                <tr key={r.id ?? `missing-session-${rowIndex}`} onClick={()=>{if(clickable)setSel(r.id);}} aria-selected={on} aria-disabled={!clickable} className={`group ${clickable?'cursor-pointer':'cursor-default opacity-70'}`}>
+                  {GRID_COLS.map((c,k)=>{ const v=c.v(r); return <td key={c.k} title={String(v)} className={`h-7 px-2 border-b border-[#F1F5F9] overflow-hidden text-ellipsis ${c.mono?'font-mono text-[11.5px]':''} ${k===0?'sticky left-0 z-10 border-r border-r-[#E2E8F0] text-[#64748B]':'text-[#172033]'} ${on?'bg-[color-mix(in_oklab,var(--app-accent)_8%,white)]':'bg-white group-hover:bg-[#F8FAFC]'} ${on&&k===0?'shadow-[inset_3px_0_0_var(--app-accent)]':''}`}>{cell(c,r)}</td>; })}
                 </tr>
               );
             })}
-            {rows.length===0 && <tr><td colSpan={cols.length} className="px-3 py-10 text-center text-[#666666]">{demo || sessions.data ? 'Aucune session' : 'POLARIS non connecté'}</td></tr>}
+            {shown.length===0 && <tr><td colSpan={GRID_COLS.length} className="px-3 py-8 text-left text-[#64748B]">{q ? 'Aucune session ne correspond à la recherche' : demo || sessions.data ? 'Aucune session' : 'POLARIS non connecté'}</td></tr>}
           </tbody>
         </table>
       </div>
@@ -238,9 +274,9 @@ function useWidth() {
   useEffect(()=>{ if(!ref.current) return; const ro = new ResizeObserver(e=>setW(Math.floor(e[0].contentRect.width))); ro.observe(ref.current); return ()=>ro.disconnect(); },[]);
   return [ref,w];
 }
-function Ladder({d,sel,setSel,lens,hidden,collapsed,width}) {
-  const W = Math.max(720, width), LG = 170, n = Math.max(2,d.nodes.length), ROW = 30, TOP = 46;
-  const x = k => LG + 50 + k*((W-LG-110)/(n-1));
+function Ladder({d,sel,setSel,lens,hidden,collapsed,width,zoom=1,timers=false}) {
+  const W = Math.max(560, Math.round(width*zoom)), LG = 214, n = Math.max(2,d.nodes.length), ROW = 30, TOP = 46;
+  const x = k => LG + 50 + k*((W-LG-(timers?130:100))/(n-1));
   const procedureKey = p => `${p[0]}:${p[3] ?? p[1]}`;
   const inCollapsed = k => d.procs.some(p=>collapsed.includes(procedureKey(p)) && k>=p[1] && k<=p[2]);
   const vis = d.msgs.map((m,k)=>k).filter(k=>!hidden.includes(d.msgs[k][0]) && !inCollapsed(k));
@@ -264,9 +300,12 @@ function Ladder({d,sel,setSel,lens,hidden,collapsed,width}) {
             <title>{`${k+1}. ${m[0]} · ${full} · ${m[2]}${m[4]?` · ${m[4]} ${m[5]}`:''}`}</title>
             <rect x="0" y={y-18} width={W} height={ROW} fill={on?'color-mix(in oklab, var(--app-accent) 9%, white)':lit?(lensCause?'#FDEFEE':'#FDF6E7'):'transparent'}/>
             {on && <rect x="0" y={y-18} width="3" height={ROW} fill="var(--app-accent)"/>}
-            <text x="16" y={y+4} fontSize="10.5" fill="#A3A3A3" fontFamily="Geist Mono">{String(k+1).padStart(2,'0')}</text>
-            {pstart && <text x="44" y={y+4} fontSize="11" fill="#4D4D4D" fontWeight="600">{pstart[0]}</text>}
-            <line x1={x1} x2={x2 - dir*7} y1={y} y2={y} stroke={c} strokeWidth={on?1.75:1.1}/>
+            <text x="12" y={y+4} fontSize="10.5" fill="#94A3B8" fontFamily="Geist Mono">{String(d.evidence?.[k]?.seq ?? k+1).padStart(2,'0')}</text>
+            <text x="40" y={y+4} fontSize="10.5" fill="#64748B" fontFamily="Geist Mono">{fmtUtc(timeOf(d.evidence?.[k]))}</text>
+            <rect x="128" y={y-7} width="34" height="14" rx="3" fill={(IFC[m[0]]||IFC.N2)[1]}/><text x="145" y={y+3.5} textAnchor="middle" fontSize="9.5" fontWeight="600" fill={c} fontFamily="Geist Mono">{String(m[0]).slice(0,6)}</text>
+            {pstart && <text x="168" y={y+4} fontSize="10.5" fill="#334155" fontWeight="600">{String(pstart[0]).slice(0,7)}</text>}
+            {timers && row>0 && (()=>{const a=timeOf(d.evidence?.[vis[row-1]]), b=timeOf(d.evidence?.[k]); return a!=null&&b!=null ? <text x={W-8} y={y+4} textAnchor="end" fontSize="10" fill="#94A3B8" fontFamily="Geist Mono">+{fmtDuration(b-a)}</text> : null;})()}
+            <line x1={x1} x2={x2 - dir*7} y1={y} y2={y} stroke={c} strokeWidth={on?2.5:1.2}/>
             <path d={`M${x2},${y} l${-dir*7},-3.5 l0,7 z`} fill={c}/>
             <text x={Math.min(x1,x2)+7} y={y-5} fontSize="11.5" fill={on?'#171717':'#333'} fontWeight={on?600:450}>{label}</text>
             {cause && <g><rect x={Math.max(x1,x2)+8} y={y-9} width={(m[5].length+7)*6.4} height="17" rx="4" fill="#FDEFEE" stroke="#F5C6C2"/><text x={Math.max(x1,x2)+14} y={y+3} fontSize="10.5" fill="#B42318" fontWeight="600">{m[4].replace(/^cause /,'')} {m[5]}</text></g>}
@@ -283,6 +322,7 @@ function Detail({s,sel,setSel,lens,ui}) {
   const [hidden,setHidden] = useState([]);
   const [collapsed,setCollapsed] = useState([]);
   const [ref,width] = useWidth();
+  const [zoom,setZoom] = useState(1); const [timers,setTimers] = useState(false);
   useEffect(()=>{ setHidden([]); setCollapsed([]); },[s.id]);
   const ifs = [...new Set(s.d.msgs.map(m=>m[0]))];
   const step = dir => { const n=s.d.msgs.length; let k=sel; for(let i=0;i<n;i++){ k=(k+dir+n)%n; if(!hidden.includes(s.d.msgs[k][0])) break; } setSel(k); };
@@ -291,27 +331,31 @@ function Detail({s,sel,setSel,lens,ui}) {
   const d = s.d, ex = d.links.filter(l=>l[5]==='EXACT').length;
   return (
     <section className="flex-1 min-h-0 flex flex-col bg-white rounded-xl border border-[#EBEBEB] overflow-hidden">
-      <div className="px-4 pt-3 pb-2 border-b border-[#EBEBEB]">
-        <div className="flex items-center gap-3">
-          <span className="font-mono text-[12px] text-[#666666]">c{s.cap} · {s.seq}</span>
-          <span className="text-[14px] font-semibold text-[#171717]">{s.proc}</span>
-          <span className="font-mono text-[12.5px] text-[#4D4D4D]">{s.ue}</span>
-          <Res r={s.res}/>
-          <span className="ml-auto flex items-center gap-4 text-[12px] text-[#666666]"><span><b className="text-[#171717] tabular-nums">{demo || d.msgs.length ? d.msgs.length : '—'}</b> messages</span><span><b className="text-[#171717] tabular-nums">{demo || d.links.length ? `${ex}/${d.links.length}` : '—'}</b> liens EXACT</span><span><b className="text-[#171717] tabular-nums">{s.comp==='—'?'—':`${s.comp} %`}</b> complétude</span></span>
+      <div className="px-3 pt-2 pb-1.5 border-b border-[#E2E8F0]">
+        <div className="flex items-center gap-3 min-w-0 whitespace-nowrap">
+          <span title={`c${s.cap} · ${s.seq}`} className="font-mono text-[11.5px] text-[#64748B] truncate max-w-[160px]">c{s.cap} · {s.seq}</span>
+          <span title={s.proc} className="text-[13px] font-semibold text-[#172033] truncate min-w-0">{s.proc}</span>
+          <span className="font-mono text-[12px] text-[#334155] truncate max-w-[140px] shrink-0">{s.ue}</span>
+          <VerdictBadge v={verdict(s.res)}/>
+          <span className="ml-auto shrink-0 whitespace-nowrap flex items-center gap-4 text-[12px] text-[#64748B]"><span><b className="text-[#171717] tabular-nums">{demo || d.msgs.length ? d.msgs.length : '—'}</b> messages</span><span><b className="text-[#171717] tabular-nums">{demo || d.links.length ? `${ex}/${d.links.length}` : '—'}</b> liens EXACT</span><span><b className="text-[#171717] tabular-nums">{s.comp==='—'?'—':`${s.comp} %`}</b> complétude</span></span>
         </div>
-        <div className="mt-1.5 text-[12.5px] text-[#4D4D4D]">{d.summary}{d.diverge && <span className="ml-2 text-[#B42318]">{d.diverge}</span>}</div>
+        <div className="mt-1 text-[12px] text-[#64748B] truncate">{d.summary}{d.diverge && <span className="ml-2 text-[#B42318]">{d.diverge}</span>}</div>
         {s.detailErrors?.map(error => <div key={error.endpoint} role="alert" className="mt-1.5 text-[12px] text-[#B42318]">Détail indisponible · {error.endpoint} · HTTP {error.status}</div>)}
         <div className="flex gap-5 mt-2 -mb-2">
           {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-8 text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#171717] font-medium':'border-transparent text-[#666666] hover:text-[#171717]'}`}>{t}</button>)}
         </div>
       </div>
-      {tab==='Ladder' && <div className="h-10 shrink-0 px-3 flex items-center gap-1.5 border-b border-[#F2F2F2] overflow-x-auto scroll-thin">
+      {tab==='Ladder' && <div className="h-9 shrink-0 px-3 flex items-center gap-1.5 border-b border-[#F2F2F2] overflow-x-auto scroll-thin">
         <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mr-1">Interfaces</span>
         {ifs.map(i=>{const off=hidden.includes(i); return <button key={i} onClick={()=>setHidden(off?hidden.filter(x=>x!==i):[...hidden,i])} title={off?'Afficher':'Masquer'} className={`h-6 px-1 rounded-md border transition ${off?'opacity-35 border-transparent':'border-[#EBEBEB] bg-white'}`}><Tag i={i}/></button>;})}
         <span className="w-px h-4 bg-[#EBEBEB] mx-2"/>
         <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mr-1">Procédures</span>
-        {d.procs.map(([p,a,b,firstEventId])=>{const key=`${p}:${firstEventId ?? a}`, c=collapsed.includes(key); return <button key={key} onClick={()=>setCollapsed(c?collapsed.filter(x=>x!==key):[...collapsed,key])} className={`${tb} ${c?'border-[#EBEBEB] bg-[#FAFAFA] text-[#8F8F8F]':'border-[#EBEBEB] bg-white text-[#171717]'}`}><span className="text-[10px]">{c?'▸':'▾'}</span>{p}<span className="text-[#A3A3A3] tabular-nums">{b-a+1}</span></button>;})}
+        {d.procs.map(([p,a,b,firstEventId])=>{const key=`${p}:${firstEventId ?? a}`, c=collapsed.includes(key); return <button key={key} onClick={()=>setCollapsed(c?collapsed.filter(x=>x!==key):[...collapsed,key])} className={`${tb} whitespace-nowrap shrink-0 ${c?'border-[#EBEBEB] bg-[#FAFAFA] text-[#8F8F8F]':'border-[#EBEBEB] bg-white text-[#171717]'}`}><span className="text-[10px]">{c?'▸':'▾'}</span>{p}<span className="text-[#A3A3A3] tabular-nums">{b-a+1}</span></button>;})}
         <div className="ml-auto flex items-center gap-1 shrink-0"><button disabled={demo} onClick={()=>{window.location.href=apiPath(`/exports/callflow/${encodeURIComponent(s.id)}`);}} className={tb+" border-[#EBEBEB]"}>Exporter</button>{auth.data?.data?.role==='operator' && <button disabled={demo || s.cap==='—'} onClick={()=>{if(window.confirm('Télécharger cet extrait pcap ?')) window.location.href=apiPath(`/captures/${encodeURIComponent(s.cap)}/download`);}} className={tb+" border-[#EBEBEB]"}>PCAP</button>}
+          <button onClick={()=>setZoom(z=>Math.max(0.6,+(z-0.2).toFixed(1)))} title="Zoom arrière" className={`${tb} border-[#E2E8F0] text-[#334155]`}>−</button>
+          <button onClick={()=>setZoom(1)} title="Ajuster à la largeur" className={`${tb} border-[#E2E8F0] text-[#334155] tabular-nums`}>{zoom===1?'Ajusté':`${Math.round(zoom*100)} %`}</button>
+          <button onClick={()=>setZoom(z=>Math.min(3,+(z+0.2).toFixed(1)))} title="Zoom avant" className={`${tb} border-[#E2E8F0] text-[#334155]`}>+</button>
+          <button onClick={()=>setTimers(v=>!v)} aria-pressed={timers} title="Afficher les délais entre messages" className={`${tb} ${timers?'border-[var(--app-accent)] text-[var(--app-accent)]':'border-[#E2E8F0] text-[#334155]'}`}>Timers</button>
           <button onClick={()=>step(-1)} title="Message précédent (↑)" className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>↑</button>
           <button onClick={()=>step(1)} title="Message suivant (↓)" className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>↓</button>
           {!ui.full && <button onClick={()=>ui.setGridHidden(v=>!v)} className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>{ui.gridHidden?'Afficher le tableau':'Masquer le tableau'}</button>}
@@ -319,7 +363,7 @@ function Detail({s,sel,setSel,lens,ui}) {
         </div>
       </div>}
       <div ref={ref} className="flex-1 overflow-auto scroll-thin">
-        {tab==='Ladder' && <Ladder d={d} sel={sel} setSel={setSel} lens={lens} hidden={hidden} collapsed={collapsed} width={width}/>}
+        {tab==='Ladder' && <Ladder d={d} sel={sel} setSel={setSel} lens={lens} hidden={hidden} collapsed={collapsed} width={width} zoom={zoom} timers={timers}/>}
         {tab==='Messages' && <table className="w-full text-[12.5px]"><tbody>{d.msgs.map((m,k)=>(
           <tr key={k} onClick={()=>setSel(k)} className={`cursor-pointer ${sel===k?'bg-[color-mix(in_oklab,var(--app-accent)_9%,white)]':'hover:bg-[#FAFAFA]'}`}>
             <td className="h-7 px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#8F8F8F] w-12">{available(d.evidence?.[k]?.seq ?? (demoMessageNumber(d,k)))}</td><td className="px-2 border-b border-[#F2F2F2] w-20"><Tag i={m[0]}/></td>
@@ -333,6 +377,38 @@ function Detail({s,sel,setSel,lens,ui}) {
   );
 }
 
+function DecodeNode({k,v,path,open,toggle,q}) {
+  const leaf = v==null || typeof v!=='object';
+  const isOpen = open[path] ?? false;
+  const text = leaf ? String(v) : '';
+  const hit = q && (String(k).toLowerCase().includes(q) || text.toLowerCase().includes(q));
+  const copy = e => { e.stopPropagation(); try { navigator.clipboard?.writeText(leaf?`${k}: ${text}`:`${k}: ${JSON.stringify(v)}`); } catch(err) {} };
+  const hex = leaf && typeof v==='number' ? ` (0x${v.toString(16)})` : '';
+  return <div>
+    <div onClick={()=>!leaf&&toggle(path)} className={`group flex items-center gap-1 rounded px-1 ${leaf?'':'cursor-pointer'} hover:bg-[#F1F5F9] ${hit?'bg-[#FFFBEB]':''}`}>
+      <span className="w-3 text-[#94A3B8]">{leaf?'':isOpen?'▾':'▸'}</span><span className="text-[#64748B]">{k}</span>
+      {leaf ? <span className="text-[#172033] truncate">: {text}<span className="text-[#94A3B8]">{hex}</span></span> : <span className="text-[#94A3B8]">{Array.isArray(v)?`[${v.length}]`:`{${Object.keys(v).length}}`}</span>}
+      <button onClick={copy} title="Copier nom et valeur" className="ml-auto opacity-0 group-hover:opacity-100 text-[10px] text-[#64748B] hover:text-[#172033]">copier</button>
+    </div>
+    {!leaf && isOpen && <div className="pl-3 border-l border-[#E2E8F0] ml-1.5">{Object.entries(v).map(([ck,cv])=><DecodeNode key={ck} k={ck} v={cv} path={`${path}.${ck}`} open={open} toggle={toggle} q={q}/>)}</div>}
+  </div>;
+}
+function DecodeTree({tree}) {
+  const [open,setOpen] = useState({}); const [q,setQ] = useState('');
+  const all = {}; const walk=(v,p)=>{ if(v&&typeof v==='object'){ all[p]=true; Object.entries(v).forEach(([k,c])=>walk(c,`${p}.${k}`)); } };
+  Object.entries(tree).forEach(([k,v])=>walk(v,k));
+  const qq = q.trim().toLowerCase();
+  const view = qq ? all : open;
+  return <div className="rounded-md border border-[#E2E8F0]">
+    <div className="flex items-center gap-1 p-1.5 border-b border-[#E2E8F0]">
+      <input aria-label="Rechercher un champ" value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher un champ…" className="flex-1 min-w-0 h-6 px-1.5 rounded border border-[#E2E8F0] text-[11.5px] outline-none focus:border-[var(--app-accent)]"/>
+      <button onClick={()=>setOpen(all)} className="h-6 px-1.5 rounded border border-[#E2E8F0] text-[11px] text-[#334155]">Tout déplier</button>
+      <button onClick={()=>setOpen({})} className="h-6 px-1.5 rounded border border-[#E2E8F0] text-[11px] text-[#334155]">Tout replier</button>
+    </div>
+    <div className="p-1.5 font-mono text-[11.5px] leading-[1.7]">{Object.keys(tree).length ? Object.entries(tree).map(([k,v])=><DecodeNode key={k} k={k} v={v} path={k} open={view} toggle={p=>setOpen(o=>({...o,[p]:!o[p]}))} q={qq}/>) : <div className="text-[#64748B] px-1">Arbre de décodage vide.</div>}</div>
+  </div>;
+}
+
 function Inspector({s,sel,role,lens,setLens,width,onHide}) {
   const [tab,setTab] = useState(()=>{ try { return localStorage.getItem('polaris-insp-tab')||'Décodage'; } catch(e) { return 'Décodage'; } });
   useEffect(()=>{ try { localStorage.setItem('polaris-insp-tab',tab); } catch(e) {} },[tab]);
@@ -343,29 +419,34 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
   if (!m) return <aside className="p-4 text-[#666666]">Non disponible</aside>;
   const shared = m[5] ? d.msgs.filter(x=>x[5]===m[5]).length : 0;
   return (
-    <aside style={{width}} className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-[#EBEBEB] overflow-hidden">
+    <aside style={{width}} aria-label="Décodage" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-[#E2E8F0] overflow-hidden">
       <div className="h-10 shrink-0 flex items-end gap-5 px-4 border-b border-[#EBEBEB]">
         {['Décodage','Preuves','Hex','Identité'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-9 text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#171717] font-medium':'border-transparent text-[#666666] hover:text-[#171717]'}`}>{t}</button>)}
         <button onClick={onHide} title="Masquer le panneau" className="ml-auto mb-2 w-7 h-7 rounded-md grid place-items-center text-[#8F8F8F] hover:bg-[#F5F5F5] hover:text-[#171717]"><I d="M15 4v16M4 4h16v16H4z" c="w-3.5 h-3.5"/></button>
       </div>
-      <div className="flex-1 overflow-auto scroll-thin p-4 text-[12.5px]">
-        {tab==='Décodage' && <div className="space-y-4">
-          <div><div className="flex items-center gap-2"><Tag i={m[0]}/><span className="font-mono text-[11.5px] text-[#8F8F8F]">message {Math.min(sel,d.msgs.length-1)+1}</span></div>
-            <div className="mt-1.5 text-[14px] font-semibold text-[#171717] leading-snug">{m[1]}</div><div className="text-[#666666]">{m[2]}</div></div>
-          <dl className="grid grid-cols-[110px_1fr] gap-y-1 font-mono text-[11.5px]">
-            <dt className="text-[#8F8F8F]">capture_id</dt><dd>{available(proof.capture_id)}</dd><dt className="text-[#8F8F8F]">seq</dt><dd>{available(proof.seq)}</dd>
-            <dt className="text-[#8F8F8F]">packet_number</dt><dd>{available(proof.packet_number)}</dd><dt className="text-[#8F8F8F]">décodeurs</dt><dd>{decoderVersions(versions.data?.data?.decoders)}</dd>
-          </dl>
-          {eventQuery.data && <pre className="text-[11.5px] whitespace-pre-wrap">{JSON.stringify(eventQuery.data.data?.decoded_ie_tree ?? {},null,2)}</pre>}
-          {eventQuery.isError && <div>{eventQuery.error.message}</div>}
-          <div className="rounded-md border border-[#EBEBEB] bg-[#FAFAFA] p-3 font-mono text-[11.5px] leading-[1.9] text-[#4D4D4D]">
+      <div className="flex-1 overflow-auto scroll-thin p-3 text-[12px]">
+        {tab==='Décodage' && <div className="space-y-3">
+          <div><div className="flex items-center gap-2"><Tag i={m[0]}/><span className="font-mono text-[11.5px] text-[#64748B]">message #{available(evidence?.seq ?? Math.min(sel,d.msgs.length-1)+1)}</span>{evidence?.decoding_status && <span className="ml-auto text-[10.5px] font-semibold text-[#64748B] border border-[#E2E8F0] rounded px-1">{String(evidence.decoding_status)}</span>}</div>
+            <div className="mt-1 text-[13px] font-semibold text-[#172033] leading-snug">{m[1]}</div><div className="text-[#64748B] text-[12px]">{m[2]}</div></div>
+          {eventQuery.isPending && evidence && <div className="text-[#64748B]">Chargement du décodage…</div>}
+          {eventQuery.isError && <div role="alert" className="text-[#DC2626]">{eventQuery.error.message}</div>}
+          {eventQuery.data && <DecodeTree key={String(evidence?.event_id ?? sel)} tree={(()=>{const t=eventQuery.data.data?.decoded_ie_tree; return t&&typeof t==='object'?t:t==null?{}:{valeur:t};})()}/>}
+          {!eventQuery.data && <div className="rounded-md border border-[#EBEBEB] bg-[#FAFAFA] p-3 font-mono text-[11.5px] leading-[1.9] text-[#4D4D4D]">
             <div>▾ {m[1].split(' ')[0]} PDU</div>
             <div className="pl-4">▾ {m[1].split(' ').slice(1).join(' ')}</div>
             <div className="pl-8">ue : <span className="text-[#171717]">{s.ue}</span> <span className="text-[#8F8F8F]">(pseudonyme)</span></div>
             {m[3] && <><div className="pl-8">▾ NAS-PDU</div><div className="pl-12">message : <span className="text-[#171717]">{m[3]}</span></div>
               <div className="pl-12">identité : {<span className="text-[#8F8F8F]">masquée</span>}</div></>}
             {m[4] && <div className="pl-8">{m[4]} : <span className="text-[#A15C07]">{m[5]}</span></div>}
-          </div>
+          </div>}
+          <div><Lbl>Informations UE</Lbl><dl className="grid grid-cols-[100px_1fr] gap-y-0.5 text-[11.5px]">
+            {[['IMSI / SUPI','masqué'],['Identifiant UE',s.ue],['Technologie',s.rat],['Cellule',s.cell],['PCI',s.pci],['EARFCN / ARFCN',s.arfcn ?? s.earfcn ?? s.nr_arfcn],['MME / AMF',s.serving_node],['PDU Session ID',s.pdu_session_id],['ID temporaires',s.guti ?? s['5g_guti'] ?? s.ue_context_id]].map(([k,v])=><React.Fragment key={k}><dt className="text-[#64748B]">{k}</dt><dd className="font-mono truncate" title={String(available(v))}>{available(v)}</dd></React.Fragment>)}
+          </dl></div>
+          <details className="rounded-md border border-[#E2E8F0]"><summary className="px-2 h-7 flex items-center cursor-pointer text-[11.5px] font-medium text-[#334155]">Métadonnées techniques</summary>
+            <dl className="grid grid-cols-[110px_1fr] gap-y-1 font-mono text-[11.5px] p-2 pt-0">
+              <dt className="text-[#64748B]">capture_id</dt><dd>{available(proof.capture_id)}</dd><dt className="text-[#64748B]">seq</dt><dd>{available(proof.seq)}</dd>
+              <dt className="text-[#64748B]">packet_number</dt><dd>{available(proof.packet_number)}</dd><dt className="text-[#64748B]">décodeurs</dt><dd>{decoderVersions(versions.data?.data?.decoders)}</dd>
+            </dl></details>
           {m[5] && (isCause(m) ? <div className="rounded-md border border-[#F5C6C2] bg-[#FFFBFA] p-3">
             <div className="flex items-center gap-2 font-medium text-[#B42318]"><I d="M12 8v5M12 16h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" c="w-4 h-4"/>Lentille de cause</div>
             <div className="text-[#666666] mt-1"><span className="font-mono text-[#B42318]">{m[4].replace(/^cause /,'')} {m[5]}</span> — cause d'échec, pas une clé de corrélation. Présente dans {shared} message(s).</div>
@@ -910,7 +991,7 @@ function App() {
   const detailErrors = s?.id == null ? [] : [['session',bundle.session],['events',bundle.events],['procedures',bundle.procedures],['callflow',bundle.callflow],['correlations',bundle.correlations]]
     .filter(([,query])=>query.isError)
     .map(([endpoint,query])=>({endpoint:`/sessions/${encodeURIComponent(String(s.id))}${endpoint==='session'?'':`/${endpoint}`}`,status:query.error?.status ?? '—'}));
-  const selected = s ? (demo ? s : {...s,...(detailSession ?? {}),id:detailSession?.id ?? s.id,session_id:detailSession?.session_id ?? s.session_id,d:bundle.detail || s.d,detailErrors}) : null;
+  const selected = s ? (demo ? s : {...s,...Object.fromEntries(Object.entries(detailSession ?? {}).filter(([key,v])=>key!=='d' && v!=null && v!=='—' && !(Array.isArray(v)&&!v.length))),id:detailSession?.id ?? s.id,session_id:detailSession?.session_id ?? s.session_id,d:bundle.detail || s.d,detailErrors}) : null;
   const nameOf = c => `${c.length?c.map(x=>x[1]).join(' · '):'Toutes les sessions'}${demo ? ' · run 482' : ''}`;
   const patch = (id,o) => setTabs(ts=>ts.map(x=>x.id===id?{...x,...o}:x));
   const newTab = (draft=mkDraft(),title) => { const id='q'+Date.now(); setTabs(ts=>[...ts,{id,k:'Requête',n:title||'Nouvelle requête',conds:[],mode:'edit',draft,dirty:!!title,demoOnly:demo}]); setTabId(id); setAview('tab'); };
@@ -952,16 +1033,25 @@ function App() {
   };
   const [msg,setMsg] = useState(0);
   const [lens,setLens] = useState(null);
-  const L0 = (()=>{ try { return JSON.parse(localStorage.getItem('polaris-layout'))||{}; } catch(e) { return {}; } })();
-  const [gridPct,setGridPct] = useState(L0.gridPct ?? 42);
+  const L0 = (()=>{ try { return JSON.parse(localStorage.getItem('polaris-layout-v2'))||{}; } catch(e) { return {}; } })();
+  const DEF = {gridPct:25,insPct:22,anaPct:21};
+  const [gridPct,setGridPct] = useState(L0.gridPct ?? DEF.gridPct);
   const [gridHidden,setGridHidden] = useState(L0.gridHidden ?? false);
-  const [insW,setInsW] = useState(L0.insW ?? 360);
+  const [insPct,setInsPct] = useState(L0.insPct ?? DEF.insPct);
+  const [anaPct,setAnaPct] = useState(L0.anaPct ?? DEF.anaPct);
   const [insHidden,setInsHidden] = useState(L0.insHidden ?? false);
+  const [anaHidden,setAnaHidden] = useState(L0.anaHidden ?? false);
   const [full,setFull] = useState(false);
-  useEffect(()=>{ try { localStorage.setItem('polaris-layout',JSON.stringify({gridPct,gridHidden,insW,insHidden})); } catch(e) {} },[gridPct,gridHidden,insW,insHidden]);
-  const mainRef = useRef(null);
-  const drag = (e,kind) => { e.preventDefault(); const r = mainRef.current.getBoundingClientRect();
-    const mv = ev => { if(kind==='h') setGridPct(Math.min(80,Math.max(15,(ev.clientY-r.top)/r.height*100))); else setInsW(Math.min(640,Math.max(280,window.innerWidth-ev.clientX))); };
+  useEffect(()=>{ try { localStorage.setItem('polaris-layout-v2',JSON.stringify({gridPct,gridHidden,insPct,anaPct,insHidden,anaHidden})); } catch(e) {} },[gridPct,gridHidden,insPct,anaPct,insHidden,anaHidden]);
+  const mainRef = useRef(null), lowRef = useRef(null);
+  const resetLayout = () => { setGridPct(DEF.gridPct); setInsPct(DEF.insPct); setAnaPct(DEF.anaPct); };
+  const drag = (e,kind) => { e.preventDefault(); const r = (kind==='h'?mainRef:lowRef).current.getBoundingClientRect();
+    const mv = ev => {
+      if(kind==='h') return setGridPct(Math.min(70,Math.max(12,(ev.clientY-r.top)/r.height*100)));
+      const fromRight = (r.right-ev.clientX)/r.width*100;
+      if(kind==='ana') setAnaPct(Math.min(40,Math.max(14,fromRight)));
+      else setInsPct(Math.min(45,Math.max(14,fromRight-(anaHidden?0:anaPct))));
+    };
     const up = () => { window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up); document.body.style.cursor=''; };
     document.body.style.cursor = kind==='h'?'row-resize':'col-resize'; window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up); };
   const ui = {full,setFull,gridHidden,setGridHidden};
@@ -973,18 +1063,18 @@ function App() {
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · identités masquées · actions soumises au proxy</div>}
       {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Nodes/> : page==='templates' ? <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
       {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
-      {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role} sessionRows={sourceRows}/> : <div className="flex-1 flex min-h-0 p-3 bg-[#FAFAFA]">
+      {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role} sessionRows={sourceRows}/> : <div className="flex-1 flex min-h-0 p-2 bg-[#F8FAFC]">
         <main ref={mainRef} className="flex-1 min-w-0 flex flex-col">
           {!full && !gridHidden && <>
             <Grid rows={rows} sel={s?.id} setSel={setSel} role={role} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`}/>
-            <div onMouseDown={e=>drag(e,'h')} onDoubleClick={()=>setGridPct(42)} title="Glisser pour redimensionner · double-clic pour réinitialiser" className="group h-3 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[5px] h-[2px] w-10 rounded-full bg-[#E0E0E0] group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
+            <div onMouseDown={e=>drag(e,'h')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group h-2 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[2px] w-10 rounded-full bg-[#E2E8F0] group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
           </>}
-          {selected ? <Detail s={selected} sel={msg} setSel={setMsg} lens={lens} ui={ui}/> : <div className="p-8 text-[#666666]">{sessionsQuery.isError ? sessionsQuery.error.message : sessionsQuery.isPending ? "Connexion POLARIS…" : "Aucune session"}</div>}
+          <div ref={lowRef} className="flex-1 min-h-0 flex">
+            <div className="flex-1 min-w-[280px] flex flex-col">{selected ? <Detail s={selected} sel={msg} setSel={setMsg} lens={lens} ui={ui}/> : <div className="p-8 text-[#64748B] bg-white rounded-xl border border-[#E2E8F0] flex-1">{sessionsQuery.isError ? sessionsQuery.error.message : sessionsQuery.isPending ? "Connexion POLARIS…" : "Aucune session"}</div>}</div>
+            {selected && !full && (insHidden ? <button onClick={()=>setInsHidden(false)} title="Afficher Décodage" className="ml-2 w-8 shrink-0 bg-white rounded-xl border border-[#E2E8F0] flex flex-col items-center pt-3 gap-3 text-[#64748B] hover:text-[#172033]"><I d="M9 4v16M4 4h16v16H4z" c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[12px]">Décodage</span></button> : <><div onMouseDown={e=>drag(e,'ins')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-[#E2E8F0] group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><Inspector key={selected.id} s={selected} sel={msg} role={role} lens={lens} setLens={setLens} width={`${insPct}%`} onHide={()=>setInsHidden(true)}/></>)}
+            {selected && !full && (anaHidden ? <button onClick={()=>setAnaHidden(false)} title="Afficher Analyse sessions" className="ml-2 w-8 shrink-0 bg-white rounded-xl border border-[#E2E8F0] flex flex-col items-center pt-3 gap-3 text-[#64748B] hover:text-[#172033]"><I d="M9 4v16M4 4h16v16H4z" c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[12px]">Analyse sessions</span></button> : <><div onMouseDown={e=>drag(e,'ana')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-[#E2E8F0] group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><SessionAnalysis s={selected} width={`${anaPct}%`} loading={bundle.callflow.isFetching || bundle.events.isFetching} onPick={k=>setMsg(Math.max(0,k))} onHide={()=>setAnaHidden(true)}/></>)}
+          </div>
         </main>
-        {selected && !full && (insHidden
-          ? <button onClick={()=>setInsHidden(false)} title="Afficher le panneau" className="ml-3 w-9 shrink-0 bg-white rounded-xl border border-[#EBEBEB] flex flex-col items-center pt-3 gap-3 text-[#666666] hover:text-[#171717]"><I d="M9 4v16M4 4h16v16H4z" c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[12px]">Décodage</span></button>
-          : <><div onMouseDown={e=>drag(e,'v')} onDoubleClick={()=>setInsW(360)} title="Glisser pour redimensionner" className="group w-3 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[5px] w-[2px] h-10 rounded-full bg-[#E0E0E0] group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div>
-            <Inspector s={selected} sel={msg} role={role} lens={lens} setLens={setLens} width={insW} onHide={()=>setInsHidden(true)}/></>)}
       </div>}</>}
       <footer className="h-7 shrink-0 bg-white border-t border-[#EBEBEB] flex items-center gap-5 px-4 text-[11.5px] text-[#666666]">
         <span>Capture : {available(metrics.data?.data?.capture_state)}</span><span>Segments ingérés : {available(metrics.data?.data?.segments_ingested)}</span>

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0 — Analyzer refactor
+- Sessions table: 12 key columns (Numéro, Début UTC, IMSI masqué, Session ID, Résultat, Cause, Interfaces, PDU Session, Durée, Cellule, AMF/MME, gNB/eNB) plus existing ones; resizable, sortable, frozen first column, search, tooltips; SUCCESS/FAILED/PARTIAL/UNKNOWN badges.
+- Four-panel layout: Sessions (25 %), Ladder, Décodage, new Analyse sessions; all resizable, double-click restores, Décodage/Analyse hideable.
+- Ladder: timestamp, interface and sequence per message, zoom/fit, optional timers.
+- Décodage: real decoded tree with expand/collapse all, field search, copy; UE info; technical metadata folded.
+- Analyse sessions: summary, chronology, proven failures (click to jump to message), session KPIs (N/A when not provided).
+
 ## 0.9.3
 - Analyzer : action directe « Afficher toutes les sessions », alimentée par une requête API sans filtre et ouverte dans un onglet de résultats.
 - `capture · seq` utilise `anchor_capture_id` et `first_packet_number` lorsqu'ils sont fournis, sinon le premier événement du callflow dans l'ordre API (`capture_id`, `packet_references[0].packet_number`).
