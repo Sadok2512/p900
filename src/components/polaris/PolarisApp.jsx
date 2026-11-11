@@ -338,11 +338,7 @@ function usePopover() {
   return [open,setOpen,ref];
 }
 function LadderMore({children}) {
-  const [open,setOpen,ref] = usePopover();
-  return <div ref={ref} className="relative shrink-0">
-    <button onClick={()=>setOpen(o=>!o)} aria-label="Plus d'actions du Ladder" aria-expanded={open} className="h-7 w-7 rounded-md border border-[#E2E8F0] grid place-items-center text-[#334155] hover:bg-[#F8FAFC]">⋯</button>
-    {open && <div className="absolute right-0 top-8 z-40 bg-white border border-[#E2E8F0] rounded-lg shadow-lg p-1.5 flex flex-wrap gap-1 w-[260px] [&_button]:h-7">{children}</div>}
-  </div>;
+  return <div className="flex flex-wrap items-center gap-1 shrink-0 [&_button]:h-7">{children}</div>;
 }
 function LadderFilter({flow,value,onApply}) {
   const [open,setOpen,ref] = usePopover(); const [draft,setDraft] = useState(value); const [pq,setPq] = useState('');
@@ -398,7 +394,7 @@ function Detail({s,sel,setSel,lens,ui}) {
     <section className="flex-1 min-h-0 flex flex-col bg-white rounded-xl border border-[#EBEBEB] overflow-hidden">
       <div className="px-3 border-b border-[#E2E8F0]">
         {s.detailErrors?.map(error => <div key={error.endpoint} role="alert" className="pt-1.5 text-[12px] text-[#B42318]">Détail indisponible · {error.endpoint} · HTTP {error.status}</div>)}
-        <div className="h-[42px] flex items-center gap-4 min-w-0">
+        <div className="min-h-[42px] flex flex-wrap items-center gap-x-4 gap-y-1 min-w-0">
           {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-[42px] shrink-0 whitespace-nowrap text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#172033] font-medium':'border-transparent text-[#64748B] hover:text-[#172033]'}`}>{t}</button>)}
           <div className="ml-auto flex items-center gap-1 shrink-0">
             {ifs.map(i=>{const off=hidden.includes(i); return <button key={i} aria-pressed={!off} onClick={()=>setHidden(off?hidden.filter(x=>x!==i):[...hidden,i])} title={off?`Afficher ${i}`:`Masquer ${i}`} className={`h-6 px-0.5 rounded-md border transition ${off?'opacity-35 border-transparent':'border-[#E2E8F0] bg-white'}`}><Tag i={i}/></button>;})}
