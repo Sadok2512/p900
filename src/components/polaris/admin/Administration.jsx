@@ -3,6 +3,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { request, useAdminUsers, useAdminRoles, useAuditLog, useHealth, useVersion, useStorageSafety, available } from '@/lib/polaris-api';
 import { Fail } from '../analyzer/SubscriberJourney';
 import { NAV_MODULES, isVisible, toggleHidden, sanitizeHidden } from './modules';
+import NetworkTopology from './NetworkTopology';
+import LiveCapture from './LiveCapture';
 
 const TABS = ['Node Manager','Network Topology','Users & Roles','Modules Visibility','System Settings','Audit Log'];
 const PERMS = ['View','Create','Edit','Delete','Execute','Administer'];
@@ -115,7 +117,7 @@ export default function Administration({Card, nodeManager, hidden, onToggle, onS
         {TABS.map(x=><button key={x} role="tab" aria-selected={tab===x} onClick={()=>pick(x)} className={`relative shrink-0 h-10 px-3 text-[13px] ${tab===x?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{x}{tab===x && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-[#0062A1]"/>}</button>)}
       </div>
       <div role="tabpanel" aria-label={tab}>
-        {tab==='Node Manager' ? nodeManager : tab==='Network Topology' ? <div className="min-h-[360px] rounded-lg border border-dashed border-[#EBEBEB] bg-white"/> : tab==='Users & Roles' ? <Users Card={Card}/> : tab==='Modules Visibility' ? <Modules Card={Card} hidden={hidden} onToggle={onToggle}/> : tab==='System Settings' ? <System Card={Card} onSettings={onSettings}/> : <Audit Card={Card}/>}
+        {tab==='Node Manager' ? <>{nodeManager}<LiveCapture/></> : tab==='Network Topology' ? <NetworkTopology/> : tab==='Users & Roles' ? <Users Card={Card}/> : tab==='Modules Visibility' ? <Modules Card={Card} hidden={hidden} onToggle={onToggle}/> : tab==='System Settings' ? <System Card={Card} onSettings={onSettings}/> : <Audit Card={Card}/>}
       </div>
     </div>
   </div>;

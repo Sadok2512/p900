@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
 import { queryOptions, useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { request, PolarisApiError } from './client';
+import { request, requestFrom, PolarisApiError } from './client';
 import { demoResponse } from './demo';
 import { ALL_KPIS, mockSeries, seedRand, SAVED } from './demo/catalogue';
 import { TR_CATS, TR_APPS, TR_CELLS, TR_V, TR_FLOWS } from './demo/traffic';
@@ -20,7 +20,7 @@ export const useAuthMe = () => useResource<AuthMe>('/auth/me', {}, true, false);
 export const useHealth = () => useResource<Health>('/health');
 export const useVersion = () => useResource<Version>('/version', {}, true, false);
 export const useMetrics = () => useResource<Metrics>('/metrics');
-export const useLiveMetrics = () => useQuery({ ...resourceOptions<Metrics>('/metrics', {}, false), refetchInterval: 10_000, refetchIntervalInBackground: true });
+export const useLiveMetrics = () => useQuery({ ...resourceOptions<Metrics>('/metrics', {}, false), refetchInterval: 5_000, refetchIntervalInBackground: true });
 export const useStorageSafety = () => useResource<Safety>('/storage/safety');
 export const useSessions = (params: QueryParams = {}, enabled = true) => useResource<Session[]>('/sessions', params, enabled);
 const idPath = (id: string | number | null | undefined) => encodeURIComponent(String(id ?? ''));
@@ -59,6 +59,7 @@ export const useProbes = () => useResource<Probe[]>('/probes');
 export const useProbe = (id?: string | number | null) => useResource<Probe>(`/probes/${idPath(id)}`, {}, id != null);
 export const useProbeInterfaces = (id?: string | number | null) => useResource<RecordData[]>(`/probes/${idPath(id)}/interfaces`, {}, id != null);
 export const useInterfaces = () => useResource<RecordData[]>('/interfaces');
+export const useInterfaceRuntime = () => useQuery({ ...resourceOptions<RecordData[]>('/interfaces/runtime', {}, false), refetchInterval: 5_000, refetchIntervalInBackground: true });
 export const useCaptures = () => useResource<RecordData[]>('/captures');
 export const useCaptureMetrics = (id?: string | number | null) => useResource<Metrics>(`/captures/${idPath(id)}/metrics`, {}, id != null);
 export const useModules = () => useResource<RecordData[]>('/modules');
@@ -97,3 +98,16 @@ export const useIdentityLookup = (q: string) => useResource<RecordData>('/identi
 export const useAdminUsers = () => useResource<RecordData[]>('/users', {}, true, false);
 export const useAdminRoles = () => useResource<RecordData[]>('/roles', {}, true, false);
 export const useAuditLog = () => useResource<RecordData[]>('/audit', {}, true, false);
+const polarisOptions = <T,>(path: string) => queryOptions({ queryKey: ['polaris-control', path], queryFn: ({ signal }) => requestFrom<T>('/polaris-api/v1', path, { signal }), staleTime: 5_000, retry: false, refetchOnWindowFocus: false });
+export const usePolarisLab = () => useQuery({ ...polarisOptions<RecordData>('/lab'), refetchInterval: 5_000 });
+export const usePolarisNodes = () => useQuery({ ...polarisOptions<RecordData>('/nodes'), refetchInterval: 5_000 });
+export const usePolarisUes = () => useQuery({ ...polarisOptions<RecordData>('/ues'), refetchInterval: 5_000 });
+export function useInterfaceMutation() {
+  const client = useQueryClient();
+  return useMutation({ mutationFn: ({ action, name, body }: { action: 'add' | 'update' | 'delete' | 'rollback'; name?: string; body?: RecordData }) => {
+    const suffix = name ? `/${encodeURIComponent(name)}` : '';
+    const path = action === 'rollback' ? `/interfaces${suffix}/rollback` : `/interfaces${suffix}`;
+    const method = action === 'add' ? 'POST' : action === 'update' ? 'PUT' : action === 'delete' ? 'DELETE' : 'POST';
+    return request<RecordData>(path, { method, body });
+  }, onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris'] }); } });
+}

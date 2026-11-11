@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { request, relativeBase, redact } from './client';
+import { request, requestFrom, relativeBase, redact } from './client';
 afterEach(() => vi.unstubAllGlobals());
 describe('POLARIS client', () => {
   it('unwraps data and meta using relative API paths and proxy credentials', async () => {
@@ -13,6 +13,13 @@ describe('POLARIS client', () => {
   it('maps HTTP 403 to the role error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { code: 'FORBIDDEN' } }), { status: 403 })));
     await expect(request('/probes')).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403, message: 'Accès refusé (rôle)' });
+  });
+  it('uses a distinct same-origin base for the Simulator topology', async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: { items: [] }, meta: {} })));
+    vi.stubGlobal('fetch', fetcher);
+    await requestFrom('/polaris-api/v1', '/nodes');
+    expect(fetcher.mock.calls[0]?.[0]).toBe('/polaris-api/v1/nodes');
+    expect(fetcher.mock.calls[0]?.[1].headers).not.toHaveProperty('Authorization');
   });
   it('maps failed network to POLARIS non connecté', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('offline')));

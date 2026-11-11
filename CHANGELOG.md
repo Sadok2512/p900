@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.12.0
+
+- Administration : Node Manager alimenté par les valeurs réelles de `/probes`, `/version`, `/metrics` et `/storage/safety`, avec états, ressources, seuils disque et dernier contact.
+- Capture live : inventaire par interface rafraîchi toutes les 5 s, processus/segment/rotation/filtre/source lorsque le backend les expose, mini-courbes navigateur sur 15 minutes et même source `/metrics` que la pastille LIVE.
+- Interfaces : formulaires operator pour ajouter, modifier, supprimer et restaurer une configuration; confirmation tapée avant redémarrage ciblé et erreurs backend rendues sans faux succès.
+- Network Topology : copie du rendu Simulator 5G/LTE alimentée par `/polaris-api/v1/lab`, `/nodes` et `/ues`, avec zoom, sélection, détails et pastilles de capture issues d'OIRAN.
+- Proxy : relais même origine distincts OIRAN/POLARIS et injection optionnelle de jetons uniquement côté serveur; aucun secret n'est envoyé au navigateur ni versionné.
+- Audit Log : les mutations d'interface attendent une trace serveur avant de rapporter le succès; aucun événement n'est fabriqué côté UI.
+
 ## 0.11.0
 
 - Parcours abonné (écrans prêts, données OIRAN 2.13.0 à venir) : colonne « Abonné » avec badge « N sessions », option « Grouper par abonné » (menu ⋯ du tableau), bloc « Autres sessions de cet abonné », onglet « Parcours abonné » (frise ordonnée (capture_id, seq), procédures en couleur, liens EXACT pleins / OUVERT pointillés avec raison, liste TMSI, identités via le coffre pour operator, recherche IMSI/TMSI/IMEI/MSISDN).

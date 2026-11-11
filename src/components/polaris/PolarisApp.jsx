@@ -552,6 +552,7 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
 const IFACES = ['N2','N3','N4','SBI','N6','S1-MME','S1-U','S5-U','S11','S5-C','S6a','Sxa/Sxb'];
 const Dot = ({st}) => <span className={`w-[8px] h-[8px] rounded-full ${st==='ok'?'bg-[#15803D]':st==='warn'?'bg-[#D97706]':st==='error'?'bg-[#B42318]':'bg-[#D4D4D4]'}`}/>;
 const Bar = ({v,warn=70,crit=85}) => <div className="flex items-center gap-2"><div className="w-16 h-1.5 rounded-full bg-[#F2F2F2] overflow-hidden"><div className={`h-full ${v>=crit?'bg-[#B42318]':v>=warn?'bg-[#D97706]':'bg-[var(--app-accent)]'}`} style={{width:`${v}%`}}/></div><span className="tabular-nums text-[12px] text-[#4D4D4D] w-9">{v} %</span></div>;
+const fmtBytes = v => typeof v!=='number'?'—':v>=1024**3?`${(v/1024**3).toFixed(2)} GiB`:v>=1024**2?`${(v/1024**2).toFixed(1)} MiB`:v>=1024?`${(v/1024).toFixed(1)} KiB`:`${v} B`;
 const Card = ({title,action,children,className=''}) => (
   <section className={`bg-white rounded-lg border border-[#EBEBEB] ${className}`}>
     <div className="h-11 px-4 flex items-center border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold text-[#171717]">{title}</h3>{action && <span className="ml-auto text-[12px] text-[#171717] font-medium cursor-pointer">{action}</span>}</div>
@@ -643,11 +644,11 @@ function Home({setPage,onNew,hidden=[]}) {
 function Nodes() {
   const [node,setNode] = useState(null);
   const { demo } = usePolarisMode(); const probes = useProbes(); const auth = useAuthMe(); const health = useHealth();
+  const metrics = useMetrics(); const safety = useStorageSafety(); const version = useVersion();
   const raw = records(probes.data?.data, 'probes');
-  const nodes = raw.map((n,i)=>demo ? n : toLegacyProbe(n,i));
+  const nodes = raw.map((n,i)=>demo ? n : toLegacyProbe(n,i,metrics.data?.data,safety.data?.data,version.data?.data?.backend_api));
   const current = nodes.find(n=>n.n===node);
   const resources = useProbeResources(current?.id);
-  const metrics = useMetrics(); const safety = useStorageSafety();
   const [target,setTarget] = useState(''); const [actionError,setActionError] = useState('');
   const capture = useCaptureAction(auth.data?.data?.role, health.data?.data?.coordination_open);
   const doCapture = (action,id) => { if (!window.confirm('Confirmer cette action de capture ?')) return; capture.mutate({action,id,target,confirmed:true},{onError:e=>setActionError(e.message)}); };
@@ -674,8 +675,8 @@ function Nodes() {
                         <td className="px-4 border-b border-[#F2F2F2]"><span className="inline-flex items-center gap-1.5"><Dot st={n.st}/>{n.st==='ok'?'Opérationnel':n.st==='warn'?'Vigilance':'—'}</span></td>
                         <td className="px-4 border-b border-[#F2F2F2]"><span className="font-mono text-[11.5px]">{n.ver}</span>{n.exp && n.ver.includes(n.exp) && <span className="ml-1.5 text-[11px] text-[#15803D]">✓ attendue</span>}</td>
                         <td className="px-4 border-b border-[#F2F2F2]">{n.cpu===null?<span className="text-[#D4D4D4]">—</span>:<Bar v={n.cpu}/>}</td>
-                        <td className="px-4 border-b border-[#F2F2F2]">{n.mem===null?<span className="text-[#D4D4D4]">—</span>:<div><Bar v={Math.round(n.mem[0]/n.mem[1]*100)}/><div className="text-[10.5px] text-[#8F8F8F] mt-0.5">{n.mem[0]} / {n.mem[1]} Go MemoryMax</div></div>}</td>
-                        <td className="px-4 border-b border-[#F2F2F2]">{n.disk===null?<span className="text-[#D4D4D4]">—</span>:<Bar v={n.disk}/>}</td>
+                        <td className="px-4 border-b border-[#F2F2F2]">{n.memoryBytes===null?<span className="text-[#D4D4D4]">—</span>:<div><div className="font-mono text-[11.5px]">{fmtBytes(n.memoryBytes)}</div><div className="text-[10.5px] text-[#8F8F8F] mt-0.5">anon {fmtBytes(n.memoryAnonBytes)} · file {fmtBytes(n.memoryFileBytes)}</div></div>}</td>
+                        <td className="px-4 border-b border-[#F2F2F2]">{n.disk===null?<span className="text-[#D4D4D4]">—</span>:<div><Bar v={Math.round(n.disk)} warn={95} crit={99}/><div className="text-[10.5px] text-[#8F8F8F] mt-0.5">{fmtBytes(n.diskFreeBytes)} libres · seuils 95 / 99 %</div></div>}</td>
                         <td className="px-4 border-b border-[#F2F2F2] text-[#666666]">{n.seen}</td>
                         <td className="px-4 border-b border-[#F2F2F2] text-[#8F8F8F]"><I d={ic.chev} c={`w-4 h-4 transition ${node===n.n?'rotate-180':''}`}/></td>
                       </tr>

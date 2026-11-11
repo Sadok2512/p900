@@ -85,8 +85,24 @@ export function decoderVersions(decoders: unknown): string {
   }
   return str(decoders);
 }
-export function toLegacyProbe(p: Probe, index = 0) {
-  return { n: str(p.name ?? p.id ?? `probe-${index}`), id: p.id, role: str(p.role), st: p.status === 'ok' || p.status === 'healthy' ? 'ok' : 'unknown', ver: str(p.version), exp: '', cpu: p.cpu_percent ?? null, mem: p.memory_used_gb == null || p.memory_total_gb == null ? null : [p.memory_used_gb, p.memory_total_gb], disk: p.disk_percent ?? null, seen: str(p.last_seen), info: str(p['description']) };
+export function toLegacyProbe(p: Probe, index = 0, metrics?: Metrics | null, safety?: Safety | null, servedVersion?: string) {
+  const health = String(p.health ?? p.status ?? p['probe_state'] ?? '').toLowerCase();
+  const online = p.online === true || ['ok', 'healthy', 'online', 'operational'].includes(health);
+  const degraded = online && ['degraded', 'warning', 'warn'].includes(health);
+  const filesystem = safety?.filesystem as RecordData | undefined;
+  const metricDisk = metrics?.disk as RecordData | undefined;
+  const metricCpu = metrics?.cpu as RecordData | undefined;
+  const seen = p.last_seen ?? (p.last_heartbeat_epoch_s == null ? null : new Date(p.last_heartbeat_epoch_s * 1000).toISOString());
+  return {
+    n: str(p.name ?? p.probe_id ?? p.id ?? `probe-${index}`), id: p.probe_id ?? p.id,
+    role: str(p.role ?? p.probe_type), st: degraded ? 'warn' : online ? 'ok' : 'error',
+    ver: str(p.version ?? servedVersion), exp: servedVersion ?? '',
+    cpu: p.cpu_usage_percent ?? p.cpu_percent ?? (typeof metricCpu?.['usage_percent'] === 'number' ? metricCpu['usage_percent'] : null),
+    memoryBytes: p.memory_usage_bytes ?? null, memoryAnonBytes: p.memory_anon_bytes ?? null, memoryFileBytes: p.memory_file_bytes ?? null,
+    disk: p.disk_usage_percent ?? p.disk_percent ?? (typeof filesystem?.['usage_percent'] === 'number' ? filesystem['usage_percent'] : typeof metricDisk?.['usage_percent'] === 'number' ? metricDisk['usage_percent'] : null),
+    diskFreeBytes: typeof filesystem?.['available_bytes'] === 'number' ? filesystem['available_bytes'] : typeof metricDisk?.['available_bytes'] === 'number' ? metricDisk['available_bytes'] : null,
+    seen: str(seen), info: str(p['host'] ?? p['site'] ?? p['description']), interfaces: p.connected_interfaces ?? [],
+  };
 }
 export function healthKpi(id: string, m?: Metrics | null, s?: Safety | null): number | null {
   if (id === 'kpi.probe.dumpcap') return m?.dumpcap_active == null || m.dumpcap_expected == null || m.dumpcap_expected <= 0 ? null : m.dumpcap_active / m.dumpcap_expected * 100;

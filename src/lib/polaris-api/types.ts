@@ -68,9 +68,9 @@ export type Correlation = Evidence & {
 };
 export type AuthMe = RecordData & { role?: Role };
 export type Health = RecordData & { status?: string; capture_state?: string; version?: string };
-export type Metrics = Evidence & { capture_state?: string; pending_segments?: number; segments_ingested?: number; ingestion_failures?: number; open_segments?: number; zero_event_segments?: number; dumpcap_active?: number; dumpcap_expected?: number; import_lag_seconds?: number };
-export type Safety = Evidence & { free_bytes?: number; total_bytes?: number; free_percent?: number };
-export type Probe = RecordData & { id?: string | number; name?: string; role?: string; status?: string; version?: string; cpu_percent?: number; disk_percent?: number; memory_used_gb?: number; memory_total_gb?: number; last_seen?: string };
+export type Metrics = Evidence & { capture_state?: string; pending_segments?: number; segments_ingested?: number; ingestion_failures?: number; open_segments?: number; zero_event_segments?: number; dumpcap_active?: number; dumpcap_expected?: number; import_lag_seconds?: number; cpu?: RecordData; memory?: RecordData; disk?: RecordData; interfaces?: RecordData[]; bitrate_bps?: number };
+export type Safety = Evidence & { free_bytes?: number; total_bytes?: number; free_percent?: number; filesystem?: RecordData; policy?: RecordData; decision?: RecordData };
+export type Probe = RecordData & { id?: string | number; probe_id?: string; name?: string; role?: string; probe_type?: string; status?: string; health?: string; online?: boolean; version?: string; cpu_percent?: number; cpu_usage_percent?: number; disk_percent?: number; disk_usage_percent?: number; memory_used_gb?: number; memory_total_gb?: number; memory_usage_bytes?: number; memory_anon_bytes?: number; memory_file_bytes?: number; last_seen?: string; last_heartbeat_epoch_s?: number; connected_interfaces?: string[] };
 export type Version = RecordData & {
   backend_api?: string;
   web_frontend?: string;

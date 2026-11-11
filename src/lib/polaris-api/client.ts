@@ -7,11 +7,11 @@ export function relativeBase(base = import.meta.env['VITE_POLARIS_API_BASE'] ?? 
   if (!/^\/(?!\/)/.test(base) || /[\\?#]/.test(base) || base.split('/').includes('..')) throw new PolarisApiError('INVALID_BASE', 'Chemin POLARIS invalide', 0);
   return base.replace(/\/$/, '');
 }
-export function apiPath(path: string, params: QueryParams = {}): string {
+export function apiPath(path: string, params: QueryParams = {}, base = relativeBase()): string {
   if (!path.startsWith('/') || path.startsWith('//') || /[\\#]/.test(path) || path.split('/').includes('..')) throw new PolarisApiError('INVALID_PATH', 'Chemin POLARIS invalide', 0);
   const query = new URLSearchParams();
   Object.entries(params).forEach(([key, value]) => { if (value !== undefined && value !== '') query.set(key, String(value)); });
-  return relativeBase() + path + (query.size ? '?' + query.toString() : '');
+  return relativeBase(base) + path + (query.size ? '?' + query.toString() : '');
 }
 // Remove identity-bearing fields before anything can reach a component or Query cache.
 const privateField = /imsi|supi|suci|guti|tmsi|imei|msisdn|password|token|secret|^(k|opc)$/i;
@@ -25,8 +25,8 @@ export function redact<T>(value: T): T {
   }
   return value;
 }
-export async function request<T>(path: string, options: { params?: QueryParams; method?: 'GET' | 'POST'; body?: unknown; signal?: AbortSignal } = {}): Promise<Envelope<T>> {
-  const url = apiPath(path, options.params);
+export async function requestFrom<T>(base: string, path: string, options: { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal } = {}): Promise<Envelope<T>> {
+  const url = apiPath(path, options.params, base);
   let response: Response;
   const timeout = new AbortController();
   const timer = setTimeout(() => timeout.abort(), 8000);
@@ -45,4 +45,7 @@ export async function request<T>(path: string, options: { params?: QueryParams; 
   if (!payload || typeof payload !== 'object' || !('data' in payload)) throw new PolarisApiError('INVALID_RESPONSE', 'POLARIS non connecté', response.status);
   const envelope = payload as { data: T; meta?: unknown };
   return { data: redact(envelope.data), meta: envelope.meta && typeof envelope.meta === 'object' ? redact(envelope.meta) as Envelope<T>['meta'] : {} };
+}
+export async function request<T>(path: string, options: { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal } = {}): Promise<Envelope<T>> {
+  return requestFrom<T>(relativeBase(), path, options);
 }
