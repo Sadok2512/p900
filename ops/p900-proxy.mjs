@@ -28,9 +28,12 @@ export function targetFor(rawUrl = '/') {
   return { host: '127.0.0.1', port: 8090, scope: 'ui', path: rawUrl };
 }
 
-function forwardedHeaders(headers, target) {
+export function forwardedHeaders(headers, target) {
   const forwarded = { ...headers };
   delete forwarded.authorization;
+  // Transformed responses are buffered and parsed as JSON below. Asking the
+  // upstream for gzip/br would make JSON.parse receive compressed bytes.
+  delete forwarded['accept-encoding'];
   delete forwarded.host;
   forwarded.host = `${target.host}:${target.port}`;
   const token = tokens[target.scope];
@@ -101,7 +104,7 @@ function proxy(request,response,target) {
     const transform=target.scope==='polaris'||pathname==='/api/v1/probes';
     if (!transform) { response.writeHead(upstreamResponse.statusCode??502,upstreamResponse.headers); upstreamResponse.pipe(response); return; }
     const chunks=[]; upstreamResponse.on('data',chunk=>chunks.push(chunk)); upstreamResponse.on('end',()=>{
-      let payload; try { payload=JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { sendJson(response,upstreamResponse.statusCode??502,{error:{code:'INVALID_UPSTREAM_RESPONSE',message:'Invalid upstream response'}}); return; }
+      let payload; try { payload=JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { sendJson(response,502,{error:{code:'INVALID_UPSTREAM_RESPONSE',message:'Invalid upstream response'}}); return; }
       if (target.scope==='polaris' && !('data' in payload)) payload={data:payload,meta:{}};
       if (pathname==='/api/v1/probes' && Array.isArray(payload.data) && payload.data[0]) payload.data[0]={...payload.data[0],role:payload.data[0].role??'Capture',last_seen:new Date().toISOString(),...cgroupMemory(),...cgroupCpu(),...captureDisk()};
       sendJson(response,upstreamResponse.statusCode??502,payload);

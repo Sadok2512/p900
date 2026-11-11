@@ -6,3 +6,4 @@ export interface ProxyTarget {
 }
 
 export function targetFor(rawUrl?: string): ProxyTarget | null;
+export function forwardedHeaders(headers: Record<string, string>, target: ProxyTarget): Record<string, string>;

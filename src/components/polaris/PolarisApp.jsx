@@ -652,11 +652,15 @@ function Nodes() {
   const [target,setTarget] = useState(''); const [actionError,setActionError] = useState('');
   const capture = useCaptureAction(auth.data?.data?.role, health.data?.data?.coordination_open);
   const doCapture = (action,id) => { if (!window.confirm('Confirmer cette action de capture ?')) return; capture.mutate({action,id,target,confirmed:true},{onError:e=>setActionError(e.message)}); };
+  const failure = (query,path) => query.isError ? `GET /api/v1${path} → ${query.error?.status ? `HTTP ${query.error.status}` : 'erreur réseau'}` : null;
+  const storage = safety.data?.data ?? {}, filesystem = storage.filesystem ?? {};
+  const freePercent = typeof storage.free_percent==='number' ? storage.free_percent : typeof filesystem.usage_percent==='number' ? Math.max(0,100-filesystem.usage_percent) : null;
+  const diskAvailable = freePercent==null && filesystem.available_bytes==null ? null : `${freePercent==null?'—':freePercent.toFixed(2)+' %'} · ${fmtBytes(filesystem.available_bytes)} libres`;
 
   return (
       <div className="space-y-5">
         <div className="flex items-center gap-2">
-          <div className="text-[13px] text-[#666666]">{probes.isError ? probes.error.message : `${nodes.length} nœuds · POLARIS`}</div>
+          <div className="text-[13px] text-[#666666]">{failure(probes,'/probes') ?? `${nodes.length} nœuds · POLARIS`}</div>
           <div className="ml-auto text-[11.5px] text-[#666666]">Rôle {available(auth.data?.data?.role)} · gestion des interfaces réservée à operator</div>
         </div>
         <div className="space-y-5">
@@ -688,16 +692,16 @@ function Nodes() {
                       )}
                     </React.Fragment>
                   ))}
-                  {!nodes.length && <tr><td colSpan="9" className="px-4 py-8 text-center text-[#8F8F8F]">{probes.isPending ? 'Connexion au Node Manager…' : probes.isError ? 'GET /api/v1/probes indisponible · nouvelle tentative dans 5 s' : 'Aucun nœud renvoyé par /probes'}</td></tr>}
+                  {!nodes.length && <tr><td colSpan="9" className="px-4 py-8 text-center text-[#8F8F8F]">{probes.isPending ? 'Connexion au Node Manager…' : failure(probes,'/probes') ? `${failure(probes,'/probes')} · nouvelle tentative dans 5 s` : 'Aucun nœud renvoyé par /probes'}</td></tr>}
                 </tbody>
               </table>
             </Card>
 
             <div className="grid grid-cols-2 gap-5">
-              <Card title="Capture · interfaces"><div className="p-4 grid grid-cols-4 gap-2">{records(resources.interfaces.data?.data, 'interfaces').map((x,i)=><div key={i} className="rounded-md border border-[#EBEBEB] px-2.5 py-2">{available(x.name ?? x.interface)}</div>)}</div><div className="px-4 pb-4">{resources.interfaces.isError ? resources.interfaces.error.message : 'POLARIS'}</div></Card>
-              <Card title="Stockage et ingestion"><div className="p-4 space-y-3">{[['Disque disponible', safety.data?.data?.free_percent],['Segments ingérés',metrics.data?.data?.segments_ingested],['Échecs ingestion',metrics.data?.data?.ingestion_failures]].map(([label,value])=><div key={label} className="flex justify-between"><span>{label}</span><span>{available(value)}</span></div>)}</div></Card>
-              <Card title="Modules"><div className="p-4">{records(resources.modules.data?.data,'modules').map((x,i)=><div key={i}>{available(x.name)} · {available(x.status)}</div>)}{resources.modules.isError && resources.modules.error.message}</div></Card>
-              <Card title="Captures"><div className="p-4">{records(resources.captures.data?.data,'captures').map((x,i)=><div key={i}>{available(x.id)} · {available(x.status)}{auth.data?.data?.role==='operator' && <button disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)} onClick={()=>doCapture('stop',x.id)}>Arrêter</button>}</div>)}{resources.captures.isError && resources.captures.error.message}</div></Card>
+              <Card title="Capture · interfaces"><div className="p-4 grid grid-cols-4 gap-2">{records(resources.interfaces.data?.data, 'interfaces').map((x,i)=><div key={i} className="rounded-md border border-[#EBEBEB] px-2.5 py-2">{available(x.name ?? x.interface)}</div>)}</div><div className="px-4 pb-4">{failure(resources.interfaces,'/interfaces') ?? 'POLARIS'}</div></Card>
+              <Card title="Stockage et ingestion"><div className="p-4 space-y-3">{[['Disque disponible',diskAvailable],['Segments ingérés',metrics.data?.data?.segments_ingested],['Échecs ingestion',metrics.data?.data?.ingestion_failures]].map(([label,value])=><div key={label} className="flex justify-between"><span>{label}</span><span>{available(value)}</span></div>)}{failure(safety,'/storage/safety')&&<div className="text-[#B42318]">{failure(safety,'/storage/safety')}</div>}</div></Card>
+              <Card title="Modules"><div className="p-4">{records(resources.modules.data?.data,'modules').map((x,i)=><div key={i}>{available(x.name ?? x.module_id)} · {available(x.status ?? x.module_version)}</div>)}{failure(resources.modules,'/modules')}</div></Card>
+              <Card title="Captures"><div className="p-4">{records(resources.captures.data?.data,'captures').map((x,i)=><div key={i}>{available(x.id ?? x.capture_id)} · {available(x.status ?? x.state)}{auth.data?.data?.role==='operator' && <button disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)} onClick={()=>doCapture('stop',x.id ?? x.capture_id)}>Arrêter</button>}</div>)}{failure(resources.captures,'/captures')}</div></Card>
             </div>
             {auth.data?.data?.role==='operator' && <section className="flex items-center gap-2"><input aria-label="Cible de capture" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)} value={target} onChange={e=>setTarget(e.target.value)} placeholder="Cible de capture" className="h-8 px-3 border rounded-md"/><button disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('validate')}>Valider la capture</button><button disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('start')}>Démarrer la capture</button>{actionError && <span>{actionError}</span>}</section>}
           </div>
