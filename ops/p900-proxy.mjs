@@ -42,7 +42,7 @@ export function forwardedHeaders(headers, target) {
 }
 
 function logicalName(directory) {
-  return ({ s1mme:'S1-MME', s1u:'S1-U', s5u:'S5-U', s5c:'S5-C', s11:'S11', s6a:'S6a', sxab:'Sxa/Sxb', n2:'N2', n3:'N3', n4:'N4', n6:'N6', sbi:'SBI', ims:'IMS' })[directory.toLowerCase()] ?? directory.toUpperCase();
+  return ({ s1mme:'S1-MME', s1u:'S1-U', s5u:'S5-U', s5c:'S5-C', s11:'S11', s6a:'S6a', sxab:'Sxab', n2:'N2', n3:'N3', n4:'N4', n6:'N6', sbi:'SBI', ims:'IMS' })[directory.toLowerCase()] ?? directory.toUpperCase();
 }
 function argAfter(args, flag) { const index=args.indexOf(flag); return index>=0 ? args[index+1] : null; }
 function startedAt(pid) {
