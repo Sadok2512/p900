@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.0
+- Analyzer : « + Nouvelle requête » ouvre un vrai onglet de travail (Gabarit, Portée, Conditions ET/OU/≠, Regrouper par, Actions) ; la page Requêtes devient un espace de consultation (recherche, filtres Toutes/Favoris/Partagées, modèles, requêtes enregistrées).
+- Modèles et requêtes enregistrées s'ouvrent dans un nouvel onglet ; indicateur de modifications non enregistrées et confirmation avant fermeture.
+
 ## 0.7.0
 - Onglets de travail réels : ils restent ouverts quand on lance une requête ou quand on revient à « Requêtes » ; seul le × de l'onglet le ferme.
 - Chaque onglet conserve ses conditions, sa sélection et son filtre d'UE (Session / Comparaison / Trace).

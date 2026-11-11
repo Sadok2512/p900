@@ -168,7 +168,7 @@ function Tabs({tabs,active,home,onPick,onClose,onHome,onNew}) {
         <div key={tb.id} onClick={()=>onPick(tb.id)} className={`group shrink-0 h-8 pl-3 pr-1.5 flex items-center gap-2 text-[12.5px] rounded-t-md border border-b-0 cursor-pointer max-w-[300px] ${tb.id===active?'bg-white border-[#EBEBEB] text-[#171717] shadow-[inset_0_2px_0_var(--app-accent)]':'border-transparent text-[#666666] hover:bg-white/60'}`}>
           {tb.live && <span className="w-[6px] h-[6px] rounded-full bg-[#15803D] shrink-0"/>}
           <span className="text-[11px] text-[#8F8F8F] shrink-0">{t(tb.k)}</span>
-          <span className={`${tb.id===active?'font-medium':''} truncate`}>{tb.n}</span>
+          <span className={`${tb.id===active?'font-medium':''} truncate`}>{tb.n}</span>{tb.dirty && <span title="Modifications non enregistrées" className="w-[7px] h-[7px] rounded-full bg-[#A15C07] shrink-0"/>}{tb.mode==='edit' && <span className="text-[10.5px] text-[#8F8F8F] shrink-0">édition</span>}
           <button onClick={e=>{e.stopPropagation(); onClose(tb.id);}} title={t("Fermer l'onglet")} aria-label={t("Fermer l'onglet")} className="w-5 h-5 shrink-0 grid place-items-center rounded text-[#8F8F8F] hover:text-[#B42318] hover:bg-[#F2F2F2]"><I d={ic.x} c="w-3 h-3"/></button>
         </div>
       ))}
@@ -614,8 +614,8 @@ const SAVED = [
   {n:'Échecs · run 482',g:'Parcourir',p:'Run 5G #482',c:[['Résultat','Échec']],last:'il y a 12 min',r:3,fav:true},
   {n:'PDU Session 5G · toutes causes',g:'Parcourir',p:'Captures c41 → c43',c:[['Procédure','PDU Session'],['RAT','5G SA']],last:'il y a 1 h',r:1,fav:true},
   {n:'Attach LTE · certification',g:'Parcourir',p:'lte-run-976bd44b',c:[['Procédure','Attach'],['RAT','LTE']],last:'hier',r:2},
-  {n:'Sessions passant par N4',g:'Inspecter',p:'Run 5G #482',c:[['Interface','N4']],last:'hier',r:4},
-  {n:'Erreurs S6a',g:'Parcourir',p:'Captures c41 → c43',c:[['Cause','S6a 5001']],last:'il y a 3 j',r:1},
+  {n:'Sessions passant par N4',g:'Inspecter',p:'Run 5G #482',c:[['Interface','N4']],last:'hier',r:4,shared:true},
+  {n:'Erreurs S6a',g:'Parcourir',p:'Captures c41 → c43',c:[['Cause','S6a 5001']],last:'il y a 3 j',r:1,shared:true},
 ];
 const STARTERS = [
   ['Échecs du dernier run','Toutes les sessions en échec, triées par capture',[['Résultat','Échec']]],
@@ -624,84 +624,53 @@ const STARTERS = [
   ['Plan de contrôle N4','Sessions avec échanges PFCP',[['Interface','N4']]],
 ];
 
-function AnalyzerHome({conds,setConds,run}) {
-  const [tpl,setTpl] = useState('Parcourir');
-  const [f,setF] = useState(FIELDS[0][0]);
-  const [v,setV] = useState(FIELDS[0][1][0]);
-  const vals = (FIELDS.find(x=>x[0]===f)||FIELDS[0])[1];
-  const count = SESS.filter(s=>conds.every(c=>test(s,c))).length;
+const matchQ = (s,conds,join) => { const r = conds.map(c=>c[2]==='≠'?!test(s,c):test(s,c)); return join==='OU' ? (r.length===0 || r.some(Boolean)) : r.every(Boolean); };
+const TPLS = [['Trace','Toutes les sessions d’un UE'],['Parcourir','Une ligne par session'],['Inspecter','Une ligne par message'],['Capture','Extrait pcap d’une session']];
+const SCOPES = ['Run 5G #482','lte-run-976bd44b','Captures c41 → c43','Fenêtre horaire'];
+const GROUPS = ['Aucun','Procédure','Résultat','Cause','Cellule','UE'];
+const mkDraft = (o={}) => ({tpl:'Parcourir',scope:'Run 5G #482',conds:[],join:'ET',group:'Aucun',name:'',...o});
+
+function QueryLibrary({saved,onNew,onOpen}) {
+  const [q,setQ] = useState(''); const [flt,setFlt] = useState('Toutes');
+  const list = saved.filter(x=>(flt==='Toutes'||(flt==='Favoris'?x.fav:x.shared)) && x.n.toLowerCase().includes(q.toLowerCase()));
   return (
     <div className="flex-1 overflow-auto scroll-thin">
       <div className="max-w-[1280px] mx-auto px-8 py-8 space-y-6">
-        <div className="flex items-end">
+        <div className="flex items-end gap-4">
           <div><div className="text-[12px] text-[#666666]">POLARIS Analyzer</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">Requêtes</h1>
-            <div className="text-[13px] text-[#666666] mt-1">Lance une nouvelle requête ou reprends une requête enregistrée.</div></div>
+            <div className="text-[13px] text-[#666666] mt-1">Consulte et lance tes requêtes. La création s’ouvre dans un nouvel onglet.</div></div>
+          <button onClick={()=>onNew()} className="ml-auto h-10 px-5 rounded-lg bg-[var(--app-accent)] text-white text-[14px] font-medium flex items-center gap-2 hover:opacity-90"><I d={ic.plus} c="w-4 h-4"/>Nouvelle requête</button>
         </div>
-
-        <section className="bg-white rounded-lg border border-[#EBEBEB]">
-          <div className="px-5 h-12 flex items-center border-b border-[#F2F2F2]"><h3 className="text-[14px] font-semibold">Nouvelle requête</h3>
-            <span className="ml-auto text-[12px] text-[#666666]">Aperçu : <b className="text-[#171717] tabular-nums">{count}</b> sessions correspondent</span></div>
-          <div className="p-5 grid grid-cols-[220px_1fr] gap-x-8 gap-y-5 items-start">
-            <div className="text-[13px] font-medium pt-1.5">Gabarit<div className="text-[11.5px] font-normal text-[#8F8F8F] mt-0.5">ce que la requête retourne</div></div>
-            <div className="grid grid-cols-4 gap-2">
-              {[['Trace','Toutes les sessions d’un UE'],['Parcourir','Une ligne par session'],['Inspecter','Une ligne par message'],['Capture','Extrait pcap d’une session']].map(([t,d]) => (
-                <button key={t} onClick={()=>setTpl(t)} className={`text-left rounded-md border px-3 py-2.5 transition ${tpl===t?'border-[#171717] ring-1 ring-[#171717]':'border-[#EBEBEB] hover:border-[#D4D4D4]'}`}><div className="text-[13px] font-medium">{t}</div><div className="text-[11.5px] text-[#8F8F8F] mt-0.5">{d}</div></button>
-              ))}
-            </div>
-            <div className="text-[13px] font-medium pt-1.5">Portée<div className="text-[11.5px] font-normal text-[#8F8F8F] mt-0.5">run, captures ou fenêtre</div></div>
-            <div className="flex gap-2">
-              {['Run 5G #482','lte-run-976bd44b','Captures c41 → c43','Fenêtre horaire'].map((p,k) => <button key={p} className={`h-8 px-3 rounded-md border text-[12.5px] ${k===0?'border-[#171717] bg-[var(--app-accent)] text-white':'border-[#EBEBEB] text-[#4D4D4D] hover:border-[#D4D4D4]'}`}>{p}</button>)}
-            </div>
-            <div className="text-[13px] font-medium pt-1.5">Conditions<div className="text-[11.5px] font-normal text-[#8F8F8F] mt-0.5">combinées en ET</div></div>
-            <div className="space-y-2">
-              <div className="flex flex-wrap gap-2 min-h-[32px]">
-                {conds.length===0 && <span className="text-[12.5px] text-[#8F8F8F] self-center">Aucune condition : toutes les sessions de la portée.</span>}
-                {conds.map((c,i) => <span key={i} className="inline-flex items-center h-8 rounded-md border border-[#EBEBEB] text-[12.5px] overflow-hidden"><span className="px-2.5 h-full flex items-center bg-[#FAFAFA] border-r border-[#EBEBEB] text-[#666666]">{c[0]}</span><span className="px-2.5 font-medium">{c[1]}</span><button onClick={()=>setConds(conds.filter((_,j)=>j!==i))} className="w-7 h-full grid place-items-center text-[#8F8F8F] hover:text-[#B42318] border-l border-[#EBEBEB]"><I d={ic.x} c="w-3.5 h-3.5"/></button></span>)}
-              </div>
-              <div className="flex items-center gap-2">
-                <select value={f} onChange={e=>{setF(e.target.value); setV(FIELDS.find(x=>x[0]===e.target.value)[1][0]);}} className="h-8 rounded-md border border-[#EBEBEB] text-[12.5px] px-2 bg-white">{FIELDS.map(x=><option key={x[0]}>{x[0]}</option>)}</select>
-                <span className="text-[12.5px] text-[#8F8F8F]">=</span>
-                <select value={v} onChange={e=>setV(e.target.value)} className="h-8 rounded-md border border-[#EBEBEB] text-[12.5px] px-2 bg-white min-w-[180px]">{vals.map(x=><option key={x}>{x}</option>)}</select>
-                <button onClick={()=>setConds([...conds,[f,v]])} className="h-8 px-3 rounded-md border border-[#EBEBEB] text-[12.5px] hover:bg-[#FAFAFA] flex items-center gap-1.5"><I d={ic.plus} c="w-3.5 h-3.5"/>Ajouter</button>
-                <span className="ml-2 inline-flex items-center gap-1.5 text-[11.5px] text-[#8F8F8F]"><I d={ic.lock} c="w-3 h-3"/>Identités : rôle operator</span>
-              </div>
-            </div>
-            <div className="text-[13px] font-medium pt-1.5">Regrouper par</div>
-            <div className="flex gap-2">{['Aucun','Procédure','Résultat','Cause','Cellule','UE'].map((g,k)=><button key={g} className={`h-8 px-3 rounded-md border text-[12.5px] ${k===0?'border-[#171717] text-[#171717]':'border-[#EBEBEB] text-[#666666] hover:border-[#D4D4D4]'}`}>{g}</button>)}</div>
-          </div>
-          <div className="px-5 h-14 flex items-center gap-2 border-t border-[#F2F2F2] bg-[#FAFAFA] rounded-b-lg">
-            <input placeholder="Nom de la requête (facultatif)" className="h-8 w-72 rounded-md border border-[#EBEBEB] px-3 text-[12.5px] bg-white outline-none focus:border-[#171717]"/>
-            <button className="h-8 px-3 rounded-md border border-[#EBEBEB] bg-white text-[12.5px] text-[#4D4D4D] hover:bg-[#F2F2F2]">Enregistrer</button>
-            <button onClick={run} className="ml-auto h-9 px-5 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.play} c="w-3.5 h-3.5"/>Exécuter la requête</button>
-          </div>
-        </section>
-
+        <div className="flex items-center gap-2">
+          <div className="flex-1 h-9 rounded-md border border-[#EBEBEB] bg-white flex items-center gap-2 px-3 focus-within:border-[var(--app-accent)]"><I d={ic.search} c="w-4 h-4 text-[#8F8F8F]"/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher une requête…" className="flex-1 outline-none text-[13px] bg-transparent"/></div>
+          <div className="flex rounded-md border border-[#EBEBEB] p-[2px] bg-white">{['Toutes','Favoris','Partagées'].map(f=><button key={f} onClick={()=>setFlt(f)} className={`h-8 px-3 rounded-[4px] text-[12.5px] ${flt===f?'bg-[var(--app-accent)] text-white font-medium':'text-[#666666]'}`}>{f}</button>)}</div>
+        </div>
         <div>
           <div className="text-[13px] font-semibold mb-3">Démarrer depuis un modèle</div>
           <div className="grid grid-cols-4 gap-3">
-            {STARTERS.map(([t,d,c]) => (
-              <button key={t} onClick={()=>{setConds(c); run();}} className="group text-left bg-white rounded-lg border border-[#EBEBEB] hover:border-[#171717] p-4 transition">
-                <div className="text-[13px] font-medium">{t}</div><div className="text-[12px] text-[#666666] mt-1 leading-relaxed">{d}</div>
+            {STARTERS.map(([tt,d,c]) => (
+              <button key={tt} onClick={()=>onNew(mkDraft({tpl:'Parcourir',conds:c.map(x=>[x[0],x[1],'=']),name:tt,group:c[0][0]==='Résultat'?'Cause':'Résultat'}),tt)} className="text-left bg-white rounded-lg border border-[#EBEBEB] hover:border-[var(--app-accent)] p-4 transition">
+                <div className="text-[13px] font-medium">{tt}</div><div className="text-[12px] text-[#666666] mt-1 leading-relaxed">{d}</div>
                 <div className="flex flex-wrap gap-1 mt-3">{c.map(x=><span key={x[1]} className="text-[11px] rounded border border-[#EBEBEB] px-1.5 py-0.5 text-[#4D4D4D]">{x[0]} = {x[1]}</span>)}</div>
               </button>
             ))}
           </div>
         </div>
-
         <section className="bg-white rounded-lg border border-[#EBEBEB] overflow-hidden">
-          <div className="px-5 h-12 flex items-center border-b border-[#F2F2F2]"><h3 className="text-[14px] font-semibold">Requêtes enregistrées</h3><span className="ml-auto text-[12px] text-[#666666]">{SAVED.length} requêtes</span></div>
+          <div className="px-5 h-12 flex items-center border-b border-[#F2F2F2]"><h3 className="text-[14px] font-semibold">Requêtes enregistrées</h3><span className="ml-auto text-[12px] text-[#666666]">{list.length} requêtes</span></div>
           <table className="w-full text-[12.5px]">
             <thead><tr>{['','Nom','Gabarit','Portée','Conditions','Dernière exécution','Résultats',''].map((h,k)=><th key={k} className="h-9 px-4 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#EBEBEB]">{h}</th>)}</tr></thead>
             <tbody>
-              {SAVED.map(q => (
-                <tr key={q.n} onClick={()=>{setConds(q.c); run();}} className="cursor-pointer hover:bg-[#FAFAFA] group">
-                  <td className="h-11 pl-4 border-b border-[#F2F2F2] w-8"><I d={ic.star} c={`w-3.5 h-3.5 ${q.fav?'text-[#171717]':'text-[#D4D4D4]'}`}/></td>
-                  <td className="px-4 border-b border-[#F2F2F2] font-medium text-[#171717]">{q.n}</td>
-                  <td className="px-4 border-b border-[#F2F2F2] text-[#4D4D4D]">{q.g}</td>
-                  <td className="px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#666666]">{q.p}</td>
-                  <td className="px-4 border-b border-[#F2F2F2]"><span className="flex flex-wrap gap-1">{q.c.map(x=><span key={x[1]} className="text-[11px] rounded border border-[#EBEBEB] px-1.5 py-0.5 text-[#4D4D4D]">{x[0]} = {x[1]}</span>)}</span></td>
-                  <td className="px-4 border-b border-[#F2F2F2] text-[#666666]">{q.last}</td>
-                  <td className="px-4 border-b border-[#F2F2F2] tabular-nums">{q.r}</td>
+              {list.length===0 && <tr><td colSpan={8} className="h-16 text-center text-[#8F8F8F]">Aucune requête.</td></tr>}
+              {list.map(x => (
+                <tr key={x.n} onClick={()=>onOpen(x)} className="cursor-pointer hover:bg-[#FAFAFA] group">
+                  <td className="h-11 pl-4 border-b border-[#F2F2F2] w-8"><I d={ic.star} c={`w-3.5 h-3.5 ${x.fav?'text-[#171717]':'text-[#D4D4D4]'}`}/></td>
+                  <td className="px-4 border-b border-[#F2F2F2] font-medium text-[#171717]">{x.n}{x.shared && <span className="ml-2 text-[10.5px] rounded border border-[#EBEBEB] px-1.5 py-0.5 text-[#666666]">partagée</span>}</td>
+                  <td className="px-4 border-b border-[#F2F2F2] text-[#4D4D4D]">{x.g}</td>
+                  <td className="px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#666666]">{x.p}</td>
+                  <td className="px-4 border-b border-[#F2F2F2]"><span className="flex flex-wrap gap-1">{x.c.map((y,k)=><span key={k} className="text-[11px] rounded border border-[#EBEBEB] px-1.5 py-0.5 text-[#4D4D4D]">{y[0]} {y[2]||'='} {y[1]}</span>)}</span></td>
+                  <td className="px-4 border-b border-[#F2F2F2] text-[#666666]">{x.last}</td>
+                  <td className="px-4 border-b border-[#F2F2F2] tabular-nums">{x.r}</td>
                   <td className="px-4 border-b border-[#F2F2F2] text-right"><span className="inline-flex items-center gap-1 text-[12px] font-medium text-[#171717] opacity-0 group-hover:opacity-100">Ouvrir<I d={ic.chev} c="w-3.5 h-3.5 -rotate-90"/></span></td>
                 </tr>
               ))}
@@ -709,6 +678,81 @@ function AnalyzerHome({conds,setConds,run}) {
           </table>
         </section>
         <div className="text-[11.5px] text-[#8F8F8F]">Données de démonstration.</div>
+      </div>
+    </div>
+  );
+}
+
+function QSec({n,title,sub,children}) {
+  const [open,setOpen] = useState(true);
+  return (
+    <section className="bg-white rounded-lg border border-[#EBEBEB]">
+      <button onClick={()=>setOpen(!open)} className="w-full px-5 h-11 flex items-center gap-3 text-left">
+        <span className="w-5 h-5 rounded-full bg-[#F2F2F2] text-[11px] font-semibold grid place-items-center text-[#4D4D4D]">{n}</span>
+        <span className="text-[13.5px] font-semibold">{title}</span><span className="text-[11.5px] text-[#8F8F8F]">{sub}</span>
+        <I d={ic.chev} c={`w-3.5 h-3.5 ml-auto text-[#8F8F8F] transition ${open?'':'-rotate-90'}`}/>
+      </button>
+      {open && <div className="px-5 pb-4">{children}</div>}
+    </section>
+  );
+}
+
+function QueryEditor({draft,setDraft,dirty,run,save,cancel,role}) {
+  const [f,setF] = useState(FIELDS[0][0]);
+  const [v,setV] = useState(FIELDS[0][1][0]);
+  const [op,setOp] = useState('=');
+  const [err,setErr] = useState('');
+  const vals = (FIELDS.find(x=>x[0]===f)||FIELDS[0])[1];
+  const up = o => setDraft({...draft,...o});
+  const count = SESS.filter(s=>matchQ(s,draft.conds,draft.join)).length;
+  const idField = x => x==='UE' || x==='IMSI';
+  const exec = () => {
+    if (draft.tpl==='Trace' && !draft.conds.some(c=>c[0]==='UE')) return setErr('Le gabarit Trace exige une condition UE.');
+    if (draft.conds.some(c=>c[0]==='IMSI') && role!=='operator') return setErr('Les conditions IMSI exigent le rôle operator.');
+    setErr(''); run();
+  };
+  return (
+    <div className="flex-1 overflow-auto scroll-thin">
+      <div className="max-w-[1280px] mx-auto px-8 py-6 space-y-3">
+        <div className="flex items-end gap-4 pb-1">
+          <div><div className="text-[12px] text-[#666666]">POLARIS Analyzer · Requête</div>
+            <input value={draft.name} onChange={e=>up({name:e.target.value})} placeholder="Nouvelle requête" className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1 bg-transparent outline-none w-[520px] placeholder:text-[#171717]"/></div>
+          <span className="ml-auto text-[12px] text-[#666666]">{dirty && <span className="mr-3 inline-flex items-center gap-1.5 text-[#A15C07]"><span className="w-1.5 h-1.5 rounded-full bg-[#A15C07]"/>Modifications non enregistrées</span>}Aperçu : <b className="text-[#171717] tabular-nums">{count}</b> sessions</span>
+        </div>
+        <QSec n={1} title="Gabarit" sub="ce que la requête retourne">
+          <div className="grid grid-cols-4 gap-2">{TPLS.map(([x,d]) => <button key={x} onClick={()=>up({tpl:x})} className={`text-left rounded-md border px-3 py-2 transition ${draft.tpl===x?'border-[var(--app-accent)] ring-1 ring-[var(--app-accent)]':'border-[#EBEBEB] hover:border-[#D4D4D4]'}`}><div className="text-[13px] font-medium uppercase tracking-wide">{x}</div><div className="text-[11.5px] text-[#8F8F8F] mt-0.5">{d}</div></button>)}</div>
+        </QSec>
+        <QSec n={2} title="Portée" sub="run, captures ou fenêtre horaire">
+          <div className="flex flex-wrap gap-2">{SCOPES.map(x => <button key={x} onClick={()=>up({scope:x})} className={`h-8 px-3 rounded-md border text-[12.5px] ${draft.scope===x?'border-[var(--app-accent)] bg-[var(--app-accent)] text-white':'border-[#EBEBEB] text-[#4D4D4D] hover:border-[#D4D4D4]'}`}>{x}</button>)}</div>
+        </QSec>
+        <QSec n={3} title="Conditions" sub="champ, opérateur, valeur">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-[12px] text-[#666666]">Combinaison
+              <div className="flex rounded-md border border-[#EBEBEB] p-[2px]">{['ET','OU'].map(j=><button key={j} onClick={()=>up({join:j})} className={`h-6 px-2.5 rounded-[4px] text-[11.5px] ${draft.join===j?'bg-[var(--app-accent)] text-white font-medium':'text-[#666666]'}`}>{j}</button>)}</div>
+              <span className="text-[#8F8F8F]">· NON via l’opérateur ≠</span></div>
+            <div className="flex flex-wrap gap-2 min-h-[32px]">
+              {draft.conds.length===0 && <span className="text-[12.5px] text-[#8F8F8F] self-center">Aucune condition : toutes les sessions de la portée.</span>}
+              {draft.conds.map((c,i) => <span key={i} className="inline-flex items-center h-8 rounded-md border border-[#EBEBEB] text-[12.5px] overflow-hidden">{i>0 && <span className="px-2 h-full flex items-center text-[10.5px] font-semibold text-[#8F8F8F] border-r border-[#EBEBEB]">{draft.join}</span>}<span className="px-2.5 h-full flex items-center bg-[#FAFAFA] border-r border-[#EBEBEB] text-[#666666]">{c[0]}</span><span className="px-2 text-[#8F8F8F]">{c[2]||'='}</span><span className="pr-2.5 font-medium">{c[1]}</span><button onClick={()=>up({conds:draft.conds.filter((_,j)=>j!==i)})} aria-label="Retirer" className="w-7 h-full grid place-items-center text-[#8F8F8F] hover:text-[#B42318] border-l border-[#EBEBEB]"><I d={ic.x} c="w-3.5 h-3.5"/></button></span>)}
+            </div>
+            <div className="flex items-center gap-2">
+              <select value={f} onChange={e=>{setF(e.target.value); setV(FIELDS.find(x=>x[0]===e.target.value)[1][0]);}} className="h-8 rounded-md border border-[#EBEBEB] text-[12.5px] px-2 bg-white">{FIELDS.map(x=><option key={x[0]} disabled={idField(x[0]) && x[0]==='IMSI' && role!=='operator'}>{x[0]}</option>)}</select>
+              <select value={op} onChange={e=>setOp(e.target.value)} className="h-8 rounded-md border border-[#EBEBEB] text-[12.5px] px-2 bg-white"><option>=</option><option>≠</option></select>
+              <select value={v} onChange={e=>setV(e.target.value)} className="h-8 rounded-md border border-[#EBEBEB] text-[12.5px] px-2 bg-white min-w-[180px]">{vals.map(x=><option key={x}>{x}</option>)}</select>
+              <button onClick={()=>up({conds:[...draft.conds,[f,v,op]]})} className="h-8 px-3 rounded-md border border-[#EBEBEB] text-[12.5px] hover:bg-[#FAFAFA] flex items-center gap-1.5"><I d={ic.plus} c="w-3.5 h-3.5"/>Ajouter</button>
+              <span className="ml-2 inline-flex items-center gap-1.5 text-[11.5px] text-[#8F8F8F]"><I d={ic.lock} c="w-3 h-3"/>Identités : rôle operator</span>
+            </div>
+          </div>
+        </QSec>
+        <QSec n={4} title="Regrouper par" sub="facultatif">
+          <div className="flex flex-wrap gap-2">{GROUPS.map(g=><button key={g} onClick={()=>up({group:g})} className={`h-8 px-3 rounded-md border text-[12.5px] ${draft.group===g?'border-[var(--app-accent)] text-[#171717] ring-1 ring-[var(--app-accent)]':'border-[#EBEBEB] text-[#666666] hover:border-[#D4D4D4]'}`}>{g}</button>)}</div>
+        </QSec>
+        <section className="bg-white rounded-lg border border-[#EBEBEB] px-5 h-14 flex items-center gap-2">
+          <span className="w-5 h-5 rounded-full bg-[#F2F2F2] text-[11px] font-semibold grid place-items-center text-[#4D4D4D]">5</span><span className="text-[13.5px] font-semibold mr-3">Actions</span>
+          {err && <span className="text-[12px] text-[#B42318]">{err}</span>}
+          <button onClick={cancel} className="ml-auto h-9 px-3 rounded-md border border-[#EBEBEB] bg-white text-[12.5px] text-[#4D4D4D] hover:bg-[#F2F2F2]">Annuler</button>
+          <button onClick={save} className="h-9 px-3 rounded-md border border-[#EBEBEB] bg-white text-[12.5px] text-[#4D4D4D] hover:bg-[#F2F2F2]">Enregistrer</button>
+          <button onClick={exec} className="h-9 px-5 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.play} c="w-3.5 h-3.5"/>Exécuter la requête</button>
+        </section>
       </div>
     </div>
   );
@@ -1190,46 +1234,39 @@ function App() {
     {id:'t4',k:'Trace',n:'UE-7f3a',ue:['UE-7f3a'],conds:[],live:true},
   ]);
   const [tabId,setTabId] = useState('t1');
-  const [editId,setEditId] = useState(null);
-  const [editStart,setEditStart] = useState([]);
-  const [scratch,setScratch] = useState([['Résultat','Échec']]);
+  const [saved,setSaved] = useState(SAVED);
   const [aview,setAview] = useState('queries');
   const active = tabs.find(x=>x.id===tabId);
-  const editing = !!editId && tabs.some(x=>x.id===editId);
-  const conds = aview==='results' ? (active ? active.conds : scratch) : (editing ? tabs.find(x=>x.id===editId).conds : scratch);
-  const setConds = c => {
-    if (aview==='results' && active) setTabs(ts=>ts.map(x=>x.id===active.id?{...x,conds:c}:x));
-    else if (aview!=='results' && editing) setTabs(ts=>ts.map(x=>x.id===editId?{...x,conds:c}:x));
-    else setScratch(c);
-  };
+  const view = aview==='queries' || !active ? 'library' : (active.mode==='edit' ? 'edit' : 'results');
+  const conds = active ? active.conds : [];
+  const setConds = c => active && setTabs(ts=>ts.map(x=>x.id===active.id?{...x,conds:c.map(y=>y.length>2?y:[y[0],y[1],'='])}:x));
   const rows = useMemo(()=>{
-    const c = aview==='results' && active ? active.conds : scratch;
-    const ue = active && active.ue;
-    return SESS.filter(s=>(!ue || (Array.isArray(ue)?ue.includes(s.ue):s.ue===ue)) && c.every(x=>test(s,x)));
-  },[aview,active,scratch]);
+    if (!active) return [];
+    const ue = active.ue;
+    return SESS.filter(s=>(!ue || (Array.isArray(ue)?ue.includes(s.ue):s.ue===ue)) && matchQ(s,active.conds,active.join));
+  },[active]);
   const [sel,setSel] = useState(3);
   const s = rows.find(r=>r.id===sel) || rows[0] || SESS[0];
   const nameOf = c => `${c.length?c.map(x=>x[1]).join(' · '):'Toutes les sessions'} · run 482`;
-  const sameConds = (a,b) => a.length===b.length && a.every((c,i)=>c[0]===b[i][0] && c[1]===b[i][1]);
-  const openBuilder = id => { setEditStart(id ? (tabs.find(x=>x.id===id)?.conds ?? []) : scratch); setEditId(id); setAview('queries'); };
-  const runQuery = c => {
-    const q = Array.isArray(c) ? c : (editing ? tabs.find(x=>x.id===editId).conds : scratch);
-    if (editing) { setTabs(ts=>ts.map(x=>x.id===editId?{...x,conds:q,n:sameConds(editStart,q)?x.n:nameOf(q)}:x)); setTabId(editId); }
-    else {
-      const ex = tabs.find(x=>!x.ue && sameConds(x.conds,q));
-      if (ex) setTabId(ex.id);
-      else { const id='q'+Date.now(); setTabs(ts=>[...ts,{id,k:'Requête',n:nameOf(q),conds:q}]); setTabId(id); }
-    }
-    setEditId(null); setAview('results');
-  };
-  const newTab = () => { const id='q'+Date.now(); setTabs(ts=>[...ts,{id,k:'Requête',n:'Nouvelle requête',conds:[]}]); setTabId(id); setEditId(id); setAview('queries'); };
-  const pickTab = id => { setTabId(id); setEditId(null); setAview('results'); };
+  const patch = (id,o) => setTabs(ts=>ts.map(x=>x.id===id?{...x,...o}:x));
+  const newTab = (draft=mkDraft(),title) => { const id='q'+Date.now(); setTabs(ts=>[...ts,{id,k:'Requête',n:title||'Nouvelle requête',conds:[],mode:'edit',draft,dirty:!!title}]); setTabId(id); setAview('tab'); };
+  const openSaved = q => { const id='q'+Date.now(); const c=q.c.map(y=>[y[0],y[1],y[2]||'=']); setTabs(ts=>[...ts,{id,k:'Requête',n:q.n,conds:c,join:'ET',mode:'results',draft:mkDraft({tpl:q.g,scope:q.p,conds:c,name:q.n})}]); setTabId(id); setAview('tab'); };
+  const editActive = () => { if (!active) return; patch(active.id,{mode:'edit',draft:active.draft||mkDraft({conds:active.conds,name:active.n,join:active.join||'ET'})}); };
+  const setDraft = d => patch(active.id,{draft:d,dirty:true,n:d.name||'Nouvelle requête'});
+  const runQuery = () => { const d=active.draft; patch(active.id,{conds:d.conds,join:d.join,n:d.name||nameOf(d.conds),mode:'results',ran:true}); };
+  const saveQuery = () => { const d=active.draft; const n=d.name||nameOf(d.conds);
+    setSaved(sv=>[{n,g:d.tpl,p:d.scope,c:d.conds,last:"à l'instant",r:SESS.filter(x=>matchQ(x,d.conds,d.join)).length,fav:false},...sv.filter(x=>x.n!==n)]);
+    patch(active.id,{dirty:false,n,draft:{...d,name:n}}); };
+  const cancelEdit = () => { if (active.ran || active.conds.length) patch(active.id,{mode:'results'}); else closeTab(active.id); };
+  const pickTab = id => { setTabId(id); setAview('tab'); };
   const closeTab = id => {
+    const tb = tabs.find(x=>x.id===id);
+    if (tb && tb.dirty && !window.confirm('Cet onglet contient des modifications non enregistrées. Fermer quand même ?')) return;
     const i = tabs.findIndex(x=>x.id===id);
     const nx = tabs.filter(x=>x.id!==id);
     setTabs(nx);
     if (id===tabId) {
-      if (!nx.length) { setTabId(null); setEditId(null); setAview('queries'); }
+      if (!nx.length) { setTabId(null); setAview('queries'); }
       else setTabId(nx[Math.max(0,i-1)].id);
     }
   };
@@ -1251,14 +1288,14 @@ function App() {
   useEffect(()=>{ setMsg(s.d===KO5?4:Math.min(14,s.d.msgs.length-1)); setLens(null); },[s.id]);
   return (
     <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-[13px]">
-      <TopBar role={role} setRole={setRole} page={page} setPage={setPage} onAnalyzer={()=>openBuilder(active && active.k==='Requête' ? active.id : null)} accent={accent} onSettings={()=>setPage('settings')}/>
+      <TopBar role={role} setRole={setRole} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')}/>
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · les identités sont visibles · chaque consultation est journalisée</div>}
-      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={ALL_KPIS} mockSeries={mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? <Traffic setPage={setPage}/> : page==='nodes' ? <Nodes/> : page==='templates' ? <AnalyzerHome conds={scratch} setConds={setScratch} run={()=>{setPage('sessions'); runQuery(scratch);}}/> : <>
-      {!full && <Tabs tabs={tabs} active={tabId} home={aview==='queries'} onPick={pickTab} onClose={closeTab} onHome={()=>openBuilder(active && active.k==='Requête' ? active.id : null)} onNew={newTab}/>}
-      {aview==='queries' ? <AnalyzerHome conds={conds} setConds={setConds} run={runQuery}/> : <div className="flex-1 flex min-h-0 p-3 bg-[#FAFAFA]">
+      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={ALL_KPIS} mockSeries={mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? <Traffic setPage={setPage}/> : page==='nodes' ? <Nodes/> : page==='templates' ? <QueryLibrary saved={saved} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
+      {!full && <Tabs tabs={tabs} active={tabId} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
+      {view==='library' ? <QueryLibrary saved={saved} onNew={newTab} onOpen={openSaved}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role}/> : <div className="flex-1 flex min-h-0 p-3 bg-[#FAFAFA]">
         <main ref={mainRef} className="flex-1 min-w-0 flex flex-col">
           {!full && !gridHidden && <>
-            <Grid rows={rows} sel={s.id} setSel={setSel} role={role} conds={conds} setConds={setConds} onEdit={()=>openBuilder(active?active.id:null)} height={`${gridPct}%`}/>
+            <Grid rows={rows} sel={s.id} setSel={setSel} role={role} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`}/>
             <div onMouseDown={e=>drag(e,'h')} onDoubleClick={()=>setGridPct(42)} title="Glisser pour redimensionner · double-clic pour réinitialiser" className="group h-3 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[5px] h-[2px] w-10 rounded-full bg-[#E0E0E0] group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
           </>}
           <Detail s={s} sel={msg} setSel={setMsg} lens={lens} ui={ui}/>
@@ -1270,7 +1307,7 @@ function App() {
       </div>}</>}
       <footer className="h-7 shrink-0 bg-white border-t border-[#EBEBEB] flex items-center gap-5 px-4 text-[11.5px] text-[#666666]">
         <span className="flex items-center gap-1.5"><span className="w-[6px] h-[6px] rounded-full bg-[#15803D]"/>12/12 dumpcap</span><span>Import à jour</span><span>Segments ignorés : 0</span>
-        <span>{rows.length} sessions · requête 0,8 s</span><span className="ml-auto font-mono">OIRAN 2.10.2 · Analyzer 0.7.0 · données fictives</span>
+        <span>{rows.length} sessions · requête 0,8 s</span><span className="ml-auto font-mono">OIRAN 2.10.2 · Analyzer 0.8.0 · données fictives</span>
       </footer>
     </div>
   );
