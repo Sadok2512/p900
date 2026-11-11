@@ -278,13 +278,13 @@ function UeInfo({ t, ue, res, op, tracking, msgs, onHide }) {
   const Row = ({ n, v, s }) => <div className="flex items-baseline gap-2 py-[5px] text-[12px]"><span className="w-[120px] shrink-0 text-[#8F8F8F]">{n}</span>{v ? <span className="text-[#171717] font-mono text-[11.5px] truncate" title={s ? 'preuve : seq ' + s : ''}>{v}</span> : <span className="text-[#A3A3A3] italic">{t('Non disponible')}</span>}{v && s && <span className="ml-auto shrink-0 font-mono text-[10px] text-[var(--app-accent)]">#{s}</span>}</div>;
   const Sec = ({ title, children }) => <div className="px-4 py-2.5 border-b border-[#F5F5F5]"><div className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mb-1">{t(title)}</div>{children}</div>;
   const [proof, setProof] = useState(false);
-  const I = ue?.info || {}; const has = (k) => { const v = I[k]; if (!tracking || !v || !v[0]) return [null, null]; if (v[1] == null) return v; return msgs.some(m => m.seq >= v[1] - (ue.cap === 482 ? 0 : 0) && m.seq >= 1200 + (v[1] % 100 > 30 ? 1 : v[1] % 100)) ? v : [null, null]; };
+  const I = ue?.info || {}; const has = (k) => { const v = I[k]; if (!tracking || !v || !v[0]) return [null, null]; if (v[1] == null) return v; const need = v[1] < 1000 ? v[1] + 400 : v[1]; return msgs.some(m => m.seq >= need) ? [v[0], need] : [null, null]; };
   return <div className={card + ' overflow-hidden'}>
     <div className="h-10 px-4 flex items-center gap-2 border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold">UE Info</h3>{tracking && <span className="text-[10.5px] text-[#8F8F8F]">{t('màj')} {last?.ts}</span>}<button onClick={onHide} className="ml-auto text-[12px] text-[#8F8F8F] hover:text-[#171717]">⟩</button></div>
     {!tracking ? <div className="px-4 py-6 text-[12.5px] text-[#8F8F8F]">{t('Aucun UE suivi.')}</div> : <>
       <Sec title="Identité">
         <Row n={t('Pseudonyme')} v={res.ue} s={null} />
-        <Row n="IMSI / SUPI" v={op ? ue.imsiMask : null} s={op ? ue.cap === 482 ? 1204 : 801 : null} />
+        <Row n="IMSI / SUPI" v={op ? ue.imsiMask : null} s={op ? 1201 : null} />
         {!op && <div className="text-[11px] text-[#A3A3A3] -mt-0.5 mb-1">{t('masqué en rôle viewer')}</div>}
         <div className="flex items-center gap-2 py-1 text-[12px]"><span className="w-[120px] text-[#8F8F8F]">{t('Rattachement')}</span><Tag c={res.st === 'Trouvé' ? '#15803D' : '#A15C07'}>{res.st === 'Trouvé' ? 'EXACT' : 'À PROUVER'}</Tag><button onClick={() => setProof(!proof)} className="ml-auto text-[11px] text-[var(--app-accent)]">{proof ? t('masquer') : t('preuve')}</button></div>
         {proof && <div className="text-[11px] text-[#4D4D4D] bg-[#FAFAFA] rounded p-2 mb-1">{ue.proof}</div>}
