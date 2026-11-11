@@ -33,3 +33,4 @@ use the editor.
 - Read lab data through src/lib/polaris-api resource hooks and adapters, never from UI fixtures; keeps the existing views independent of backend schemas.
 - External lab authentication stays with the same-origin reverse proxy; the browser reads its role and never creates a local authority or backend.
 - PolarisDataProvider owns the explicit demo mode; caches separate API/demo keys so simulations cannot silently replace real data.
+- The /api/v1 relay route forwards to the lab server (POLARIS_UPSTREAM_URL); it lets the hosted preview reach the lab.
