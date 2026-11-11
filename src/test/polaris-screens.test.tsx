@@ -43,6 +43,15 @@ describe('main screens with simulated REST responses',()=>{
     expect(document.body.textContent).not.toContain('198.51.100.10');
     expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/sessions/filter' && options.method==='POST')).toBe(true);
   });
+  it('Analyzer can display every session with an unfiltered request', async()=>{
+    open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Afficher toutes les sessions'}));
+    await screen.findAllByText('ue-test');
+    const request=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/sessions/filter' && options.method==='POST');
+    expect(request).toBeDefined();
+    expect(JSON.parse(String(request?.[1]?.body))).toEqual({});
+    expect(screen.getAllByText('Toutes les sessions').length).toBeGreaterThan(0);
+    expect(screen.getByRole('checkbox',{name:'Démo'})).not.toBeChecked();
+  });
   it('keeps a session without session_id non-clickable and never requests a fallback id', async()=>{
     const previousSessions=payloads['/sessions']; const previousFilter=payloads['/sessions/filter'];
     payloads['/sessions']=[{...session,session_id:undefined}]; payloads['/sessions/filter']=[{...session,session_id:undefined}];
