@@ -35,6 +35,7 @@ export async function requestFrom<T>(base: string, path: string, options: { para
     response = await fetch(url, { method: options.method ?? 'GET', credentials: 'same-origin', signal, headers: { Accept: 'application/json', ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }) });
   } catch { throw new PolarisApiError('NETWORK_ERROR', 'POLARIS non connecté', 0); }
   finally { clearTimeout(timer); }
+  if (response.headers?.get?.('x-polaris-unreachable') === '1') throw new PolarisApiError('BACKEND_UNREACHABLE', 'POLARIS non connecté', 502);
   let payload: unknown;
   try { payload = await response.json(); } catch { payload = null; }
   if (!response.ok) {

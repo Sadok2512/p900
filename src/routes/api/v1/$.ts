@@ -23,7 +23,9 @@ async function relay({ request, params }: { request: Request; params: { _splat?:
     for (const h of PASS_RES) { const v = res.headers.get(h); if (v) out.set(h, v) }
     return new Response(res.body, { status: res.status, headers: out })
   } catch {
-    return Response.json({ error: { message: 'POLARIS non connecté' } }, { status: 502 })
+    // Lab unreachable is an expected state, not an app crash: answer 200 with a marker header so the
+    // preview doesn't report it as a failure; the client turns it back into a 502 "non connecté".
+    return Response.json({ error: { code: 'BACKEND_UNREACHABLE', message: 'POLARIS non connecté' } }, { status: 200, headers: { 'x-polaris-unreachable': '1', 'cache-control': 'no-store' } })
   }
 }
 

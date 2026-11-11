@@ -42,3 +42,11 @@ describe('POLARIS client', () => {
     expect(redact({ imsi: '001010000000101', supi: 'private', guti: 'private', tmsi: 'private', imei: 'private', K: 'private', OPc: 'private', pseudonym: 'ue-7f3a', decoded: [{ name: 'GUTI', value: 'private' }] })).toEqual({ imsi:'masqué', supi:'masqué', guti:'masqué', tmsi:'masqué', imei:'masqué', K:'masqué', OPc:'masqué', pseudonym:'ue-7f3a', decoded:[{name:'GUTI',value:'masqué'}] });
   });
 });
+
+import { it as itU, expect as expectU, vi as viU } from 'vitest';
+itU('treats the relay unreachable marker as POLARIS non connecté (502)', async () => {
+  viU.stubGlobal('fetch', viU.fn(async () => new Response(JSON.stringify({ error: { code: 'BACKEND_UNREACHABLE' } }), { status: 200, headers: { 'x-polaris-unreachable': '1' } })));
+  const { request } = await import('./client');
+  await expectU(request('/health')).rejects.toMatchObject({ status: 502, message: 'POLARIS non connecté' });
+  viU.unstubAllGlobals();
+});
