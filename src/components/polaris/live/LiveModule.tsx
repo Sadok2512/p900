@@ -153,7 +153,7 @@ export default function LiveModule({ t, role, setPage }) {
       {/* Top zone */}
       <div className="bg-white border-b border-[#EBEBEB]">
         <div className="max-w-[1600px] mx-auto px-6 py-4 flex flex-wrap items-center gap-3">
-          <div className="mr-2"><div className="text-[11.5px] text-[#666666]">POLARIS Live</div><h1 className="text-[20px] font-semibold tracking-tight text-[#171717] leading-tight">Live Trace</h1></div>
+          <div className="mr-2"><div className="text-[12px] text-[#666666]">POLARIS Live</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">Live Trace</h1></div>
           <form onSubmit={find} className="flex items-center h-9 rounded-lg border border-[#EBEBEB] bg-white focus-within:border-[var(--app-accent)] overflow-hidden">
             <select value={ttype} onChange={e=>{setTtype(e.target.value);setQ('');}} className="h-full px-2 text-[12px] bg-[#FAFAFA] border-r border-[#EBEBEB] outline-none">
               <option value="pseudo">{t('Pseudonyme')}</option>{op && <option value="imsi">IMSI / SUPI</option>}<option value="guti">GUTI / TMSI</option><option value="cell">{t('Cellule')}</option><option value="run">Run</option>

@@ -544,7 +544,7 @@ function Nodes() {
     <div className="flex-1 overflow-auto scroll-thin">
       <div className="max-w-[1480px] mx-auto px-8 py-7 space-y-5">
         <div className="flex items-end gap-6">
-          <div><div className="text-[12px] text-[#666666]">POLARIS Nœuds</div><h1 className="text-[24px] font-semibold tracking-tight text-[#171717] mt-1">Gestion des nœuds</h1>
+          <div><div className="text-[12px] text-[#666666]">POLARIS Nœuds</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">Gestion des nœuds</h1>
             <div className="text-[13px] text-[#666666] mt-1">6 nœuds joignables · versions servies conformes · disque à surveiller.</div></div>
           <div className="ml-auto flex gap-2">
             <button className="h-9 px-4 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.plus} c="w-4 h-4"/>Ajouter un nœud</button>
@@ -634,7 +634,7 @@ function AnalyzerHome({conds,setConds,run}) {
     <div className="flex-1 overflow-auto scroll-thin">
       <div className="max-w-[1280px] mx-auto px-8 py-8 space-y-6">
         <div className="flex items-end">
-          <div><div className="text-[12px] text-[#666666]">POLARIS Analyzer</div><h1 className="text-[24px] font-semibold tracking-tight text-[#171717] mt-1">Requêtes</h1>
+          <div><div className="text-[12px] text-[#666666]">POLARIS Analyzer</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">Requêtes</h1>
             <div className="text-[13px] text-[#666666] mt-1">Lance une nouvelle requête ou reprends une requête enregistrée.</div></div>
         </div>
 
@@ -724,7 +724,7 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
   const inp = "w-full h-11 rounded-lg border border-[#E5E5E5] bg-white px-3.5 text-[14px] outline-none transition focus:border-transparent focus:ring-2";
   const SECS=[['apparence','Apparence','Couleur et thème'],['securite','Sécurité','Mot de passe'],['langue','Langue','Français ou English'],['apropos','À propos','Version et build']];
   const Card = ({title,desc,children}) => <section className="bg-white rounded-xl border border-[#EBEBEB] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-    <div className="px-7 pt-6 pb-5 border-b border-[#F0F0F0]"><h2 className="text-[18px] font-semibold tracking-tight">{title}</h2><p className="mt-1 text-[14px] text-[#666666]">{desc}</p></div>
+    <div className="px-7 pt-6 pb-5 border-b border-[#F0F0F0]"><h2 className="text-[18px] font-semibold tracking-[-0.01em] text-[#171717]">{title}</h2><p className="mt-1 text-[14px] text-[#666666]">{desc}</p></div>
     <div className="p-7">{children}</div></section>;
   return (
     <div className="flex-1 overflow-auto scroll-thin">
@@ -734,7 +734,7 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
       <div className="relative z-10 max-w-[1080px] mx-auto px-8 -mt-12 pb-16">
         <div className="flex items-end gap-5 mb-10">
           <div style={{background:accent}} className="w-24 h-24 rounded-2xl ring-4 ring-white shadow-lg grid place-items-center text-[30px] font-bold text-white">SD</div>
-          <div className="pb-1 pt-14"><h1 className="text-[28px] font-semibold tracking-tight">{t("Paramètres")}</h1><p className="text-[14.5px] text-[#666666]">{t("Gérez votre compte et l'apparence de POLARIS")}</p></div>
+          <div className="pb-1 pt-14"><h1 className="text-[30px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717]">{t("Paramètres")}</h1><p className="text-[14.5px] text-[#666666]">{t("Gérez votre compte et l'apparence de POLARIS")}</p></div>
         </div>
         <div className="grid grid-cols-[240px_minmax(0,1fr)] gap-10">
           <nav className="space-y-1.5">
@@ -836,7 +836,7 @@ function Live({role}) {
       <div className="sticky top-0 z-10 bg-[#FFF7E6] border-b border-[#FCE2B0] text-[#A15C00] text-[12.5px] px-8 h-8 flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-[#A15C00] animate-pulse"/>{t("Live delayed by")} {delay} s<span className="ml-auto text-[11.5px]">{t("Données de démo")} · {t("flux pris après décodage — dumpcap jamais touchés")}</span></div>
       <div className="max-w-[1480px] mx-auto px-8 py-7 space-y-5">
         <div className="flex flex-wrap items-end gap-6">
-          <div><div className="text-[12px] text-[#666666]">POLARIS Live</div><h1 className="text-[24px] font-semibold tracking-tight text-[#171717] mt-1">{t("Trace live")}</h1><div className="text-[13px] text-[#666666] mt-1">{t("Suivi en temps réel des sessions capturées.")}</div></div>
+          <div><div className="text-[12px] text-[#666666]">POLARIS Live</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">{t("Trace live")}</h1><div className="text-[13px] text-[#666666] mt-1">{t("Suivi en temps réel des sessions capturées.")}</div></div>
           <div className="ml-auto flex items-center gap-2">
             <div className="flex items-center gap-2 h-9 px-3 rounded-lg border border-[#EBEBEB] bg-white focus-within:border-[var(--app-accent)] w-[300px]">
               <span className="text-[11px] text-[#8F8F8F]">{t("Cible")}</span>
@@ -934,7 +934,7 @@ function Traffic({setPage}){
     <div className="flex-1 overflow-auto scroll-thin bg-[#FAFAFA]">
       <div className="max-w-[1480px] mx-auto px-8 py-7 space-y-5">
         <div className="flex flex-wrap items-end gap-6">
-          <div><div className="text-[12px] text-[#666666]">POLARIS Traffic</div><h1 className="text-[24px] font-semibold tracking-tight text-[#171717] mt-1">Traffic</h1><div className="text-[13px] text-[#666666] mt-1">{t("Débit, santé TCP, applications, congestion")}</div></div>
+          <div><div className="text-[12px] text-[#666666]">POLARIS Traffic</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">Traffic</h1><div className="text-[13px] text-[#666666] mt-1">{t("Débit, santé TCP, applications, congestion")}</div></div>
           <div className="ml-auto flex items-center gap-3"><span className="text-[11px] font-medium text-[#A15C00] bg-[#FFF7E6] border border-[#FCE2B0] rounded px-1.5 py-[1px]">{t("Données de démo")}</span><span className="text-[12px] text-[#8F8F8F]">{t("Aucune charge utile, aucune URL complète stockée.")}</span></div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
@@ -1072,7 +1072,7 @@ function Kpis({setPage}) {
         <div className="flex flex-wrap items-end gap-6">
           <div>
             <div className="text-[12px] text-[#666666]">POLARIS KPI</div>
-            <h1 className="text-[24px] font-semibold tracking-tight text-[#171717] mt-1">{t("KPI & Anomalies")}</h1>
+            <h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">{t("KPI & Anomalies")}</h1>
             <div className="text-[13px] text-[#666666] mt-1">{t("Indicateurs par procédure et détection d'écarts.")}</div>
           </div>
           <div className="ml-auto flex items-center gap-3">

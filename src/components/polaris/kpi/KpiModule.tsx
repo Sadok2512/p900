@@ -66,7 +66,7 @@ export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChar
       <div className="bg-white border-b border-[#EBEBEB]">
         <div className="max-w-[1600px] mx-auto px-6 pt-4">
           <div className="flex flex-wrap items-end gap-4">
-            <div><div className="text-[11.5px] text-[#666666]">POLARIS KPI</div><h1 className="text-[20px] font-semibold tracking-tight text-[#171717] leading-tight">{t('KPI & Anomalies')}</h1></div>
+            <div><div className="text-[12px] text-[#666666]">POLARIS KPI</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">{t('KPI & Anomalies')}</h1></div>
             <div className="ml-auto flex items-center gap-3 pb-1">
               <span className="text-[12px] text-[#8F8F8F]">{t('Rôle')} <b className={role === 'operator' ? 'text-[#A15C07]' : 'text-[#171717]'}>{role}</b>{!canWrite && ' · ' + t('consultation uniquement')}</span>
               <button onClick={() => setDemo(!demo)} className={`h-7 px-2.5 rounded-full text-[11.5px] font-medium border flex items-center gap-1.5 ${demo ? 'bg-[#FFF7E6] border-[#FCE2B0] text-[#A15C00]' : 'border-[#EBEBEB] text-[#666666]'}`}><span className={`w-6 h-3.5 rounded-full relative ${demo ? 'bg-[#A15C00]' : 'bg-[#D4D4D4]'}`}><span className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all ${demo ? 'left-[12px]' : 'left-[2px]'}`} /></span>{t('Démo')}</button>
