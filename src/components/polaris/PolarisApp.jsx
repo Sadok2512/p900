@@ -574,7 +574,7 @@ const MODULES = [
 ];
 const Soon = () => <span className="text-[10.5px] font-medium text-[#8F8F8F] border border-[#EBEBEB] rounded px-1.5 py-[1px]">{t("Bientôt")}</span>;
 
-function Home({setPage,onNew}) {
+function Home({setPage,onNew,hidden=[]}) {
   const { demo } = usePolarisMode();
   const health = useHealth(), metrics = useMetrics(), safety = useStorageSafety();
   const m = metrics.data?.data, h = health.data?.data;
@@ -599,7 +599,7 @@ function Home({setPage,onNew}) {
         <section className="mt-14">
           <h2 className="text-[13px] font-semibold text-[#171717] mb-4">{t("Modules")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {MODULES.filter(x=>x[3]!=='trafic'||TRAFFIC_ENABLED).map(([n,desc,d,tg,adm])=>(
+            {MODULES.filter(x=>(x[3]!=='trafic'||TRAFFIC_ENABLED) && isVisible(hidden,x[3])).map(([n,desc,d,tg,adm])=>(
               <button key={n} disabled={!tg} onClick={()=>go(tg)} className="group text-left h-full rounded-xl border border-[#EBEBEB] bg-white p-4 flex flex-col transition hover:border-[#D4D4D4] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:border-[#EBEBEB]">
                 <span className={`w-8 h-8 rounded-lg grid place-items-center ${tg?'bg-[var(--app-accent)] text-white':'bg-[#F2F2F2] text-[#8F8F8F]'}`}><I d={d} c="w-4 h-4"/></span>
                 <span className={`mt-4 text-[14px] font-semibold flex items-center gap-1.5 flex-wrap ${tg?'text-[#171717]':'text-[#666666]'}`}>{t(n)}{adm && <span className="text-[10px] font-semibold uppercase tracking-wide rounded px-1.5 py-[1px] bg-[var(--app-accent)] text-white">{t("Administrateur")}</span>}</span>
@@ -1141,7 +1141,7 @@ function App() {
       <TopBar role={role} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')} metrics={metrics} version={version} demo={demo} hidden={hiddenMods}/>
       <DataStatus t={t}/>
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · identités masquées · actions soumises au proxy</div>}
-      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : page==='templates' ? <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
+      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={hiddenMods} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : page==='templates' ? <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
       {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
       {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-[#F8FAFC]">
         <main ref={mainRef} className="flex-1 min-w-0 flex flex-col">

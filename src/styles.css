@@ -165,19 +165,19 @@
 
 .polaris-content-shell {
   width: 100%;
-  max-width: 1120px;
+  max-width: 1680px;
   margin-inline: auto;
 }
 
 @media (min-width: 1600px) {
   .polaris-content-shell {
-    max-width: 1400px;
+    max-width: 1840px;
   }
 }
 
 @media (min-width: 1920px) {
   .polaris-content-shell {
-    max-width: 1600px;
+    max-width: 2200px;
   }
 }
 
