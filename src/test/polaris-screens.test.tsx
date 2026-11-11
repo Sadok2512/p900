@@ -8,7 +8,7 @@ const session = { session_id: 's1', ue_pseudonym: 'ue-test', technology: '5G SA'
 const event = { event_id:'e1', capture_id:'c1', interface:'N2', protocol:'NGAP', message_name:'Registration Accept', source_participant:'AMF', destination_participant:'UE', direction:'CORE_TO_RAN', decoding_status:'DECODED', semantic_status:'SUCCESS', procedure_group:'Registration', packet_references:[{packet_number:45}], decoded_ie_tree:{result:'accepted'}, errors:[] };
 const payloads: Record<string,unknown> = {
   '/auth/me':{role:'operator'}, '/health':{status:'healthy',coordination_open:false}, '/version':{backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{ngap:'0.6.0'}},
-  '/metrics':{capture_state:'active',pending_segments:7,segments_ingested:18,ingestion_failures:0,open_segments:2,zero_event_segments:1,dumpcap_active:6,dumpcap_expected:12}, '/storage/safety':{free_percent:25},
+  '/metrics':{capture_state:'active',pending_segments:7,segments_ingested:18,ingestion_failures:0,open_segments:2,zero_event_segments:1,dumpcap_active:6,dumpcap_expected:12}, '/storage/safety':{filesystem:{usage_percent:75,available_bytes:268435456}},
   '/sessions':[session], '/sessions/filter':[session], '/sessions/s1':session, '/sessions/s1/events':[event], '/sessions/s1/callflow':{events:[event]}, '/sessions/s1/procedures':[], '/sessions/s1/correlations':{edges:[{edge_id:'edge-1',source_event_id:'e1',target_event_id:'e1',source_interface:'N2',target_interface:'N2',matching_identifiers:['ctx=test'],rule_id:'context-rule',rule_version:'1',matched_rules:['context-rule'],evidence_description:'same context',evidence_type:'EXACT_CONTEXT',confidence:'EXACT',scope:'session',limitations:[],packet_references:[]}]},
   '/events/e1':event, '/events/e1/provenance':{capture_id:'c1',event_id:'e1',packet_number:45}, '/packets':[{id:'p1'}],
   '/probes':[{id:'p1',name:'lab-probe',role:'Capture',status:'healthy',version:'probe-test'}], '/probes/p1':{id:'p1',version:'probe-test'}, '/probes/p1/interfaces':[{name:'N2'}],
@@ -109,6 +109,16 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.queryByRole('button',{name:'Ajouter un nœud'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button',{name:'Déploiements'})).not.toBeInTheDocument();
     await screen.findByRole('textbox',{name:'Cible de capture'}); expect(screen.getByRole('textbox',{name:'Cible de capture'})).toBeDisabled();
+  });
+  it('keeps POLARIS connected when only probes fails and names the failing endpoint', async()=>{
+    fetcher.mockImplementation(async (url: string) => {
+      const path=url.replace('/api/v1','').split('?')[0] ?? '';
+      if(path==='/probes') return new Response(JSON.stringify({error:{code:'UPSTREAM'}}),{status:502,headers:{'Content-Type':'application/json'}});
+      return new Response(JSON.stringify({data:payloads[path] ?? [],meta:{total:1}}),{headers:{'Content-Type':'application/json'}});
+    });
+    open('nodes');
+    expect(await screen.findByText('POLARIS connecté')).toBeInTheDocument();
+    expect(await screen.findAllByText(/GET \/api\/v1\/probes → HTTP 502/)).not.toHaveLength(0);
   });
   it('adds then removes a fictive interface through the Administration contract', async()=>{
     let interfaces=[...(payloads['/interfaces'] as Array<Record<string,unknown>>)];

@@ -87,8 +87,9 @@ function Modules({Card,hidden,onToggle}) {
 function System({Card,onSettings}) {
   const health = useHealth(), version = useVersion(), safety = useStorageSafety();
   const v = version.data?.data ?? {}, h = health.data?.data ?? {};
+  const filesystem=safety.data?.data?.filesystem??{}, diskFree=typeof safety.data?.data?.free_percent==='number'?`${safety.data.data.free_percent} %`:typeof filesystem.usage_percent==='number'?`${Math.max(0,100-filesystem.usage_percent).toFixed(2)} % · ${available(filesystem.available_bytes)} octets libres`:'—';
   return <div className="space-y-5">
-    <Card title="Plateforme"><div className="p-4 grid grid-cols-2 gap-x-8 gap-y-2 text-[12.5px]">{[['État',h.status],['POLARIS',v.platform_core],['API',v.backend_api],['Disque disponible',safety.data?.data?.free_percent]].map(([l,x])=><div key={l} className="flex justify-between border-b border-[#F2F2F2] py-1.5"><span className="text-[#666666]">{l}</span><span className="font-mono">{available(x)}</span></div>)}</div>
+    <Card title="Plateforme"><div className="p-4 grid grid-cols-2 gap-x-8 gap-y-2 text-[12.5px]">{[['État',h.status??h.mode??'connecté'],['POLARIS',v.platform_core],['API',v.backend_api],['Disque disponible',diskFree]].map(([l,x])=><div key={l} className="flex justify-between border-b border-[#F2F2F2] py-1.5"><span className="text-[#666666]">{l}</span><span className="font-mono">{available(x)}</span></div>)}</div>
       {(health.isError||version.isError) && <div className="px-4 pb-4"><Fail q={health.isError?health:version} path={health.isError?'/health':'/version'}/></div>}</Card>
     <Card title="Préférences de l'interface" action={<button type="button" onClick={onSettings} className="h-8 px-3 rounded-md border border-[#EBEBEB] bg-white text-[12.5px] text-[#4D4D4D] hover:bg-[#FAFAFA]">Ouvrir les paramètres</button>}><div className="p-4 text-[12.5px] text-[#666666]">Langue, couleur et mot de passe.</div></Card>
   </div>;

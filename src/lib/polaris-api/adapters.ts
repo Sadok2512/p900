@@ -108,7 +108,11 @@ export function healthKpi(id: string, m?: Metrics | null, s?: Safety | null): nu
   if (id === 'kpi.probe.dumpcap') return m?.dumpcap_active == null || m.dumpcap_expected == null || m.dumpcap_expected <= 0 ? null : m.dumpcap_active / m.dumpcap_expected * 100;
   if (id === 'kpi.probe.segments') return typeof m?.['segments_dropped'] === 'number' ? m['segments_dropped'] : null;
   if (id === 'kpi.probe.lag') return m?.import_lag_seconds ?? null;
-  if (id === 'kpi.probe.disk') return s?.free_percent ?? (s?.free_bytes == null || s.total_bytes == null || s.total_bytes <= 0 ? null : s.free_bytes / s.total_bytes * 100);
+  if (id === 'kpi.probe.disk') {
+    const filesystem=s?.filesystem as RecordData | undefined;
+    if (typeof filesystem?.['usage_percent']==='number') return Math.max(0,100-filesystem['usage_percent']);
+    return s?.free_percent ?? (s?.free_bytes == null || s.total_bytes == null || s.total_bytes <= 0 ? null : s.free_bytes / s.total_bytes * 100);
+  }
   return null;
 }
 export type Draft = { tpl?: string; group?: string; scope?: string; join?: string; conds: string[][] };
