@@ -20,6 +20,7 @@ export const useAuthMe = () => useResource<AuthMe>('/auth/me', {}, true, false);
 export const useHealth = () => useResource<Health>('/health');
 export const useVersion = () => useResource<Version>('/version', {}, true, false);
 export const useMetrics = () => useResource<Metrics>('/metrics');
+export const useLiveMetrics = () => useQuery({ ...resourceOptions<Metrics>('/metrics', {}, false), refetchInterval: 10_000, refetchIntervalInBackground: true });
 export const useStorageSafety = () => useResource<Safety>('/storage/safety');
 export const useSessions = (params: QueryParams = {}, enabled = true) => useResource<Session[]>('/sessions', params, enabled);
 const idPath = (id: string | number | null | undefined) => encodeURIComponent(String(id ?? ''));

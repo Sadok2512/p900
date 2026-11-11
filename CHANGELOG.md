@@ -3,6 +3,8 @@
 ## 0.9.2
 - Accueil et pages de contenu élargis progressivement à 1400 px dès 1600 px de viewport, puis 1600 px dès 1920 px, sans modifier Analyzer, Live ni KPI.
 - Taille de texte racine fluide de 16 à 17 px pour conserver une lecture confortable sur les grands écrans.
+- Barre supérieure enrichie avec la version POLARIS/UI réelle et son détail de composants, sans valeur de version codée en dur.
+- État LIVE issu de `/metrics` toutes les 10 secondes : LIVE, BLOQUÉ, RETARD, HORS LIGNE ou DÉMO, avec animation accessible et accès direct au module Live.
 
 ## 0.9.1
 - Adaptateur sessions aligné sur les champs réels `session_id`, `ue_pseudonym`, `state`, `technology`, `procedure` et `decode_completeness`; aucun identifiant de remplacement n'est fabriqué.

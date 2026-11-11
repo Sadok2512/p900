@@ -181,6 +181,21 @@
   }
 }
 
+@keyframes polaris-live-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.78); }
+}
+
+.polaris-live-pulse {
+  animation: polaris-live-pulse 1.2s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .polaris-live-pulse {
+    animation: none;
+  }
+}
+
 .tabular-nums { font-variant-numeric: tabular-nums; }
 .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
 .scroll-thin::-webkit-scrollbar-thumb { background: oklch(0.87 0 0); border-radius: 8px; }

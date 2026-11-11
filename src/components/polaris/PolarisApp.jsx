@@ -1,6 +1,6 @@
 import KpiModule from './kpi/KpiModule';
 import LiveModule from './live/LiveModule';
-import { useAuthMe, useHealth, useVersion, useMetrics, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions } from '@/lib/polaris-api';
+import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
@@ -42,13 +42,36 @@ const Stat = ({s}) => {
 };
 const Lbl = ({children}) => <div className="text-[11px] font-semibold text-[#666666] uppercase tracking-[0.06em] mb-1.5">{children}</div>;
 
-function TopBar({role,page,setPage,onAnalyzer,accent,onSettings}) {
+function TopBarLive({metrics,demo,onOpen}) {
+  const [pendingHistory,setPendingHistory] = useState([]);
+  const lastSample = useRef(0);
+  useEffect(()=>{
+    if (demo) { lastSample.current=0; setPendingHistory([]); return; }
+    const pending=metrics.data?.data?.pending_segments, sampledAt=metrics.dataUpdatedAt;
+    if (!sampledAt || sampledAt===lastSample.current || typeof pending!=='number') return;
+    lastSample.current=sampledAt;
+    setPendingHistory(history=>[...history,pending].slice(-4));
+  },[demo,metrics.dataUpdatedAt,metrics.data?.data?.pending_segments]);
+  const data=metrics.data?.data;
+  const indicator=topBarLiveIndicator({demo,apiReachable:!(metrics.isError||metrics.isRefetchError)&&!!data,captureState:data?.capture_state,pendingHistory});
+  const sampledAt=metrics.dataUpdatedAt ? new Date(metrics.dataUpdatedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}) : '—';
+  const title=`capture_state: ${available(data?.capture_state)}\nsegments ingérés: ${available(data?.segments_ingested)}\npending: ${available(data?.pending_segments)}\ndernier relevé: ${sampledAt}`;
+  return <button type="button" onClick={onOpen} title={title} aria-label={`État capture : ${indicator.label}`} className="h-8 px-2 flex items-center gap-1.5 rounded-md hover:bg-[#F5F5F5] font-semibold text-[11.5px] tracking-wide" style={{color:indicator.color}}><span aria-hidden="true" className={`w-2 h-2 rounded-full shrink-0 ${indicator.pulse?'polaris-live-pulse':''}`} style={{backgroundColor:indicator.color}}/><span>{indicator.label}</span></button>;
+}
+
+function TopBarVersion({version}) {
+  const data=version.data?.data;
+  const title=`backend_api: ${available(data?.backend_api)}\nsession_engine: ${available(data?.session_engine)}\ncorrelation_engine: ${available(data?.correlation_engine)}\nevent_schema: ${available(data?.event_schema)}\ndecoders: ${decoderVersions(data?.decoders)}`;
+  return <div title={title} className="flex items-baseline gap-1.5 whitespace-nowrap"><span className="text-[14px] font-semibold tracking-tight text-[#171717]">POLARIS</span><span className="text-[11.5px] text-[#666666] font-mono">{available(data?.platform_core)} · UI {UI_VERSION}</span></div>;
+}
+
+function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,demo}) {
   const [menu,setMenu] = useState(false);
   return (
     <header className="h-12 shrink-0 bg-white border-b border-[#EBEBEB] flex items-center px-4 gap-6">
       <div className="flex items-center gap-2">
         <div style={{background:accent}} className="w-6 h-6 rounded-[5px] grid place-items-center"><svg viewBox="0 0 24 24" className="w-3.5 h-3.5"><path d="M12 2 13.6 10.4 22 12 13.6 13.6 12 22 10.4 13.6 2 12 10.4 10.4Z" fill="#fff"/></svg></div>
-        <span className="text-[14px] font-semibold tracking-tight text-[#171717]">POLARIS</span>
+        <TopBarVersion version={version}/>
       </div>
       <nav className="flex h-full">
         {[['home','Accueil'],['templates','Dashboard'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],...(TRAFFIC_ENABLED ? [['trafic','Traffic']] : [])].map(([k,n]) => {
@@ -57,6 +80,7 @@ function TopBar({role,page,setPage,onAnalyzer,accent,onSettings}) {
         })}
       </nav>
       <div className="ml-auto flex items-center gap-4 text-[12.5px]">
+        <TopBarLive metrics={metrics} demo={demo} onOpen={()=>setPage('live')}/>
         <span className="text-[#666666]" aria-label="Rôle">{role || '—'}</span>
         <button type="button" title={t("Notifications")} className="w-8 h-8 rounded-md grid place-items-center text-[#666666] hover:bg-[#F5F5F5] hover:text-[#171717]"><I d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" c="w-4 h-4"/></button>
         <div className="relative">
@@ -831,7 +855,7 @@ function MockChart({data,unit}){
 
 function App() {
   const { demo } = usePolarisMode(); const auth = useAuthMe(); const role = auth.data?.data?.role ?? null;
-  const version = useVersion(), metrics = useMetrics();
+  const version = useVersion(), metrics = useLiveMetrics();
   const kpis = useKpiCatalogue(); const demoLibrary = useDemoLibrary(); const sessionFilter = useSessionFilter();
 
   const [lang,setLangS] = useState(()=>{ try { return localStorage.getItem('polaris-lang')||'fr'; } catch(e) { return 'fr'; } });
@@ -930,7 +954,7 @@ function App() {
   useEffect(()=>{ setMsg(0); setLens(null); },[s?.id]);
   return (
     <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-base">
-      <TopBar role={role} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')}/>
+      <TopBar role={role} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')} metrics={metrics} version={version} demo={demo}/>
       <DataStatus t={t}/>
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · identités masquées · actions soumises au proxy</div>}
       {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Nodes/> : page==='templates' ? <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
