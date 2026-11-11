@@ -377,11 +377,10 @@ const HOME_ACTIONS = [
 ];
 const MODULES = [
   ['POLARIS Analyzer','Requêtes, ladder et corrélation des sessions 4G/5G.','M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm10 2-4.35-4.35','sessions'],
-  ['KPI & Anomalies','Indicateurs par procédure et détection d\'écarts.','M4 20V10M10 20V4M16 20v-7M22 20H2','kpi'],
-  ['Live','Suivi en temps réel des sessions capturées.','M3 12h4l3-8 4 16 3-8h4','live'],
+  ['Polaris Monitor','Indicateurs par procédure et détection d\'écarts.','M4 20V10M10 20V4M16 20v-7M22 20H2','kpi'],
+  ['Polaris Live','Suivi en temps réel des sessions capturées.','M3 12h4l3-8 4 16 3-8h4','live'],
   ['Traffic','Débit, santé TCP, applications, congestion','M4 7h16M4 12h16M4 17h16','trafic'],
-  ['Templates','Requêtes enregistrées et modèles prêts à l\'emploi.','M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z','templates'],
-  ['Nœuds','Topologie et état des nœuds du réseau.','M12 5v4M5 19l4-5M19 19l-4-5M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6ZM12 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM4 18a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM20 18a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z','nodes',true],
+  ['Polaris Nodes','Topologie et état des nœuds du réseau.','M12 5v4M5 19l4-5M19 19l-4-5M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6ZM12 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM4 18a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM20 18a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z','nodes',true],
 ];
 const Soon = () => <span className="text-[10.5px] font-medium text-[#8F8F8F] border border-[#EBEBEB] rounded px-1.5 py-[1px]">{t("Bientôt")}</span>;
 
