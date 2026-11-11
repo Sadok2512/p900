@@ -1,9 +1,10 @@
 import KpiModule from './kpi/KpiModule';
 import LiveModule from './live/LiveModule';
-import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useStorageSafety, useSessions, useSessionAnchors, useSessionFlows, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
+import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionAnchors, useSessionFlows, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
 import Administration from './admin/Administration';
+import LiveCapture from './admin/LiveCapture';
 import { loadHidden, saveHidden, toggleHidden, isVisible, sanitizeHidden } from './admin/modules';
 import SubscriberJourney, { OtherSessions } from './analyzer/SubscriberJourney';
 import { shortPseudo, groupBySubscriber } from './analyzer/subscriber';
@@ -641,70 +642,154 @@ function Home({setPage,onNew,hidden=[]}) {
   );
 }
 
-function Nodes() {
-  const [node,setNode] = useState(null);
-  const { demo } = usePolarisMode(); const probes = useProbes(); const auth = useAuthMe(); const health = useHealth();
-  const metrics = useMetrics(); const safety = useStorageSafety(); const version = useVersion();
-  const raw = records(probes.data?.data, 'probes');
-  const nodes = raw.map((n,i)=>demo ? n : toLegacyProbe(n,i,metrics.data?.data,safety.data?.data,version.data?.data?.backend_api));
-  const current = nodes.find(n=>n.n===node);
-  const resources = useProbeResources(current?.id);
+/* ---------------- PROBE MANAGER : liste des sondes, puis fiche détaillée ---------------- */
+const PROBE_TABS = ['Général','Live Capture','Interfaces et points de capture','Stockage et ingestion','Actions'];
+
+function ProbeDetails({ node, onBack }) {
+  const { demo } = usePolarisMode();
+  const auth = useAuthMe(); const health = useHealth();
+  const metrics = useMetrics(); const safety = useStorageSafety();
+  const resources = useProbeResources(node.id ?? node.n);
+  const runtime = useInterfaceRuntime();
+  const [tab,setTab] = useState(PROBE_TABS[0]);
   const [target,setTarget] = useState(''); const [actionError,setActionError] = useState('');
   const capture = useCaptureAction(auth.data?.data?.role, health.data?.data?.coordination_open);
   const doCapture = (action,id) => { if (!window.confirm('Confirmer cette action de capture ?')) return; capture.mutate({action,id,target,confirmed:true},{onError:e=>setActionError(e.message)}); };
   const failure = (query,path) => query.isError ? `GET /api/v1${path} → ${query.error?.status ? `HTTP ${query.error.status}` : 'erreur réseau'}` : null;
+  const raw = node.raw ?? {};
+  const lifecycle = available(raw.lifecycle_state ?? raw.lifecycle ?? raw.state ?? raw.probe_state);
+  const captureState = available(raw.capture_state ?? metrics.data?.data?.capture_state ?? health.data?.data?.capture_state);
   const storage = safety.data?.data ?? {}, filesystem = storage.filesystem ?? {};
   const freePercent = typeof storage.free_percent==='number' ? storage.free_percent : typeof filesystem.usage_percent==='number' ? Math.max(0,100-filesystem.usage_percent) : null;
   const diskAvailable = freePercent==null && filesystem.available_bytes==null ? null : `${freePercent==null?'—':freePercent.toFixed(2)+' %'} · ${fmtBytes(filesystem.available_bytes)} libres`;
-
+  const online = node.st==='ok' || node.st==='warn';
+  const operator = auth.data?.data?.role==='operator' || auth.data?.data?.role==='administrator';
+  const ifaceRows = (() => {
+    const scoped = records(resources.probeInterfaces.data?.data,'interfaces'), global = records(resources.interfaces.data?.data,'interfaces');
+    const base = [...new Map([...global,...scoped].map(x => [String(x.name ?? x.interface ?? '—'), { ...global.find(g => String(g.name ?? g.interface ?? '—') === String(x.name ?? x.interface ?? '—')), ...x }])).values()];
+    const rt = records(runtime.data?.data,'interfaces');
+    return base.map(x => {
+      const name = String(x.name ?? x.interface ?? '—');
+      const r = rt.find(y => String(y.interface ?? y.name ?? '') === name) ?? {};
+      return { name, protocol: x.protocol ?? r.protocol ?? null, source: x.device ?? x.bridge ?? r.device ?? x.capture_point ?? null,
+               bpf: x.bpf_filter ?? x.filter ?? r.bpf_filter ?? null, active: typeof r.active==='boolean' ? r.active : null };
+    });
+  })();
+  const captures = records(resources.captures.data?.data,'captures');
+  const running = captures.find(c => ['CAPTURING','STARTING','RUNNING'].includes(String(c.state ?? c.status ?? '').toUpperCase())
+    && String(c.probe_id ?? c.probe ?? c.node ?? '') === String(node.id ?? node.n));
+  const row = (label,value) => <div className="flex justify-between gap-4 border-b border-[#F2F2F2] py-1.5 last:border-0"><span className="text-[#666666]">{label}</span><span className="font-mono text-[12px] text-[#171717] text-right truncate" title={String(value)}>{value}</span></div>;
   return (
-      <div className="space-y-5">
-        <div className="flex items-center gap-2">
-          <div className="text-[13px] text-[#666666]">{failure(probes,'/probes') ?? `${nodes.length} nœuds · POLARIS`}</div>
-          <div className="ml-auto text-[11.5px] text-[#666666]">Rôle {available(auth.data?.data?.role)} · gestion des interfaces réservée à operator</div>
-        </div>
-        <div className="space-y-5">
-            <Card title="Nœuds de la plateforme">
-              <table className="w-full text-[12.5px]">
-                <thead><tr>{['Nœud','Rôle','État','Version servie','CPU','Mémoire','Disque','Dernier contact',''].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#F2F2F2]">{h}</th>)}</tr></thead>
-                <tbody>
-                  {nodes.map(n => (
-                    <React.Fragment key={n.n}>
-                      <tr onClick={()=>setNode(node===n.n?null:n.n)} className={`cursor-pointer ${node===n.n?'bg-[#FAFAFA]':'hover:bg-[#FAFAFA]'}`}>
-                        <td className="h-11 px-4 border-b border-[#F2F2F2]"><div className="font-mono text-[12px] text-[#171717]">{n.n}</div><div className="text-[11.5px] text-[#8F8F8F]">{n.info}</div></td>
-                        <td className="px-4 border-b border-[#F2F2F2] text-[#4D4D4D]">{n.role}</td>
-                        <td className="px-4 border-b border-[#F2F2F2]"><span className="inline-flex items-center gap-1.5"><Dot st={n.st}/>{n.st==='ok'?'Opérationnel':n.st==='warn'?'Vigilance':'—'}</span></td>
-                        <td className="px-4 border-b border-[#F2F2F2]"><span className="font-mono text-[11.5px]">{n.ver}</span>{n.exp && n.ver.includes(n.exp) && <span className="ml-1.5 text-[11px] text-[#15803D]">✓ attendue</span>}</td>
-                        <td className="px-4 border-b border-[#F2F2F2]">{n.cpu===null?<span className="text-[#D4D4D4]">—</span>:<Bar v={n.cpu}/>}</td>
-                        <td className="px-4 border-b border-[#F2F2F2]">{n.memoryBytes===null?<span className="text-[#D4D4D4]">—</span>:<div><div className="font-mono text-[11.5px]">{fmtBytes(n.memoryBytes)}</div><div className="text-[10.5px] text-[#8F8F8F] mt-0.5">anon {fmtBytes(n.memoryAnonBytes)} · file {fmtBytes(n.memoryFileBytes)}</div></div>}</td>
-                        <td className="px-4 border-b border-[#F2F2F2]">{n.disk===null?<span className="text-[#D4D4D4]">—</span>:<div><Bar v={Math.round(n.disk)} warn={95} crit={99}/><div className="text-[10.5px] text-[#8F8F8F] mt-0.5">{fmtBytes(n.diskFreeBytes)} libres · seuils 95 / 99 %</div></div>}</td>
-                        <td className="px-4 border-b border-[#F2F2F2] text-[#666666]">{n.seen}</td>
-                        <td className="px-4 border-b border-[#F2F2F2] text-[#8F8F8F]"><I d={ic.chev} c={`w-4 h-4 transition ${node===n.n?'rotate-180':''}`}/></td>
-                      </tr>
-                      {node===n.n && (
-                        <tr><td colSpan="9" className="bg-[#FAFAFA] border-b border-[#F2F2F2] px-4 py-4">
-                          <div className="grid grid-cols-3 gap-6 text-[12.5px]">
-                            <div><Lbl>Interfaces</Lbl>{records(resources.probeInterfaces.data?.data, 'interfaces').map((x,i)=><div key={i}>{available(x.name ?? x.interface)}</div>)}{resources.probeInterfaces.isError && <div>{resources.probeInterfaces.error.message}</div>}</div>
-                            <div><Lbl>Version</Lbl><div>{available(resources.probe.data?.data?.version)}</div></div>
-                            <div><Lbl>Actions</Lbl><div>Non disponible : backend à venir</div></div>
-                          </div>
-                        </td></tr>
-                      )}
-                    </React.Fragment>
-                  ))}
-                  {!nodes.length && <tr><td colSpan="9" className="px-4 py-8 text-center text-[#8F8F8F]">{probes.isPending ? 'Connexion au Node Manager…' : failure(probes,'/probes') ? `${failure(probes,'/probes')} · nouvelle tentative dans 5 s` : 'Aucun nœud renvoyé par /probes'}</td></tr>}
-                </tbody>
-              </table>
-            </Card>
-
-            <div className="grid grid-cols-2 gap-5">
-              <Card title="Capture · interfaces"><div className="p-4 grid grid-cols-4 gap-2">{records(resources.interfaces.data?.data, 'interfaces').map((x,i)=><div key={i} className="rounded-md border border-[#EBEBEB] px-2.5 py-2">{available(x.name ?? x.interface)}</div>)}</div><div className="px-4 pb-4">{failure(resources.interfaces,'/interfaces') ?? 'POLARIS'}</div></Card>
-              <Card title="Stockage et ingestion"><div className="p-4 space-y-3">{[['Disque disponible',diskAvailable],['Segments ingérés',metrics.data?.data?.segments_ingested],['Échecs ingestion',metrics.data?.data?.ingestion_failures]].map(([label,value])=><div key={label} className="flex justify-between"><span>{label}</span><span>{available(value)}</span></div>)}{failure(safety,'/storage/safety')&&<div className="text-[#B42318]">{failure(safety,'/storage/safety')}</div>}</div></Card>
-            </div>
-            {auth.data?.data?.role==='operator' && <section className="flex items-center gap-2"><input aria-label="Cible de capture" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)} value={target} onChange={e=>setTarget(e.target.value)} placeholder="Cible de capture" className="h-8 px-3 border rounded-md"/><button disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('validate')}>Valider la capture</button><button disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('start')}>Démarrer la capture</button>{actionError && <span>{actionError}</span>}</section>}
+    <div className="space-y-5">
+      <div className="flex items-start gap-3 flex-wrap">
+        <button type="button" onClick={onBack} className="h-8 px-3 rounded-md border border-[#EBEBEB] bg-white text-[12.5px] text-[#4D4D4D] hover:bg-[#FAFAFA]">← Sondes</button>
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5">
+            <h2 className="font-mono text-[15px] font-semibold text-[#171717] truncate">{node.n}</h2>
+            <span className="inline-flex items-center gap-1.5 text-[12px] text-[#4D4D4D]"><Dot st={node.st}/>{online ? 'En ligne' : 'Hors ligne'}</span>
           </div>
-        <div className="text-[11.5px] text-[#8F8F8F]">{demo ? "Données de démo" : "POLARIS"}</div>
+          <div className="text-[11.5px] text-[#8F8F8F] mt-0.5">{available(node.role)} · {available(node.info)} · ID {available(node.id ?? node.n)}</div>
+        </div>
+        <div className="ml-auto text-[11.5px] text-[#666666]">Rôle {available(auth.data?.data?.role)} · gestion des interfaces réservée à operator</div>
       </div>
+      <div role="tablist" aria-label="Fiche sonde" className="flex gap-1 border-b border-[#EBEBEB] overflow-x-auto scroll-thin">
+        {PROBE_TABS.map(x => <button key={x} role="tab" aria-selected={tab===x} onClick={()=>setTab(x)} className={`relative shrink-0 h-10 px-3 text-[13px] ${tab===x?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{x}{tab===x && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-[var(--app-accent)]"/>}</button>)}
+      </div>
+      <div role="tabpanel" aria-label={tab} className="space-y-5">
+        {tab==='Général' && <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          <Card title="Identité et état">
+            <div className="p-4 text-[12.5px]">
+              {row('Nom',available(node.n))}{row('ID',available(node.id ?? node.n))}{row('Type',available(node.role))}{row('Hôte',available(node.info))}
+              {row('Version logicielle',`${available(node.ver)}${node.exp && String(node.ver).includes(node.exp) ? ' · ✓ attendue' : ''}`)}
+              {row('État',online ? 'En ligne' : 'Hors ligne')}{row('Dernier battement',available(node.seen))}
+              {row('État du cycle de vie',lifecycle)}{row('État de capture',captureState)}
+            </div>
+            {!demo && (resources.probe.isError || health.isError) && <div className="px-4 pb-4">{failure(resources.probe,'/probes/'+String(node.id ?? node.n)) ?? failure(health,'/health')}</div>}
+          </Card>
+          <Card title="Télémétrie de la sonde">
+            <div className="p-4 space-y-3 text-[12.5px]">
+              <div className="flex items-center justify-between gap-4"><span className="text-[#666666]">CPU</span>{node.cpu==null ? <span className="text-[#D4D4D4]">—</span> : <Bar v={Math.round(node.cpu)}/>}</div>
+              <div className="flex items-center justify-between gap-4"><span className="text-[#666666]">RAM</span>{node.memoryBytes==null ? <span className="text-[#D4D4D4]">—</span> : <span className="font-mono text-[12px]">{fmtBytes(node.memoryBytes)}<span className="text-[#8F8F8F]"> · anon {fmtBytes(node.memoryAnonBytes)} · file {fmtBytes(node.memoryFileBytes)}</span></span>}</div>
+              <div className="flex items-center justify-between gap-4"><span className="text-[#666666]">Disque</span>{node.disk==null ? <span className="text-[#D4D4D4]">—</span> : <div className="flex items-center gap-2"><Bar v={Math.round(node.disk)} warn={95} crit={99}/><span className="text-[11px] text-[#8F8F8F]">{fmtBytes(node.diskFreeBytes)} libres · seuils 95 / 99 %</span></div>}</div>
+              <div className="pt-1 border-t border-[#F2F2F2]">{row('Disque disponible (plateforme)',available(diskAvailable))}{row('Segments ingérés',available(metrics.data?.data?.segments_ingested))}{row('Échecs ingestion',available(metrics.data?.data?.ingestion_failures))}</div>
+            </div>
+            {(safety.isError || metrics.isError) && <div className="px-4 pb-4">{failure(safety,'/storage/safety') ?? failure(metrics,'/metrics')}</div>}
+          </Card>
+        </div>}
+        {tab==='Live Capture' && <LiveCapture probe={node}/>}
+        {tab==='Interfaces et points de capture' && <Card title="Interfaces et points de capture">
+          <table className="w-full text-[12.5px]"><thead><tr>{['Interface','Protocole','Source de capture','Filtre BPF','Disponibilité'].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#F2F2F2]">{h}</th>)}</tr></thead>
+            <tbody>{ifaceRows.map(x=><tr key={x.name}><td className="h-10 px-4 border-b border-[#F2F2F2] font-mono">{x.name}</td><td className="px-4 border-b border-[#F2F2F2]">{available(x.protocol)}</td><td className="px-4 border-b border-[#F2F2F2] font-mono text-[11.5px]">{available(x.source)}</td><td className="px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] max-w-[220px] truncate" title={String(available(x.bpf))}>{available(x.bpf)}</td>
+              <td className="px-4 border-b border-[#F2F2F2]">{x.active==null ? <span className="text-[#8F8F8F]">—</span> : <span className="inline-flex items-center gap-1.5"><Dot st={x.active?'ok':'error'}/>{x.active?'Disponible':'Indisponible'}</span>}</td></tr>)}
+              {!ifaceRows.length && <tr><td colSpan="5" className="p-4 text-[#8F8F8F]">{resources.probeInterfaces.isPending || resources.interfaces.isPending ? 'Connexion POLARIS…' : 'Aucune interface renvoyée par /probes/{id}/interfaces ni /interfaces'}</td></tr>}
+            </tbody></table>
+          <div className="px-4 py-3 text-[11.5px] text-[#8F8F8F]">{ifaceRows.length ? (records(resources.probeInterfaces.data?.data,'interfaces').length ? 'Liste fournie par /probes/{id}/interfaces · disponibilité par /interfaces/runtime.' : 'Liste fournie par /interfaces · disponibilité par /interfaces/runtime.') : (failure(resources.probeInterfaces,'/probes/'+String(node.id ?? node.n)+'/interfaces') ?? failure(resources.interfaces,'/interfaces'))}</div>
+        </Card>}
+        {tab==='Stockage et ingestion' && <Card title="Stockage et ingestion">
+          <div className="p-4 space-y-3 text-[12.5px]">{[['Disque disponible',diskAvailable],['Segments ingérés',metrics.data?.data?.segments_ingested],['Échecs ingestion',metrics.data?.data?.ingestion_failures],['Segments en attente',metrics.data?.data?.pending_segments],['Segments ouverts',metrics.data?.data?.open_segments]].map(([label,value])=><div key={label} className="flex justify-between border-b border-[#F2F2F2] py-1.5 last:border-0"><span className="text-[#666666]">{label}</span><span className="font-mono text-[12px]">{available(value)}</span></div>)}</div>
+          {(safety.isError || metrics.isError) && <div className="px-4 pb-4 text-[#B42318]">{failure(safety,'/storage/safety') ?? failure(metrics,'/metrics')}</div>}
+          <div className="px-4 py-3 text-[11.5px] text-[#8F8F8F]">Endpoints plateforme : /storage/safety et /metrics.</div>
+        </Card>}
+        {tab==='Actions' && <Card title="Actions sur la sonde">
+          <div className="p-4 space-y-4 text-[12.5px]">
+            {operator ? <div className="space-y-2">
+              <Lbl>Capture</Lbl>
+              <div className="flex items-center gap-2 flex-wrap">
+                <input aria-label="Cible de capture" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)} value={target} onChange={e=>setTarget(e.target.value)} placeholder="Cible de capture" className="h-8 px-3 border border-[#EBEBEB] rounded-md text-[12.5px]"/>
+                <button type="button" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('validate')} className="h-8 px-3 rounded-md border border-[#EBEBEB] bg-white text-[12.5px] text-[#4D4D4D] disabled:opacity-50">Valider la capture</button>
+                <button type="button" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('start')} className="h-8 px-3 rounded-md bg-[var(--app-accent)] text-white text-[12.5px] font-medium disabled:opacity-50">Démarrer la capture</button>
+                <button type="button" disabled={!running||capture.isPending} onClick={()=>doCapture('stop',running?.id ?? running?.capture_id)} className="h-8 px-3 rounded-md border border-[#F5C6C2] bg-white text-[12.5px] text-[#B42318] disabled:opacity-50">Arrêter la capture</button>
+              </div>
+              {actionError && <div role="alert" className="text-[12px] text-[#B42318]">{actionError}</div>}
+              {!health.data?.data?.coordination_open && <div className="text-[11.5px] text-[#A15C07]">coordination_open absent de /health : actions de capture désactivées.</div>}
+            </div> : <div className="text-[12px] text-[#666666]">Actions de capture réservées au rôle operator.</div>}
+            <div><Lbl>Cycle de vie</Lbl><div className="text-[12px] text-[#8F8F8F]">Non disponible : backend à venir (démarrer, arrêter, redémarrer la sonde).</div></div>
+          </div>
+        </Card>}
+      </div>
+      <div className="text-[11.5px] text-[#8F8F8F]">{demo ? 'Données de démo' : 'POLARIS'}</div>
+    </div>
+  );
+}
+
+function Nodes() {
+  const { demo } = usePolarisMode(); const probes = useProbes(); const auth = useAuthMe();
+  const metrics = useMetrics(); const safety = useStorageSafety(); const version = useVersion();
+  const [open,setOpen] = useState(null);
+  const raw = records(probes.data?.data, 'probes');
+  const nodes = raw.map((n,i)=>({ ...(demo ? n : toLegacyProbe(n,i,metrics.data?.data,safety.data?.data,version.data?.data?.backend_api)), raw:n }));
+  const current = open==null ? null : nodes.find(n=>n.n===open) ?? null;
+  const failure = (query,path) => query.isError ? `GET /api/v1${path} → ${query.error?.status ? `HTTP ${query.error.status}` : 'erreur réseau'}` : null;
+  if (current) return <ProbeDetails node={current} onBack={()=>setOpen(null)}/>;
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-2">
+        <div className="text-[13px] text-[#666666]">{failure(probes,'/probes') ?? `${nodes.length} sondes enregistrées · POLARIS`}</div>
+        <div className="ml-auto text-[11.5px] text-[#666666]">Rôle {available(auth.data?.data?.role)} · gestion des interfaces réservée à operator</div>
+      </div>
+      <Card title="Sondes">
+        <table className="w-full text-[12.5px]">
+          <thead><tr>{['Sonde','Rôle','État','Version servie','CPU','Mémoire','Disque','Dernier contact',''].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#F2F2F2]">{h}</th>)}</tr></thead>
+          <tbody>
+            {nodes.map(n => (
+              <tr key={n.n} onClick={()=>setOpen(n.n)} className="cursor-pointer hover:bg-[#FAFAFA]">
+                <td className="h-11 px-4 border-b border-[#F2F2F2]"><div className="font-mono text-[12px] text-[#171717]">{n.n}</div><div className="text-[11.5px] text-[#8F8F8F]">{n.info}</div></td>
+                <td className="px-4 border-b border-[#F2F2F2] text-[#4D4D4D]">{n.role}</td>
+                <td className="px-4 border-b border-[#F2F2F2]"><span className="inline-flex items-center gap-1.5"><Dot st={n.st}/>{n.st==='ok'?'Opérationnel':n.st==='warn'?'Vigilance':'—'}</span></td>
+                <td className="px-4 border-b border-[#F2F2F2]"><span className="font-mono text-[11.5px]">{n.ver}</span>{n.exp && n.ver.includes(n.exp) && <span className="ml-1.5 text-[11px] text-[#15803D]">✓ attendue</span>}</td>
+                <td className="px-4 border-b border-[#F2F2F2]">{n.cpu==null?<span className="text-[#D4D4D4]">—</span>:<Bar v={Math.round(n.cpu)}/>}</td>
+                <td className="px-4 border-b border-[#F2F2F2]">{n.memoryBytes==null?<span className="text-[#D4D4D4]">—</span>:<div><div className="font-mono text-[11.5px]">{fmtBytes(n.memoryBytes)}</div><div className="text-[10.5px] text-[#8F8F8F] mt-0.5">anon {fmtBytes(n.memoryAnonBytes)} · file {fmtBytes(n.memoryFileBytes)}</div></div>}</td>
+                <td className="px-4 border-b border-[#F2F2F2]">{n.disk==null?<span className="text-[#D4D4D4]">—</span>:<div><Bar v={Math.round(n.disk)} warn={95} crit={99}/><div className="text-[10.5px] text-[#8F8F8F] mt-0.5">{fmtBytes(n.diskFreeBytes)} libres · seuils 95 / 99 %</div></div>}</td>
+                <td className="px-4 border-b border-[#F2F2F2] text-[#666666]">{n.seen}</td>
+                <td className="px-4 border-b border-[#F2F2F2] text-right"><span className="inline-flex items-center gap-1 text-[12px] text-[#171717]">Détails<I d={ic.chev} c="w-3.5 h-3.5 -rotate-90"/></span></td>
+              </tr>
+            ))}
+            {!nodes.length && <tr><td colSpan="9" className="px-4 py-8 text-center text-[#8F8F8F]">{probes.isPending ? 'Connexion au Node Manager…' : failure(probes,'/probes') ? `${failure(probes,'/probes')} · nouvelle tentative dans 5 s` : 'Aucune sonde renvoyée par /probes'}</td></tr>}
+          </tbody>
+        </table>
+      </Card>
+      <div className="text-[11.5px] text-[#8F8F8F]">{demo ? "Données de démo" : "POLARIS"}</div>
+    </div>
   );
 }
 

@@ -15,6 +15,8 @@ export function demoResponse<T>(path: string, params: Record<string, unknown> = 
   else if (path === '/sessions/available_causes') data = ['5GSM #27', '5GMM #7', 'S6a 5001', 'S1AP radio #20'];
   else if (/^\/sessions\/[^/]+$/.test(path)) data = SESS.find(s => String(s['id']) === path.split('/')[2]) ?? null;
   else if (path === '/interfaces') data = ['N2','N3','N4','SBI','S1-MME','S6a','S11'].map(name => ({ name }));
+  // Démo : disponibilité seule, sans débit inventé (les colonnes de débit restent à « — »).
+  else if (path === '/interfaces/runtime') data = ['N2','N3','N4','SBI','S1-MME','S6a','S11'].map(name => ({ interface: name, active: true }));
   else if (path === '/captures' || path === '/modules') data = [];
   else return undefined;
   return { data: redact(data) as T, meta: { demo: true, ...(Array.isArray(data) ? { total: data.length } : {}) } };

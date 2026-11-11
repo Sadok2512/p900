@@ -108,6 +108,8 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByText('POLARIS connecté')).toBeInTheDocument();
     expect(screen.queryByRole('button',{name:'Ajouter un nœud'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button',{name:'Déploiements'})).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('lab-probe'));
+    fireEvent.click(await screen.findByRole('tab',{name:'Actions'}));
     await screen.findByRole('textbox',{name:'Cible de capture'}); expect(screen.getByRole('textbox',{name:'Cible de capture'})).toBeDisabled();
   });
   it('keeps POLARIS connected when only probes fails and names the failing endpoint', async()=>{
@@ -136,6 +138,8 @@ describe('main screens with simulated REST responses',()=>{
       return new Response(JSON.stringify({data,meta:{total:Array.isArray(data)?data.length:1}}),{headers:{'Content-Type':'application/json'}});
     });
     open('nodes');
+    fireEvent.click(await screen.findByText('lab-probe'));
+    fireEvent.click(await screen.findByRole('tab',{name:'Live Capture'}));
     fireEvent.click(await screen.findByRole('button',{name:'Ajouter une interface'}));
     fireEvent.change(screen.getByLabelText('Nom logique (N2, S1-MME, IMS…)'),{target:{value:'TEST-FICTIVE'}});
     fireEvent.change(screen.getByLabelText('Bridge ou NIC'),{target:{value:'br-fictive'}});
@@ -162,7 +166,7 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByText('Non disponible : backend à venir — Live (WebSocket)')).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getByText('0.12.0')).toBeInTheDocument(); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.11.6 · API 2.11.6 · UI 0.12.0')).toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getByText('0.13.0')).toBeInTheDocument(); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.11.6 · API 2.11.6 · UI 0.13.0')).toBeInTheDocument();
   });
   it('Dashboard library is marked local and has no simulated saved queries outside Demo',()=>{
     open('templates'); expect(screen.getByText('local à ce navigateur')).toBeInTheDocument(); expect(screen.getByText('Aucune requête.')).toBeInTheDocument();

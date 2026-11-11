@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.13.0
+
+- Probe Manager : la page principale n'affiche plus que la liste des sondes enregistrées; un clic sur une sonde ouvre une fiche dédiée.
+- Fiche sonde : onglets Général (identité, état, cycle de vie, état de capture, CPU/RAM/disque), Live Capture, Interfaces et points de capture, Stockage et ingestion, Actions — plus un retour explicite vers la liste.
+- Capture live : la table « Capture live · interfaces » quitte la page principale pour la fiche de la sonde sélectionnée; les interfaces de `/probes/{id}/interfaces` sont fusionnées avec `/interfaces` et la disponibilité vient de `/interfaces/runtime`, sans masquer de ligne.
+- Modes : `/probes`, `/interfaces` et `/interfaces/runtime` sont servis en démo; la démo n'expose que la disponibilité des interfaces, aucun débit n'est inventé.
+
 ## 0.12.0
 
 - Administration : Node Manager alimenté par les valeurs réelles de `/probes`, `/version`, `/metrics` et `/storage/safety`, avec états, ressources, seuils disque et dernier contact.
