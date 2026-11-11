@@ -52,3 +52,33 @@ describe('ladder message filter', () => {
     expect(visibleMessages(f, [], { ...emptyFilter(), dir: 'UL' })).toEqual([0]);
   });
 });
+import { sessionSummary, backgroundSteps } from './analysis';
+describe('0.10.1 session result and durations', () => {
+  const acc = (cap: string, t: number) => ({ capture_id: cap, observed_epoch_ms: 1_793_017_327_000 + t });
+  it('derives SUCCESS from procedures when the server state is unknown', () => {
+    const f = flow([['N2', 'Registration Request', 'UE → AMF', null, null, null], ['N2', 'Registration Accept', 'AMF → UE', null, null, null]], [['Registration', 0, 1]], [acc('c1', 1000), acc('c1', 1326)]);
+    expect(sessionSummary({ state: 'HISTORICAL_CONTEXT' }, f)).toMatchObject({ res: 'SUCCESS', durationMs: 326, multiCapture: false });
+  });
+  it('gives PARTIAL when one procedure is partial, UNKNOWN when none', () => {
+    const f = flow([['N2', 'Registration Accept', 'AMF → UE', null, null, null], ['N2', 'PDU Session Request', 'UE → AMF', null, null, null]], [['Registration', 0, 0], ['PDU', 1, 1]]);
+    expect(sessionSummary({}, f).res).toBe('PARTIAL'); expect(sessionSummary({}, flow([], [])).res).toBe('UNKNOWN');
+  });
+  it('never compares timestamps across captures', () => {
+    const f = flow([['N2', 'A Request', '', null, null, null], ['N2', 'A Response', '', null, null, null]], [['A', 0, 1]], [acc('c1', 0), acc('c2', 9_900_000)]);
+    expect(sessionSummary({ start_timestamp: '0', end_timestamp: '9900' }, f)).toMatchObject({ durationMs: null, multiCapture: true });
+    expect(steps(f)[0]).toMatchObject({ durationMs: null, multiCapture: true });
+  });
+  it('keeps background events out of the chronology and the duration', () => {
+    const f = flow([['N2', 'A Request', '', null, null, null], ['N2', 'A Response', '', null, null, null], ['N2', 'NG Setup', '', null, null, null]], [['A', 0, 1], ['Background / Lifecycle', 2, 2]], [acc('c1', 0), acc('c1', 326), acc('c1', 663_000)]);
+    expect(steps(f).map(x => x.name)).toEqual(['A']); expect(backgroundSteps(f)).toHaveLength(1);
+    expect(sessionSummary({}, f).durationMs).toBe(326);
+  });
+});
+describe('procedure duration ignores interleaved events', () => {
+  it('measures only the events of the procedure itself', () => {
+    const T = 1_793_017_327_000;
+    const ev = [{ capture_id: 'c', procedure_group: 'Reg', observed_epoch_ms: T }, { capture_id: 'c', procedure_group: 'Background / Lifecycle', observed_epoch_ms: T + 663_000 }, { capture_id: 'c', procedure_group: 'Reg', observed_epoch_ms: T + 300 }];
+    const f = flow([['N2', 'Registration Request', '', null, null, null], ['N2', 'NG Setup', '', null, null, null], ['N2', 'Registration Accept', '', null, null, null]], [['Reg', 0, 2]], ev);
+    expect(steps(f)[0]!.durationMs).toBe(300);
+  });
+});

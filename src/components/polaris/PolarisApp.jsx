@@ -1,9 +1,9 @@
 import KpiModule from './kpi/KpiModule';
 import LiveModule from './live/LiveModule';
-import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useStorageSafety, useSessions, useSessionAnchors, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
+import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useStorageSafety, useSessions, useSessionAnchors, useSessionFlows, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
-import { visibleMessages, filterOptions, emptyFilter, filterActive, pageItems, pageSlice, verdict, timeOf, toMs, fmtUtc, fmtDuration } from './analyzer/analysis';
+import { visibleMessages, filterOptions, emptyFilter, filterActive, pageItems, pageSlice, verdict, timeOf, toMs, fmtUtc, fmtDuration, sessionSummary } from './analyzer/analysis';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 /* Données fictives — PLMN de test 001/01. Tri canonique (capture_id, seq). */
@@ -170,7 +170,7 @@ function QueryPanel({conds,setConds}) {
   );
 }
 
-const durOf = r => { const a=toMs(r.start_timestamp), b=toMs(r.end_timestamp); return a!=null&&b!=null ? b-a : null; };
+const durOf = r => { if (r.multiCapture) return null; if (r.durMs!==undefined) return r.durMs; const a=toMs(r.start_timestamp), b=toMs(r.end_timestamp); return a!=null&&b!=null ? b-a : null; };
 const GRID_GROUPS = [
   {k:'session',l:'Tous protocoles'},
   {k:'nas',l:'NAS — 5GS / EPS'},
@@ -182,7 +182,7 @@ const GRID_COLS = [
   {k:'start',l:'Début UTC',g:'session',w:118,v:r=>fmtUtc(toMs(r.start_timestamp)),mono:true},
   {k:'sid',l:'Session ID',g:'session',w:120,v:r=>r.session_id??'—',mono:true},
   {k:'res',l:'Résultat',g:'session',w:96,v:r=>verdict(r.res)},
-  {k:'dur',l:'Durée',g:'session',w:76,v:r=>{const d=durOf(r);return d==null?(r.dur??'—'):fmtDuration(d);},sort:r=>durOf(r)??-1},
+  {k:'dur',l:'Durée',g:'session',w:76,v:r=>{if(r.multiCapture) return 'multi-capture'; const d=durOf(r);return d==null?(r.dur??'—'):fmtDuration(d);},sort:r=>durOf(r)??-1},
   {k:'ue',l:'UE',g:'session',w:96,v:r=>r.ue,mono:true},
   {k:'rat',l:'RAT',g:'session',w:64,v:r=>r.rat},
   {k:'proc',l:'Procédure',g:'session',w:130,v:r=>r.proc},
@@ -500,9 +500,9 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
           <div><div className="flex items-center gap-2"><Tag i={m[0]}/><span className="font-mono text-[11.5px] text-[#64748B]">message #{available(evidence?.seq ?? Math.min(sel,d.msgs.length-1)+1)}</span>{evidence?.decoding_status && <span className="ml-auto text-[10.5px] font-semibold text-[#64748B] border border-[#E2E8F0] rounded px-1">{String(evidence.decoding_status)}</span>}</div>
             <div className="mt-1 text-[13px] font-semibold text-[#172033] leading-snug">{m[1]}</div><div className="text-[#64748B] text-[12px]">{m[2]}</div></div>
           {eventQuery.isPending && evidence && <div className="text-[#64748B]">Chargement du décodage…</div>}
-          {eventQuery.isError && <div role="alert" className="text-[#DC2626]">{eventQuery.error.message}</div>}
-          {eventQuery.data && <DecodeTree key={String(evidence?.event_id ?? sel)} tree={(()=>{const t=eventQuery.data.data?.decoded_ie_tree; return t&&typeof t==='object'?t:t==null?{}:{valeur:t};})()}/>}
-          {!eventQuery.data && <div className="rounded-md border border-[#EBEBEB] bg-[#FAFAFA] p-3 font-mono text-[11.5px] leading-[1.9] text-[#4D4D4D]">
+          {eventQuery.isError && <div role="alert" className="rounded-md border border-[#FECACA] bg-[#FEF2F2] px-2 py-1.5 text-[11.5px] text-[#B42318]">Échec <span className="font-mono">GET {apiPath(`/events/${encodeURIComponent(String(evidence?.event_id ?? evidence?.id ?? ''))}`)}</span> → {eventQuery.error.status ? `HTTP ${eventQuery.error.status}` : 'réseau'}{eventQuery.error.code && eventQuery.error.code!=='HTTP_ERROR' ? ` · ${eventQuery.error.code}` : ''}{evidence?.decoded_ie_tree ? ' — arbre affiché depuis le callflow.' : ''}</div>}
+          {(()=>{ const t = eventQuery.data?.data?.decoded_ie_tree ?? evidence?.decoded_ie_tree; return (eventQuery.data || t) ? <DecodeTree key={String(evidence?.event_id ?? sel)} tree={t&&typeof t==='object'?t:t==null?{}:{valeur:t}}/> : null; })()}
+          {!eventQuery.data && !evidence?.decoded_ie_tree && <div className="rounded-md border border-[#EBEBEB] bg-[#FAFAFA] p-3 font-mono text-[11.5px] leading-[1.9] text-[#4D4D4D]">
             <div>▾ {m[1].split(' ')[0]} PDU</div>
             <div className="pl-4">▾ {m[1].split(' ').slice(1).join(' ')}</div>
             <div className="pl-8">ue : <span className="text-[#171717]">{s.ue}</span> <span className="text-[#8F8F8F]">(pseudonyme)</span></div>
@@ -1047,14 +1047,15 @@ function App() {
   const listedSessions = records(sessionsQuery.data?.data, 'sessions');
   const anchorCandidates = demo ? [] : (active?.apiRows || listedSessions);
   const sessionAnchors = useSessionAnchors(anchorCandidates, page==='sessions' && view==='results' && !demo);
-  const adaptSession = x => toLegacySession(x, sessionAnchors[String(x.session_id)]);
+  const sessionFlows = useSessionFlows(anchorCandidates, page==='sessions' && view==='results' && !demo);
+  const adaptSession = x => { const base = toLegacySession(x, sessionAnchors[String(x.session_id)]); const f = sessionFlows[String(x.session_id)]; if (!f) return base; const sm = sessionSummary(x, f); return { ...base, res: sm.res, durMs: sm.durationMs, multiCapture: sm.multiCapture }; };
   const sourceRows = listedSessions.map(x=>demo ? x : adaptSession(x));
   const rows = useMemo(()=>{
     if (!active) return [];
     const ue = active.ue;
     const data = demo ? sourceRows : (active.apiRows ? active.apiRows.map(adaptSession) : sourceRows);
     return demo ? data.filter(s=>(!ue || (Array.isArray(ue)?ue.includes(s.ue):s.ue===ue)) && matchQ(s,active.conds,active.join)) : data;
-  },[active,demo,sessionsQuery.data,sessionAnchors]);
+  },[active,demo,sessionsQuery.data,sessionAnchors,sessionFlows]);
   const [sel,setSel] = useState(3);
   const s = rows.find(r=>r.id===sel) || rows.find(r=>r.id!=null);
   const bundle = useSessionBundle(page==='sessions' && view==='results' ? s?.id : null);

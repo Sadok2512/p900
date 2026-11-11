@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { toMs, steps, overall, failures, sessionKpis, fmtDuration, fmtBytes, fmtRate, fmtUtc, timeOf } from './analysis';
+import { toMs, steps, backgroundSteps, fmtSpan, overall, failures, sessionKpis, fmtDuration, fmtBytes, fmtRate, fmtUtc, timeOf } from './analysis';
 
 export const VERDICT_STYLE = { SUCCESS:['#16A34A','#ECFDF3'], FAILED:['#DC2626','#FEF2F2'], PARTIAL:['#D97706','#FFFBEB'], UNKNOWN:['#64748B','#F1F5F9'] };
 export const VerdictBadge = ({v}) => { const [c,b]=VERDICT_STYLE[v]||VERDICT_STYLE.UNKNOWN; return <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded text-[10.5px] font-semibold tracking-[0.03em]" style={{color:c,background:b}}><span className="w-1.5 h-1.5 rounded-full" style={{background:c}}/>{v}</span>; };
@@ -9,14 +9,16 @@ const Row = ({k,v}) => <><dt className="text-[#64748B]">{k}</dt><dd className="t
 export default function SessionAnalysis({s,width,onPick,onHide,loading}) {
   const flow = s.d;
   const st = useMemo(()=>steps(flow),[flow]);
+  const bg = useMemo(()=>backgroundSteps(flow),[flow]);
   const fails = useMemo(()=>failures(flow),[flow]);
   const k = useMemo(()=>sessionKpis(s,flow),[s,flow]);
   const res = overall(s.state ?? s.res, st);
-  const times = (flow.evidence??[]).map(timeOf).filter(x=>x!=null);
+  const bgIdx = new Set(bg.flatMap(x=>x.start<0?[]:Array.from({length:x.end-x.start+1},(_,j)=>x.start+j)));
+  const times = (flow.evidence??[]).filter((_,j)=>!bgIdx.has(j)).map(timeOf).filter(x=>x!=null);
   const iso = ms => ms==null ? '—' : new Date(ms).toISOString().replace('T',' ').slice(0,23)+' UTC';
   const start = iso(toMs(s.start_timestamp) ?? (times.length ? Math.min(...times) : null));
   const end = iso(toMs(s.end_timestamp) ?? (times.length ? Math.max(...times) : null));
-  const kpi = [['Durée session',fmtDuration(k.durationMs)],['Setup time',fmtDuration(k.setupMs)],['DL moyen',fmtRate(k.dlAvg)],['DL instantané',fmtRate(k.dlInst)],['DL max',fmtRate(k.dlMax)],['UL moyen',fmtRate(k.ulAvg)],['UL instantané',fmtRate(k.ulInst)],['UL max',fmtRate(k.ulMax)],['Volume DL',fmtBytes(k.dlVolume)],['Volume UL',fmtBytes(k.ulVolume)],['RTT',k.rttMs==null?'N/A':`${k.rttMs} ms`],['Retransmissions',k.retransmissions==null?'N/A':k.retransmissions],['Pertes',k.lossPct==null?'N/A':`${k.lossPct} %`]];
+  const kpi = [['Durée session',fmtSpan(k.durationMs,k.multiCapture)],['Setup time',fmtDuration(k.setupMs)],['DL moyen',fmtRate(k.dlAvg)],['DL instantané',fmtRate(k.dlInst)],['DL max',fmtRate(k.dlMax)],['UL moyen',fmtRate(k.ulAvg)],['UL instantané',fmtRate(k.ulInst)],['UL max',fmtRate(k.ulMax)],['Volume DL',fmtBytes(k.dlVolume)],['Volume UL',fmtBytes(k.ulVolume)],['RTT',k.rttMs==null?'N/A':`${k.rttMs} ms`],['Retransmissions',k.retransmissions==null?'N/A':k.retransmissions],['Pertes',k.lossPct==null?'N/A':`${k.lossPct} %`]];
   return (
     <aside style={{width}} aria-label="Analyse sessions" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-[#E2E8F0] overflow-hidden">
       <div className="h-10 shrink-0 flex items-center gap-2 px-3 border-b border-[#E2E8F0]">
@@ -27,8 +29,8 @@ export default function SessionAnalysis({s,width,onPick,onHide,loading}) {
         {loading && <div className="text-[#64748B]">Chargement des messages…</div>}
         <section><H>Synthèse</H>
           <dl className="grid grid-cols-[96px_1fr] gap-x-2 gap-y-1">
-            <Row k="Session ID" v={s.session_id ?? '—'}/><Row k="IMSI / SUPI" v="masqué"/><Row k="Technologie" v={s.rat ?? '—'}/>
-            <Row k="Début" v={start}/><Row k="Fin" v={end}/><Row k="Durée" v={fmtDuration(k.durationMs)}/>
+            <Row k="Session ID" v={s.session_id ?? '—'}/><Row k="UE" v={!s.ue || /^unknown$/i.test(s.ue) ? '—' : s.ue}/><Row k="IMSI / SUPI" v="masqué"/><Row k="Technologie" v={s.rat ?? '—'}/>
+            <Row k="Début" v={start}/><Row k="Fin" v={end}/><Row k="Durée" v={fmtSpan(k.durationMs,k.multiCapture)}/>
             <Row k="Cellule" v={s.cell ?? '—'}/><Row k="MME / AMF" v={s.serving_node ?? '—'}/><Row k="Procédure" v={s.proc ?? '—'}/>
           </dl>
         </section>
@@ -36,9 +38,13 @@ export default function SessionAnalysis({s,width,onPick,onHide,loading}) {
           {st.length===0 ? <div className="text-[#64748B]">Aucune étape observée.</div> : <ol className="space-y-1">{st.map((x,i)=>(
             <li key={i}><button disabled={x.start<0} onClick={()=>onPick(x.failIndex ?? x.start)} className="w-full text-left rounded-md border border-[#E2E8F0] px-2 py-1.5 hover:bg-[#F8FAFC]">
               <div className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full shrink-0" style={{background:VERDICT_STYLE[x.result][0]}}/><span className="font-medium text-[#172033] truncate">{x.name}</span><span className="ml-auto"><VerdictBadge v={x.result}/></span></div>
-              <div className="pl-3.5 mt-0.5 font-mono text-[10.5px] text-[#64748B]">{fmtUtc(x.t0)} · {fmtDuration(x.durationMs)}{x.cause?<span className="text-[#DC2626]"> · {x.cause}</span>:null}</div>
+              <div className="pl-3.5 mt-0.5 font-mono text-[10.5px] text-[#64748B]">{fmtUtc(x.t0)} · {fmtSpan(x.durationMs,x.multiCapture)}{x.cause?<span className="text-[#DC2626]"> · {x.cause}</span>:null}</div>
             </button></li>))}</ol>}
         </section>
+        {bg.length>0 && <section><H>Arrière-plan</H>
+          <div className="text-[11px] text-[#64748B] mb-1">Événements hors session, exclus du Début/Fin et de la durée.</div>
+          <ol className="space-y-1">{bg.map((x,i)=><li key={i}><button disabled={x.start<0} onClick={()=>onPick(x.start)} className="w-full text-left rounded-md border border-dashed border-[#E2E8F0] px-2 py-1 hover:bg-[#F8FAFC] text-[#64748B]"><span className="font-medium">{x.name}</span><span className="ml-2 font-mono text-[10.5px]">{fmtUtc(x.t0)} · {x.end-x.start+1} msg</span></button></li>)}</ol>
+        </section>}
         <section><H>Analyse des échecs</H>
           {fails.length===0 ? <div className="text-[#64748B]">Aucun échec prouvé par les messages.</div> : fails.map(f=>(
             <button key={f.index} onClick={()=>onPick(f.index)} className="w-full text-left rounded-md border border-[#FECACA] bg-[#FEF2F2]/60 p-2 mb-1.5 hover:bg-[#FEF2F2]">

@@ -34,8 +34,19 @@ export function isFailedMessage(m: Msg, e?: Rec): boolean {
   if (e && Array.isArray(e['errors']) && e['errors'].length > 0) return true;
   return verdict(e?.['semantic_status']) === 'FAILED';
 }
-export type Step = { name: string; start: number; end: number; t0: number | null; t1: number | null; durationMs: number | null; result: Verdict; cause: string | null; failIndex: number | null };
-export function steps(flow: Flow): Step[] {
+export type Step = { name: string; start: number; end: number; t0: number | null; t1: number | null; durationMs: number | null; multiCapture?: boolean; result: Verdict; cause: string | null; failIndex: number | null };
+export const isBackground = (name: unknown) => /background|lifecycle|arri[eè]re-plan/i.test(String(name ?? ''));
+// Distinct capture_ids among the given evidence rows; timestamps are only comparable inside one capture.
+export function captureCount(ev: (Rec | undefined)[]): number { return new Set(ev.map(e => e?.['capture_id']).filter(c => c != null && c !== '')).size; }
+// Session/procedure duration: end − start only when every compared event shares one capture_id.
+export function spanMs(ev: (Rec | undefined)[]): { ms: number | null; multi: boolean } {
+  if (captureCount(ev) > 1) return { ms: null, multi: true };
+  const t = ev.map(timeOf).filter((x): x is number => x != null);
+  return { ms: t.length > 1 ? Math.max(...t) - Math.min(...t) : t.length === 1 ? 0 : null, multi: false };
+}
+export function backgroundSteps(flow: Flow): Step[] { return allSteps(flow).filter(x => isBackground(x.name)); }
+export function steps(flow: Flow): Step[] { return allSteps(flow).filter(x => !isBackground(x.name)); }
+function allSteps(flow: Flow): Step[] {
   return flow.procs.map(([name, a0, b0]) => {
     let a = a0, b = b0;
     if (!(a >= 0 && b >= a)) { const idx = (flow.evidence ?? []).map((e, k) => e?.['procedure_group'] === name ? k : -1).filter(k => k >= 0); if (idx.length) { a = idx[0]!; b = idx[idx.length - 1]!; } }
@@ -44,18 +55,21 @@ export function steps(flow: Flow): Step[] {
     let failIndex: number | null = null;
     for (let k = a; k <= b; k++) if (isFailedMessage(flow.msgs[k]!, flow.evidence?.[k])) { failIndex = k; break; }
     const t0 = timeOf(flow.evidence?.[a]), t1 = timeOf(flow.evidence?.[b]);
+    const inRange = (flow.evidence ?? []).slice(a, b + 1);
+    const own = inRange.filter(e => e?.['procedure_group'] === name);
+    const sp = spanMs(own.length ? own : inRange); // only this procedure's events, never interleaved ones
     const last = flow.msgs[b]!;
     const result: Verdict = failIndex != null ? 'FAILED' : DONE_MSG.test(last[1] ?? '') ? 'SUCCESS' : 'PARTIAL';
     const fm = failIndex != null ? flow.msgs[failIndex]! : null;
-    return { name, start: a, end: b, t0, t1, durationMs: t0 != null && t1 != null ? t1 - t0 : null, result, cause: fm ? (fm[5] ?? fm[1]) : null, failIndex };
+    return { name, start: a, end: b, t0, t1, durationMs: sp.ms, multiCapture: sp.multi, result, cause: fm ? (fm[5] ?? fm[1]) : null, failIndex };
   });
 }
 export function overall(sessionState: unknown, s: Step[]): Verdict {
-  const declared = verdict(sessionState);
+  // Procedures decide: FAILED > PARTIAL > SUCCESS. The declared state is used only when no procedure was observed.
+  if (!s.length) return verdict(sessionState);
   if (s.some(x => x.result === 'FAILED')) return 'FAILED';
-  if (declared !== 'UNKNOWN') return declared;
-  if (!s.length) return 'UNKNOWN';
-  return s.every(x => x.result === 'SUCCESS') ? 'SUCCESS' : 'PARTIAL';
+  if (s.some(x => x.result !== 'SUCCESS')) return 'PARTIAL';
+  return 'SUCCESS';
 }
 export type Failure = { index: number; procedure: string; message: string; interface: string; entity: string; cause: string; raw: string; time: number | null };
 export function failures(flow: Flow): Failure[] {
@@ -71,18 +85,20 @@ export function failures(flow: Flow): Failure[] {
 }
 const num = (v: unknown) => typeof v === 'number' && Number.isFinite(v) ? v : null;
 export function sessionKpis(session: Rec, flow: Flow) {
-  const times = (flow.evidence ?? []).map(timeOf).filter((t): t is number => t != null);
+  const ev = (flow.evidence ?? []).filter((e, k) => !isBackground(flow.procs.find(([, a, b]) => a >= 0 && k >= a && k <= b)?.[0] ?? e?.['procedure_group']));
+  const multiCapture = captureCount(ev) > 1;
   const start = toMs(session['start_timestamp']), end = toMs(session['end_timestamp']);
-  const duration = start != null && end != null ? end - start : times.length > 1 ? Math.max(...times) - Math.min(...times) : null;
+  const duration = multiCapture ? null : ev.length > 1 ? spanMs(ev).ms : start != null && end != null ? end - start : null;
   const first = steps(flow).find(x => x.result === 'SUCCESS' && x.durationMs != null);
   return {
-    durationMs: duration, setupMs: first?.durationMs ?? null,
+    durationMs: duration, multiCapture, setupMs: first?.durationMs ?? null,
     dlAvg: num(session['dl_throughput_avg_bps']), dlMax: num(session['dl_throughput_max_bps']), dlInst: num(session['dl_throughput_bps']),
     ulAvg: num(session['ul_throughput_avg_bps']), ulMax: num(session['ul_throughput_max_bps']), ulInst: num(session['ul_throughput_bps']),
     dlVolume: num(session['dl_bytes']), ulVolume: num(session['ul_bytes']), rttMs: num(session['rtt_ms']),
     retransmissions: num(session['retransmissions']), lossPct: num(session['packet_loss_percent']),
   };
 }
+export const fmtSpan = (ms: number | null, multi?: boolean) => multi ? 'multi-capture' : fmtDuration(ms);
 export function fmtDuration(ms: number | null): string {
   if (ms == null || !Number.isFinite(ms) || ms < 0) return 'N/A';
   if (ms < 1000) return `${Math.round(ms)} ms`;
@@ -146,4 +162,10 @@ export function visibleMessages(flow: Flow, hiddenIfc: string[], f: MsgFilter): 
     if (f.results.includes(msgResult(flow, k))) return false;
     return true;
   });
+}
+
+// Session row result/duration from its callflow (procedures decide; durations single-capture only).
+export function sessionSummary(session: Rec, flow: Flow) {
+  const st = steps(flow); const k = sessionKpis(session, flow);
+  return { res: overall(session['state'], st), durationMs: k.durationMs, multiCapture: k.multiCapture };
 }

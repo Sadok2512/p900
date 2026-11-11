@@ -29,6 +29,12 @@ export const useEvents = (id?: string | number | null) => useResource<Event[]>(`
 export const useProcedures = (id?: string | number | null) => useResource<RecordData[]>(`/sessions/${idPath(id)}/procedures`, {}, id != null);
 export const useCallflow = (id?: string | number | null) => useResource<RecordData | Event[]>(`/sessions/${idPath(id)}/callflow`, {}, id != null);
 export const useCorrelations = (id?: string | number | null) => useResource<Correlation[] | { edges: Correlation[] }>(`/sessions/${idPath(id)}/correlations`, {}, id != null);
+// Same cached callflow queries as useSessionAnchors, adapted to the legacy flow shape for per-row results.
+export function useSessionFlows(sessions: Session[], enabled = true): Record<string, ReturnType<typeof toLegacyCallflow> | undefined> {
+  const rows = sessions.filter(session => session.session_id);
+  const queries = useQueries({ queries: rows.map(session => ({ ...resourceOptions<RecordData | Event[]>(`/sessions/${idPath(session.session_id)}/callflow`, {}, false), enabled })) });
+  return Object.fromEntries(rows.map((session, index) => { const v = queries[index]?.data?.data; return [String(session.session_id), v == null ? undefined : toLegacyCallflow(v, null, null)]; }));
+}
 export function useSessionAnchors(sessions: Session[], enabled = true): Record<string, Event | undefined> {
   const rows = sessions.filter(session => session.session_id);
   const queries = useQueries({ queries: rows.map(session => ({ ...resourceOptions<RecordData | Event[]>(`/sessions/${idPath(session.session_id)}/callflow`, {}, false), enabled })) });

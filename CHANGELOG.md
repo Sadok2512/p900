@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.1
+
+- Résultat de session calculé depuis les procédures observées : FAILED si une a échoué, sinon PARTIAL si une est partielle, sinon SUCCESS ; UNKNOWN seulement sans procédure (`state` HISTORICAL_CONTEXT ne porte pas de résultat).
+- Décodage : affiche l'appel qui échoue (`GET /api/v1/events/{id}` → HTTP 404 · EVENT_NOT_FOUND) et l'arbre `decoded_ie_tree` fourni par le callflow. Défaut OIRAN constaté : les event_id publiés par `/callflow` ne sont pas résolvables par `/events/{id}`.
+- Durées (session et procédures) = fin − début uniquement si tous les événements partagent le même capture_id, sinon « multi-capture ».
+- Arrière-plan (Background / Lifecycle) séparé de la chronologie et exclu du Début/Fin/durée.
+- UE « UNKNOWN » affiché « — ».
+
 ## Unreleased
 - Analyzer : le menu `⋯` des sessions permet de gérer les colonnes avec des cases persistantes regroupées par protocole, de tout réafficher et de réinitialiser largeur et visibilité.
 
