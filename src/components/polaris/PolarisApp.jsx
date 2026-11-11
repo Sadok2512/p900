@@ -3,6 +3,8 @@ import LiveModule from './live/LiveModule';
 import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useStorageSafety, useSessions, useSessionAnchors, useSessionFlows, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
+import SubscriberJourney, { OtherSessions } from './analyzer/SubscriberJourney';
+import { shortPseudo, groupBySubscriber } from './analyzer/subscriber';
 import { visibleMessages, filterOptions, emptyFilter, filterActive, pageItems, pageSlice, verdict, timeOf, toMs, fmtUtc, fmtDuration, sessionSummary } from './analyzer/analysis';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
@@ -184,6 +186,7 @@ const GRID_COLS = [
   {k:'res',l:'Résultat',g:'session',w:96,v:r=>verdict(r.res)},
   {k:'dur',l:'Durée',g:'session',w:76,v:r=>{if(r.multiCapture) return 'multi-capture'; const d=durOf(r);return d==null?(r.dur??'—'):fmtDuration(d);},sort:r=>durOf(r)??-1},
   {k:'ue',l:'UE',g:'session',w:96,v:r=>r.ue,mono:true},
+  {k:'sub',l:'Abonné',g:'session',w:140,v:r=>r.subscriber_imsi ?? shortPseudo(r.subscriber_pseudonym),mono:true},
   {k:'rat',l:'RAT',g:'session',w:64,v:r=>r.rat},
   {k:'proc',l:'Procédure',g:'session',w:130,v:r=>r.proc},
   {k:'imsi',l:'IMSI',g:'nas',w:78,v:()=>'masqué',lock:true},
@@ -221,6 +224,7 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
     if (sort) { const c=GRID_COLS.find(x=>x.k===sort[0]); const f=c.sort||c.v; out=[...out].sort((a,b)=>{const x=f(a),y=f(b); return (typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),undefined,{numeric:true}))*sort[1];}); }
     return out;
   },[rows,q,sort]);
+  const [grouped,setGrouped] = useState(false); const [openGroups,setOpenGroups] = useState([]);
   const [size,setSize] = useState(25); const [page,setPage] = useState(1);
   const condKey = JSON.stringify(conds);
   useEffect(()=>{ setPage(1); },[q,condKey,size]);
@@ -230,6 +234,7 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
   const cell = (c,r) => {
     const v = c.v(r);
     if (c.k==='res') return <VerdictBadge v={v}/>;
+    if (c.k==='sub') return v==='—' ? <span className="text-[#94A3B8]">—</span> : <span className="inline-flex items-center gap-1">{v}{r.subscriber_session_count!=null && <span className="rounded bg-[#EFF6FF] text-[#0062A1] px-1 text-[10px] font-sans font-semibold">{r.subscriber_session_count} sessions</span>}</span>;
     if (c.k==='ifc') return <span className="flex gap-1">{[...new Set(r.interfaces ?? [])].map(i=><Tag key={i} i={i}/>)}</span>;
     if (c.k==='imsi') return <span className="text-[#94A3B8]">masqué</span>;
     if (c.k==='cause') return <span className={verdict(r.res)==='FAILED'?'text-[#DC2626]':'text-[#64748B]'}>{v}</span>;
@@ -261,6 +266,7 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
             <div className="p-2 border-t border-[#E2E8F0] text-[11px] text-[#64748B]">Les choix sont enregistrés dans ce navigateur.</div>
           </div> : <div className="absolute right-0 top-8 z-40 w-52 bg-white border border-[#E2E8F0] rounded-lg shadow-lg py-1 text-[12.5px]">
             <button onClick={()=>setManageCols(true)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.cols} c="w-3.5 h-3.5 text-[#64748B]"/>Gérer les colonnes</button>
+            <button onClick={()=>{setGrouped(g=>!g);closeMore();}} aria-pressed={grouped} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.cols} c="w-3.5 h-3.5 text-[#64748B]"/>{grouped?'Ne plus grouper':'Grouper par abonné'}</button>
             <button onClick={resetCols} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.cols} c="w-3.5 h-3.5 text-[#64748B]"/>Réinitialiser les colonnes</button>
             <button onClick={closeMore} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.dl} c="w-3.5 h-3.5 text-[#64748B]"/>Exporter</button>
           </div>}</>}
@@ -275,7 +281,8 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
               <span onMouseDown={e=>resize(e,c)} onClick={e=>e.stopPropagation()} onDoubleClick={e=>{e.stopPropagation();setWidths(w=>{const n={...w};delete n[c.k];return n;});}} title="Redimensionner" className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-[var(--app-accent)]/40"/></th>)}</tr>
           </thead>
           <tbody>
-            {pageRows.map((r,rowIndex) => {
+            {(grouped ? groupBySubscriber(pageRows).flatMap(g=>{ const open=g.key==null||openGroups.includes(g.key); return [g.key==null?null:{__group:g.key,n:g.rows.length,open}, ...(open?g.rows:[])].filter(Boolean); }) : pageRows).map((r,rowIndex) => {
+              if (r.__group) return <tr key={`g-${r.__group}`} onClick={()=>setOpenGroups(o=>o.includes(r.__group)?o.filter(x=>x!==r.__group):[...o,r.__group])} className="cursor-pointer"><td colSpan={visibleCols.length} className="h-7 px-2 border-b border-[#E2E8F0] bg-[#F8FAFC] text-[12px] font-medium text-[#172033]">{r.open?'▾':'▸'} Abonné <span className="font-mono">{shortPseudo(r.__group)}</span> <span className="ml-1 rounded bg-[#EFF6FF] text-[#0062A1] px-1 text-[10px] font-semibold">{r.n} sessions</span></td></tr>;
               const on = sel===r.id;
               const clickable = r.id != null;
               return (
@@ -395,7 +402,7 @@ function LadderFilter({flow,value,onApply}) {
   </div>;
 }
 
-function Detail({s,sel,setSel,lens,ui}) {
+function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
   const { demo } = usePolarisMode(); const auth = useAuthMe();
   const [tab,setTab] = useState('Ladder');
   const [hidden,setHidden] = useState([]);
@@ -415,7 +422,7 @@ function Detail({s,sel,setSel,lens,ui}) {
       <div className="px-3 border-b border-[#E2E8F0]">
         {s.detailErrors?.map(error => <div key={error.endpoint} role="alert" className="pt-1.5 text-[12px] text-[#B42318]">Détail indisponible · {error.endpoint} · HTTP {error.status}</div>)}
         <div className="min-h-[42px] flex flex-wrap items-center gap-x-4 gap-y-1 min-w-0">
-          {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-[42px] shrink-0 whitespace-nowrap text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#172033] font-medium':'border-transparent text-[#64748B] hover:text-[#172033]'}`}>{t}</button>)}
+          {['Ladder','Messages','Corrélation','Parcours abonné','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-[42px] shrink-0 whitespace-nowrap text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#172033] font-medium':'border-transparent text-[#64748B] hover:text-[#172033]'}`}>{t}</button>)}
           <div className="ml-auto flex items-center gap-1 shrink-0">
             {ifs.map(i=>{const off=hidden.includes(i); return <button key={i} aria-pressed={!off} onClick={()=>setHidden(off?hidden.filter(x=>x!==i):[...hidden,i])} title={off?`Afficher ${i}`:`Masquer ${i}`} className={`h-6 px-0.5 rounded-md border transition ${off?'opacity-35 border-transparent':'border-[#E2E8F0] bg-white'}`}><Tag i={i}/></button>;})}
           </div>
@@ -442,6 +449,7 @@ function Detail({s,sel,setSel,lens,ui}) {
             <td className="px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#666666]">{m[4]?`${m[4]} ${m[5]}`:''}</td></tr>))}</tbody></table>}
         {tab==='Corrélation' && <table className="w-full text-[12.5px]"><thead><tr>{['De','Vers','Clé','Messages','Statut'].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#EBEBEB]">{h}</th>)}</tr></thead><tbody>{d.links.map((l,k)=>(
           <tr key={k}><td className="h-8 px-4 border-b border-[#F2F2F2]"><Tag i={l[2]}/></td><td className="px-4 border-b border-[#F2F2F2]"><Tag i={l[3]}/></td><td className="px-4 border-b border-[#F2F2F2] font-mono text-[12px]">{l[4]}</td><td className="px-4 border-b border-[#F2F2F2] font-mono text-[12px] text-[#666666]">{l[0]===null?'—':l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun'}</td><td className="px-4 border-b border-[#F2F2F2]"><Stat s={l[5]}/></td></tr>))}</tbody></table>}
+        {tab==='Parcours abonné' && <SubscriberJourney s={s} role={auth.data?.data?.role} onOpen={id=>{ if(id){ onOpenSession?.(id); setTab('Ladder'); } }}/>}
         {(tab==='Plan usager'||tab==='Comparer') && <div className="p-8 text-[13px] text-[#666666]">{tab==='Plan usager' ? 'Volumes UL / DL par TEID, comparés aux règles N4 et aux rapports d’usage PFCP.' : 'Choisis une session réussie de même procédure pour aligner les deux flux et voir le point de bifurcation.'}</div>}
       </div>
     </section>
@@ -1142,11 +1150,11 @@ function App() {
             <div onMouseDown={e=>drag(e,'h')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group h-2 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[2px] w-10 rounded-full bg-[#E2E8F0] group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
           </>}
           <div ref={lowRef} className="flex-1 min-h-0 flex">
-            <div className="flex-1 min-w-[280px] flex flex-col">{selected ? <Detail s={selected} sel={msg} setSel={setMsg} lens={lens} ui={ui}/> : <div className="p-8 text-[#64748B] bg-white rounded-xl border border-[#E2E8F0] flex-1">{sessionsQuery.isError ? sessionsQuery.error.message : sessionsQuery.isPending ? "Connexion POLARIS…" : "Aucune session"}</div>}</div>
+            <div className="flex-1 min-w-[280px] flex flex-col">{selected ? <Detail s={selected} sel={msg} setSel={setMsg} lens={lens} ui={ui} onOpenSession={id=>setSel(id)}/> : <div className="p-8 text-[#64748B] bg-white rounded-xl border border-[#E2E8F0] flex-1">{sessionsQuery.isError ? sessionsQuery.error.message : sessionsQuery.isPending ? "Connexion POLARIS…" : "Aucune session"}</div>}</div>
           </div>
         </main>
         {selected && !full && (insHidden ? <button onClick={()=>setInsHidden(false)} title="Afficher Décodage" className="ml-2 w-8 shrink-0 self-stretch bg-white rounded-xl border border-[#E2E8F0] flex flex-col items-center pt-3 gap-3 text-[#64748B] hover:text-[#172033]"><I d="M9 4v16M4 4h16v16H4z" c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[12px]">Décodage</span></button> : <><div onMouseDown={e=>drag(e,'ins')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-[#E2E8F0] group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><Inspector key={selected.id} s={selected} sel={msg} role={role} lens={lens} setLens={setLens} width={`${insPct}%`} onHide={()=>setInsHidden(true)}/></>)}
-        {selected && !full && (anaHidden ? <button onClick={()=>setAnaHidden(false)} title="Afficher Analyse sessions" className="ml-2 w-8 shrink-0 self-stretch bg-white rounded-xl border border-[#E2E8F0] flex flex-col items-center pt-3 gap-3 text-[#64748B] hover:text-[#172033]"><I d="M9 4v16M4 4h16v16H4z" c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[12px]">Analyse sessions</span></button> : <><div onMouseDown={e=>drag(e,'ana')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-[#E2E8F0] group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><SessionAnalysis s={selected} width={`${anaPct}%`} loading={bundle.callflow.isFetching || bundle.events.isFetching} onPick={k=>setMsg(Math.max(0,k))} onHide={()=>setAnaHidden(true)}/></>)}
+        {selected && !full && (anaHidden ? <button onClick={()=>setAnaHidden(false)} title="Afficher Analyse sessions" className="ml-2 w-8 shrink-0 self-stretch bg-white rounded-xl border border-[#E2E8F0] flex flex-col items-center pt-3 gap-3 text-[#64748B] hover:text-[#172033]"><I d="M9 4v16M4 4h16v16H4z" c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[12px]">Analyse sessions</span></button> : <><div onMouseDown={e=>drag(e,'ana')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-[#E2E8F0] group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><SessionAnalysis onOpenSession={id=>setSel(id)} s={selected} width={`${anaPct}%`} loading={bundle.callflow.isFetching || bundle.events.isFetching} onPick={k=>setMsg(Math.max(0,k))} onHide={()=>setAnaHidden(true)}/></>)}
       </div>}</>}
       <footer className="h-7 shrink-0 bg-white border-t border-[#EBEBEB] flex items-center gap-5 px-4 text-[11.5px] text-[#666666]">
         <span>Capture : {available(metrics.data?.data?.capture_state)}</span><span>Segments ingérés : {available(metrics.data?.data?.segments_ingested)}</span>

@@ -86,3 +86,10 @@ export { records };
 
 export function useTrafficDemo() { const { demo } = usePolarisMode(); return { TR_CATS: demo ? TR_CATS : [], TR_APPS: demo ? TR_APPS : [], TR_CELLS: demo ? TR_CELLS : [], TR_FLOWS: demo ? TR_FLOWS : [], TR_V, seedRand }; }
 export function useKpiDemo() { const { demo } = usePolarisMode(); return { dashboards: demo ? SYS_DASH : [], anomalies: demo ? ANOMS : [] }; }
+
+// Subscriber journey (OIRAN 2.13.0) and identity vault (operator, 2.12.0). Absent routes surface as errors, never as invented data.
+const pseudoPath = (p?: string | null) => encodeURIComponent(String(p ?? ''));
+export const useSubscriberJourney = (p?: string | null) => useResource<RecordData>(`/subscribers/${pseudoPath(p)}/journey`, {}, !!p, false);
+export const useSubscriberTmsi = (p?: string | null) => useResource<RecordData[]>(`/subscribers/${pseudoPath(p)}/tmsi`, {}, !!p, false);
+export const useSessionIdentities = (id?: string | null, enabled = true) => useResource<RecordData>(`/sessions/${idPath(id)}/identities`, {}, !!id && enabled, false);
+export const useIdentityLookup = (q: string) => useResource<RecordData>('/identities', { q }, q.trim().length >= 4, false);

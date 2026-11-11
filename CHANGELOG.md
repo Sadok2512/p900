@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.0
+
+- Parcours abonné (écrans prêts, données OIRAN 2.13.0 à venir) : colonne « Abonné » avec badge « N sessions », option « Grouper par abonné » (menu ⋯ du tableau), bloc « Autres sessions de cet abonné », onglet « Parcours abonné » (frise ordonnée (capture_id, seq), procédures en couleur, liens EXACT pleins / OUVERT pointillés avec raison, liste TMSI, identités via le coffre pour operator, recherche IMSI/TMSI/IMEI/MSISDN).
+- Routes consommées : `/subscribers/{p}/journey`, `/subscribers/{p}/tmsi`, `/sessions/{id}/identities`, `/identities?q=`. Absentes → « Non disponible : backend à venir » avec l'appel et le statut. Aucun lien « probable » affiché.
+
 ## 0.10.1
 
 - Résultat de session calculé depuis les procédures observées : FAILED si une a échoué, sinon PARTIAL si une est partielle, sinon SUCCESS ; UNKNOWN seulement sans procédure (`state` HISTORICAL_CONTEXT ne porte pas de résultat).

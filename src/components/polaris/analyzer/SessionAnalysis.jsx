@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { OtherSessions } from './SubscriberJourney';
 import { toMs, steps, backgroundSteps, fmtSpan, overall, failures, sessionKpis, fmtDuration, fmtBytes, fmtRate, fmtUtc, timeOf } from './analysis';
 
 export const VERDICT_STYLE = { SUCCESS:['#16A34A','#ECFDF3'], FAILED:['#DC2626','#FEF2F2'], PARTIAL:['#D97706','#FFFBEB'], UNKNOWN:['#64748B','#F1F5F9'] };
@@ -6,7 +7,7 @@ export const VerdictBadge = ({v}) => { const [c,b]=VERDICT_STYLE[v]||VERDICT_STY
 const H = ({children}) => <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#64748B] mb-1.5">{children}</div>;
 const Row = ({k,v}) => <><dt className="text-[#64748B]">{k}</dt><dd className="text-[#172033] truncate" title={String(v)}>{v}</dd></>;
 
-export default function SessionAnalysis({s,width,onPick,onHide,loading}) {
+export default function SessionAnalysis({s,width,onPick,onHide,loading,onOpenSession}) {
   const flow = s.d;
   const st = useMemo(()=>steps(flow),[flow]);
   const bg = useMemo(()=>backgroundSteps(flow),[flow]);
@@ -34,6 +35,7 @@ export default function SessionAnalysis({s,width,onPick,onHide,loading}) {
             <Row k="Cellule" v={s.cell ?? '—'}/><Row k="MME / AMF" v={s.serving_node ?? '—'}/><Row k="Procédure" v={s.proc ?? '—'}/>
           </dl>
         </section>
+        <OtherSessions s={s} onOpen={onOpenSession}/>
         <section><H>Chronologie</H>
           {st.length===0 ? <div className="text-[#64748B]">Aucune étape observée.</div> : <ol className="space-y-1">{st.map((x,i)=>(
             <li key={i}><button disabled={x.start<0} onClick={()=>onPick(x.failIndex ?? x.start)} className="w-full text-left rounded-md border border-[#E2E8F0] px-2 py-1.5 hover:bg-[#F8FAFC]">
