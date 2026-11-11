@@ -1,6 +1,6 @@
 import KpiModule from './kpi/KpiModule';
 import LiveModule from './live/LiveModule';
-import { useAuthMe, useHealth, useVersion, useMetrics, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport } from '@/lib/polaris-api';
+import { useAuthMe, useHealth, useVersion, useMetrics, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
@@ -178,17 +178,18 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
             <tr>{cols.map((c,k) => <th key={c} className="h-8 px-3 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#EBEBEB]">{c==='IMSI' ? <span className="inline-flex items-center gap-1"><I d={ic.lock} c="w-3 h-3"/>IMSI</span> : c}{k===0 && <span className="ml-1 text-[#171717]">↑</span>}</th>)}</tr>
           </thead>
           <tbody>
-            {rows.map(r => {
+            {rows.map((r,rowIndex) => {
               const on = sel===r.id;
+              const clickable = r.id != null;
               return (
-                <tr key={r.id} onClick={()=>setSel(r.id)} className={`cursor-pointer ${on?'bg-[color-mix(in_oklab,var(--app-accent)_8%,white)]':'hover:bg-[#FAFAFA]'}`}>
-                  <td className={`h-8 px-3 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#666666] ${on?'shadow-[inset_3px_0_0_var(--app-accent)]':''}`}>c{r.cap} · {r.seq}</td>
+                <tr key={r.id ?? `missing-session-${rowIndex}`} onClick={()=>{if(clickable)setSel(r.id);}} aria-disabled={!clickable} className={`${clickable?'cursor-pointer':'cursor-default opacity-70'} ${on?'bg-[color-mix(in_oklab,var(--app-accent)_8%,white)]':clickable?'hover:bg-[#FAFAFA]':''}`}>
+                  <td className={`h-8 px-3 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#666666] ${on?'shadow-[inset_3px_0_0_var(--app-accent)]':''}`}>{clickable?`c${r.cap} · ${r.seq}`:'identifiant absent'}</td>
                   <td className="px-3 border-b border-[#F2F2F2] font-mono text-[12px] text-[#171717]">{r.ue}</td>
                   <td className="px-3 border-b border-[#F2F2F2]">{r.rat}</td>
                   <td className="px-3 border-b border-[#F2F2F2] text-[#171717]">{r.proc}</td>
                   <td className="px-3 border-b border-[#F2F2F2]"><Res r={r.res}/></td>
                   <td className={`px-3 border-b border-[#F2F2F2] ${r.res==='Échec'?'text-[#B42318]':'text-[#666666]'}`}>{r.cause || '—'}</td>
-                  <td className="px-3 border-b border-[#F2F2F2]"><span className="flex gap-1">{[...new Set(r.d.msgs.map(m=>m[0]))].map(i=><Tag key={i} i={i}/>)}</span></td>
+                  <td className="px-3 border-b border-[#F2F2F2]"><span className="flex gap-1">{[...new Set(r.interfaces ?? [])].map(i=><Tag key={i} i={i}/>)}</span></td>
                   <td className="px-3 border-b border-[#F2F2F2] font-mono text-[12px]">{r.ex}</td>
                   <td className="px-3 border-b border-[#F2F2F2] tabular-nums">{r.comp==='—'?'—':`${r.comp} %`}</td>
                   <td className="px-3 border-b border-[#F2F2F2] tabular-nums text-[#666666]">{r.dur}</td>
@@ -273,6 +274,7 @@ function Detail({s,sel,setSel,lens,ui}) {
           <span className="ml-auto flex items-center gap-4 text-[12px] text-[#666666]"><span><b className="text-[#171717] tabular-nums">{demo || d.msgs.length ? d.msgs.length : '—'}</b> messages</span><span><b className="text-[#171717] tabular-nums">{demo || d.links.length ? `${ex}/${d.links.length}` : '—'}</b> liens EXACT</span><span><b className="text-[#171717] tabular-nums">{s.comp==='—'?'—':`${s.comp} %`}</b> complétude</span></span>
         </div>
         <div className="mt-1.5 text-[12.5px] text-[#4D4D4D]">{d.summary}{d.diverge && <span className="ml-2 text-[#B42318]">{d.diverge}</span>}</div>
+        {s.detailErrors?.map(error => <div key={error.endpoint} role="alert" className="mt-1.5 text-[12px] text-[#B42318]">Détail indisponible · {error.endpoint} · HTTP {error.status}</div>)}
         <div className="flex gap-5 mt-2 -mb-2">
           {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-8 text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#171717] font-medium':'border-transparent text-[#666666] hover:text-[#171717]'}`}>{t}</button>)}
         </div>
@@ -298,7 +300,7 @@ function Detail({s,sel,setSel,lens,ui}) {
             <td className="px-2 border-b border-[#F2F2F2]">{m[1]}{m[3]&&<span className="text-[#666666]"> · {m[3]}</span>}</td><td className="px-2 border-b border-[#F2F2F2] text-[#666666]">{m[2]}</td>
             <td className="px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#666666]">{m[4]?`${m[4]} ${m[5]}`:''}</td></tr>))}</tbody></table>}
         {tab==='Corrélation' && <table className="w-full text-[12.5px]"><thead><tr>{['De','Vers','Clé','Messages','Statut'].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#EBEBEB]">{h}</th>)}</tr></thead><tbody>{d.links.map((l,k)=>(
-          <tr key={k}><td className="h-8 px-4 border-b border-[#F2F2F2]"><Tag i={l[2]}/></td><td className="px-4 border-b border-[#F2F2F2]"><Tag i={l[3]}/></td><td className="px-4 border-b border-[#F2F2F2] font-mono text-[12px]">{l[4]}</td><td className="px-4 border-b border-[#F2F2F2] font-mono text-[12px] text-[#666666]">{l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun'}</td><td className="px-4 border-b border-[#F2F2F2]"><Stat s={l[5]}/></td></tr>))}</tbody></table>}
+          <tr key={k}><td className="h-8 px-4 border-b border-[#F2F2F2]"><Tag i={l[2]}/></td><td className="px-4 border-b border-[#F2F2F2]"><Tag i={l[3]}/></td><td className="px-4 border-b border-[#F2F2F2] font-mono text-[12px]">{l[4]}</td><td className="px-4 border-b border-[#F2F2F2] font-mono text-[12px] text-[#666666]">{l[0]===null?'—':l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun'}</td><td className="px-4 border-b border-[#F2F2F2]"><Stat s={l[5]}/></td></tr>))}</tbody></table>}
         {(tab==='Plan usager'||tab==='Comparer') && <div className="p-8 text-[13px] text-[#666666]">{tab==='Plan usager' ? 'Volumes UL / DL par TEID, comparés aux règles N4 et aux rapports d’usage PFCP.' : 'Choisis une session réussie de même procédure pour aligner les deux flux et voir le point de bifurcation.'}</div>}
       </div>
     </section>
@@ -326,9 +328,9 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
             <div className="mt-1.5 text-[14px] font-semibold text-[#171717] leading-snug">{m[1]}</div><div className="text-[#666666]">{m[2]}</div></div>
           <dl className="grid grid-cols-[110px_1fr] gap-y-1 font-mono text-[11.5px]">
             <dt className="text-[#8F8F8F]">capture_id</dt><dd>{available(proof.capture_id)}</dd><dt className="text-[#8F8F8F]">seq</dt><dd>{available(proof.seq)}</dd>
-            <dt className="text-[#8F8F8F]">packet_number</dt><dd>{available(proof.packet_number)}</dd><dt className="text-[#8F8F8F]">décodeur</dt><dd>{available(versions.data?.data?.decoder_version)}</dd>
+            <dt className="text-[#8F8F8F]">packet_number</dt><dd>{available(proof.packet_number)}</dd><dt className="text-[#8F8F8F]">décodeurs</dt><dd>{decoderVersions(versions.data?.data?.decoders)}</dd>
           </dl>
-          {eventQuery.data && <pre className="text-[11.5px] whitespace-pre-wrap">{JSON.stringify(eventQuery.data.data?.decoded ?? {},null,2)}</pre>}
+          {eventQuery.data && <pre className="text-[11.5px] whitespace-pre-wrap">{JSON.stringify(eventQuery.data.data?.decoded_ie_tree ?? {},null,2)}</pre>}
           {eventQuery.isError && <div>{eventQuery.error.message}</div>}
           <div className="rounded-md border border-[#EBEBEB] bg-[#FAFAFA] p-3 font-mono text-[11.5px] leading-[1.9] text-[#4D4D4D]">
             <div>▾ {m[1].split(' ')[0]} PDU</div>
@@ -350,7 +352,7 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
         </div>}
         {tab==='Preuves' && <div className="space-y-2"><div>event_id : {available(proof.event_id ?? evidence?.id)} · seq : {available(proof.seq)}</div>{provenance.isError && <div>{provenance.error.message}</div>}{packets.data && <div>Paquets : {records(packets.data.data,'packets').length}</div>}<div>Règles : {rules.isError ? rules.error.message : JSON.stringify(rules.data?.data ?? [])}</div>{d.links.map((l,k)=>(
           <div key={k} className="rounded-md border border-[#EBEBEB] p-3"><div className="flex items-center gap-2"><Tag i={l[2]}/><span className="text-[#8F8F8F]">→</span><Tag i={l[3]}/><span className="ml-auto"><Stat s={l[5]}/></span></div>
-          <div className="font-mono text-[11.5px] mt-2 text-[#4D4D4D]">{l[4]}</div><div className="text-[11.5px] text-[#8F8F8F] mt-0.5">messages {l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun message N4'} · matched_rules : {JSON.stringify(l[6] ?? [])}</div></div>))}</div>}
+          <div className="font-mono text-[11.5px] mt-2 text-[#4D4D4D]">{l[4]}</div><div className="text-[11.5px] text-[#8F8F8F] mt-0.5">messages {l[0]===null?'—':l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun message N4'} · matched_rules : {JSON.stringify(l[6] ?? [])}</div></div>))}</div>}
         {tab==='Hex' && <div>Non disponible : backend à venir (octets masqués)</div>}
         {tab==='Identité' && <div><Lbl>Pseudonyme</Lbl><span className="font-mono">{s.ue}</span><div>Identités masquées</div></div>}
       </div>
@@ -458,7 +460,7 @@ function Nodes() {
   const nodes = raw.map((n,i)=>demo ? n : toLegacyProbe(n,i));
   const current = nodes.find(n=>n.n===node);
   const resources = useProbeResources(current?.id);
-  const version = useVersion(); const metrics = useMetrics(); const safety = useStorageSafety();
+  const metrics = useMetrics(); const safety = useStorageSafety();
   const [target,setTarget] = useState(''); const [actionError,setActionError] = useState('');
   const capture = useCaptureAction(auth.data?.data?.role, health.data?.data?.coordination_open);
   const doCapture = (action,id) => { if (!window.confirm('Confirmer cette action de capture ?')) return; capture.mutate({action,id,target,confirmed:true},{onError:e=>setActionError(e.message)}); };
@@ -497,7 +499,7 @@ function Nodes() {
                         <tr><td colSpan="9" className="bg-[#FAFAFA] border-b border-[#F2F2F2] px-4 py-4">
                           <div className="grid grid-cols-3 gap-6 text-[12.5px]">
                             <div><Lbl>Interfaces</Lbl>{records(resources.probeInterfaces.data?.data, 'interfaces').map((x,i)=><div key={i}>{available(x.name ?? x.interface)}</div>)}{resources.probeInterfaces.isError && <div>{resources.probeInterfaces.error.message}</div>}</div>
-                            <div><Lbl>Version</Lbl><div>{available(resources.probe.data?.data?.version ?? version.data?.data?.version)}</div></div>
+                            <div><Lbl>Version</Lbl><div>{available(resources.probe.data?.data?.version)}</div></div>
                             <div><Lbl>Actions</Lbl><div>Non disponible : backend à venir</div></div>
                           </div>
                         </td></tr>
@@ -671,7 +673,7 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]})
 
 const THEMES = [['blue','Bleu','#0062A1'],['black','Noir','#171717'],['green','Vert','#0F5B56']];
 function Settings({theme,setTheme,lang,setLang,onClose}) {
-  const version = useVersion(); const health = useHealth();
+  const version = useVersion();
   const [sec,setSec]=useState('apparence');
   const [cur,setCur]=useState(''),[nw,setNw]=useState(''),[cf,setCf]=useState(''),[pm,setPm]=useState(null);
   const accent = THEMES.find(t=>t[0]===theme)[2];
@@ -741,7 +743,7 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
                 </button>);})}</div>
             </Card>}
             {sec==='apropos' && <Card title={t("À propos")} desc={t("Versions des composants installés.")}>
-              <div className="grid grid-cols-2 gap-5">{[['POLARIS UI',UI_VERSION],['POLARIS',available(version.data?.data?.version ?? health.data?.data?.version)]].map(([n,v])=>(
+              <div className="grid grid-cols-2 gap-5">{versionComponents(version.data?.data,UI_VERSION).map(([n,v])=>(
                 <div key={n} className="rounded-xl border border-[#EBEBEB] p-5"><div className="text-[13px] text-[#666666]">{n}</div><div className="mt-1 text-[26px] font-semibold tracking-tight font-mono" style={{color:accent}}>{v}</div></div>))}</div>
             </Card>}
           </div>
@@ -829,7 +831,7 @@ function MockChart({data,unit}){
 
 function App() {
   const { demo } = usePolarisMode(); const auth = useAuthMe(); const role = auth.data?.data?.role ?? null;
-  const health = useHealth(), version = useVersion(), metrics = useMetrics();
+  const version = useVersion(), metrics = useMetrics();
   const kpis = useKpiCatalogue(); const demoLibrary = useDemoLibrary(); const sessionFilter = useSessionFilter();
 
   const [lang,setLangS] = useState(()=>{ try { return localStorage.getItem('polaris-lang')||'fr'; } catch(e) { return 'fr'; } });
@@ -844,7 +846,15 @@ function App() {
   useEffect(()=>{ const f=()=>setPageS(readP()); window.addEventListener('hashchange',f); return ()=>window.removeEventListener('hashchange',f); },[]);
   const [tabs,setTabs] = useState([]);
   const seededDemo = useRef(false);
-  useEffect(()=>{ if(demo && !seededDemo.current) { seededDemo.current=true; setTabs(ts=>ts.length ? ts : demoLibrary.tabs); } },[demo]);
+  useEffect(()=>{
+    if (demo && !seededDemo.current) {
+      seededDemo.current=true;
+      setTabs(ts=>ts.length ? ts : demoLibrary.tabs.map(tab=>({...tab,demoOnly:true})));
+    } else if (!demo) {
+      seededDemo.current=false;
+      setTabs(ts=>ts.filter(tab=>!tab.demoOnly));
+    }
+  },[demo]);
   const [tabId,setTabId] = useState('t1');
   const [saved,setSaved] = useState(()=>{ try { return redact(JSON.parse(localStorage.getItem('polaris-saved-queries') || '[]')); } catch { return []; } });
   useEffect(()=>{localStorage.setItem('polaris-saved-queries',JSON.stringify(saved));},[saved]);
@@ -863,13 +873,17 @@ function App() {
     return demo ? data.filter(s=>(!ue || (Array.isArray(ue)?ue.includes(s.ue):s.ue===ue)) && matchQ(s,active.conds,active.join)) : data;
   },[active,demo,sessionsQuery.data]);
   const [sel,setSel] = useState(3);
-  const s = rows.find(r=>r.id===sel) || rows[0];
+  const s = rows.find(r=>r.id===sel) || rows.find(r=>r.id!=null);
   const bundle = useSessionBundle(page==='sessions' && view==='results' ? s?.id : null);
-  const selected = s ? (demo ? s : {...s,...(bundle.session.data?.data ? toLegacySession(bundle.session.data.data) : {}),d:bundle.detail || s.d}) : null;
+  const detailSession = bundle.session.data?.data ? toLegacySession(bundle.session.data.data) : null;
+  const detailErrors = s?.id == null ? [] : [['session',bundle.session],['events',bundle.events],['procedures',bundle.procedures],['callflow',bundle.callflow],['correlations',bundle.correlations]]
+    .filter(([,query])=>query.isError)
+    .map(([endpoint,query])=>({endpoint:`/sessions/${encodeURIComponent(String(s.id))}${endpoint==='session'?'':`/${endpoint}`}`,status:query.error?.status ?? '—'}));
+  const selected = s ? (demo ? s : {...s,...(detailSession ?? {}),id:detailSession?.id ?? s.id,session_id:detailSession?.session_id ?? s.session_id,d:bundle.detail || s.d,detailErrors}) : null;
   const nameOf = c => `${c.length?c.map(x=>x[1]).join(' · '):'Toutes les sessions'}${demo ? ' · run 482' : ''}`;
   const patch = (id,o) => setTabs(ts=>ts.map(x=>x.id===id?{...x,...o}:x));
-  const newTab = (draft=mkDraft(),title) => { const id='q'+Date.now(); setTabs(ts=>[...ts,{id,k:'Requête',n:title||'Nouvelle requête',conds:[],mode:'edit',draft,dirty:!!title}]); setTabId(id); setAview('tab'); };
-  const openSaved = q => { const id='q'+Date.now(); const c=q.c.map(y=>[y[0],y[1],y[2]||'=']); setTabs(ts=>[...ts,{id,k:'Requête',n:q.n,conds:c,join:'ET',mode:demo?'results':'edit',draft:mkDraft({tpl:q.g,scope:q.p,conds:c,name:q.n})}]); setTabId(id); setAview('tab'); };
+  const newTab = (draft=mkDraft(),title) => { const id='q'+Date.now(); setTabs(ts=>[...ts,{id,k:'Requête',n:title||'Nouvelle requête',conds:[],mode:'edit',draft,dirty:!!title,demoOnly:demo}]); setTabId(id); setAview('tab'); };
+  const openSaved = q => { const id='q'+Date.now(); const c=q.c.map(y=>[y[0],y[1],y[2]||'=']); setTabs(ts=>[...ts,{id,k:'Requête',n:q.n,conds:c,join:'ET',mode:demo?'results':'edit',draft:mkDraft({tpl:q.g,scope:q.p,conds:c,name:q.n}),demoOnly:demo}]); setTabId(id); setAview('tab'); };
   const editActive = () => { if (!active) return; patch(active.id,{mode:'edit',draft:active.draft||mkDraft({conds:active.conds,name:active.n,join:active.join||'ET'})}); };
   const setDraft = d => patch(active.id,{draft:d,dirty:true,n:d.name||'Nouvelle requête'});
   const runQuery = () => { const d=active.draft; const id=active.id;
@@ -936,7 +950,7 @@ function App() {
       </div>}</>}
       <footer className="h-7 shrink-0 bg-white border-t border-[#EBEBEB] flex items-center gap-5 px-4 text-[11.5px] text-[#666666]">
         <span>Capture : {available(metrics.data?.data?.capture_state)}</span><span>Segments ingérés : {available(metrics.data?.data?.segments_ingested)}</span>
-        <span className="ml-auto font-mono">POLARIS {available(version.data?.data?.version ?? health.data?.data?.version)} · UI {UI_VERSION}{demo ? ' · Données de démo' : ''}</span>
+        <span className="ml-auto font-mono">POLARIS {available(version.data?.data?.platform_core)} · API {available(version.data?.data?.backend_api)} · UI {UI_VERSION}{demo ? ' · Données de démo' : ''}</span>
       </footer>
     </div>
   );

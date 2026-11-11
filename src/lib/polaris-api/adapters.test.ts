@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { available, toLegacySession, toLegacyCallflow, healthKpi, canCapture, querySupport, filterBody } from './adapters';
+import { available, toLegacySession, toLegacyCallflow, healthKpi, canCapture, querySupport, filterBody, versionComponents } from './adapters';
 import { demoResponse, shouldUseDemo } from './demo';
 describe('POLARIS data rules', () => {
   it('uses existing isolated demo rows only when demo is on', () => {
@@ -13,14 +13,34 @@ describe('POLARIS data rules', () => {
     expect(available(undefined)).toBe('—'); expect(available(null)).toBe('—'); expect(available(0)).toBe(0);
     expect(toLegacySession({}).comp).toBe('—'); expect(toLegacySession({}).dur).toBe('—');
   });
-  it('never reorders returned events by timestamp', () => {
-    const d = toLegacyCallflow([{event_id:'b',seq:2,message:'second capture',timestamp:'2026-11-11T10:00:00',source:'AMF',destination:'UE'}, {event_id:'a',seq:1,message:'earlier time',timestamp:'2026-11-11T09:00:00',source:'UE',destination:'AMF'}], [], []);
-    expect(d.msgs.map(m => m[1])).toEqual(['second capture', 'earlier time']);
-    expect(d.evidence.map(e=>e.event_id)).toEqual(['b','a']);
+  it('maps the observed session fields and never fabricates an identifier', () => {
+    const row = toLegacySession({session_id:'lte-session-a',anchor_capture_id:'cap-a',first_packet_number:67,ue_pseudonym:'psn-test',state:'ACTIVE',technology:'LTE',procedure:'Attach',decode_completeness:97,interfaces:['S1-MME','S11'],ue_ip:'198.51.100.10'});
+    expect(row).toMatchObject({id:'lte-session-a',cap:'cap-a',seq:67,ue:'psn-test',res:'ACTIVE',rat:'LTE',proc:'Attach',comp:97,interfaces:['S1-MME','S11'],missingSessionId:false});
+    const missing = toLegacySession({ue_pseudonym:'psn-no-id'});
+    expect(missing.id).toBeUndefined();
+    expect(missing.missingSessionId).toBe(true);
   });
-  it('only renders EXACT/OUVERT links and preserves matched_rules', () => {
-    const d = toLegacyCallflow([], [], [{status:'EXACT',matched_rules:['r1']},{status:'OUVERT',matched_rules:[]},{status:'probable'}]);
-    expect(d.links.map(l=>l[5])).toEqual(['EXACT','OUVERT']); expect(d.links[0]?.[6]).toEqual(['r1']);
+  it('never reorders returned events by timestamp', () => {
+    const d = toLegacyCallflow([{event_id:'b',message_name:'second capture',source_participant:'MME',destination_participant:'eNB',procedure_group:'Attach',packet_references:[{packet_number:22}],decoding_status:'DECODED'}, {event_id:'a',message_name:'first timestamp but second API row',source_participant:'eNB',destination_participant:'MME',procedure_group:'Attach',packet_references:[{packet_number:11}],decoding_status:'PARTIAL'}], [], []);
+    expect(d.msgs.map(m => m[1])).toEqual(['second capture', 'first timestamp but second API row']);
+    expect(d.evidence.map(e=>e.event_id)).toEqual(['b','a']);
+    expect(d.evidence.map(e=>e.packet_number)).toEqual([22,11]);
+    expect(d.nodes).toEqual(['MME','eNB']);
+  });
+  it('maps observed correlation edges to EXACT/OUVERT with rules', () => {
+    const d = toLegacyCallflow([], [], {edges:[
+      {edge_id:'edge-1',confidence:'EXACT',evidence_type:'EXACT_TUNNEL_MATCH',rule_id:'s5c-s5u-teid',matching_identifiers:['teid=0x0000be90'],matched_rules:['s5c-s5u-teid']},
+      {edge_id:'edge-2',confidence:'OPEN',evidence_type:'OPEN_MISSING_KEY',rule_id:'s1mme-s6a-pseudonym',matched_rules:[]},
+      {edge_id:'edge-3',confidence:'probable',rule_id:'forbidden'}
+    ]});
+    expect(d.links.map(l=>l[5])).toEqual(['EXACT','OUVERT']);
+    expect(d.links[0]?.[4]).toContain('s5c-s5u-teid');
+    expect(d.links[0]?.[4]).toContain('teid=0x0000be90');
+    expect(d.links[0]?.[6]).toEqual(['s5c-s5u-teid']);
+  });
+  it('lists every observed version component and package UI version', () => {
+    const rows = versionComponents({backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{diameter:'0.2.6',gtpu:'0.2.1'}},'0.9.1');
+    expect(Object.fromEntries(rows)).toMatchObject({'POLARIS':'2.11.6','API':'2.11.6','Web frontend':'2.11.6','UI package.json':'0.9.1','Session engine':'0.5.7','Correlation engine':'0.6.6','Event schema':'1.6.1','Callflow schema':'1.3.2',diameter:'0.2.6',gtpu:'0.2.1'});
   });
   it('computes only available probe health metrics, with guarded denominators', () => {
     expect(healthKpi('kpi.probe.dumpcap',{dumpcap_active:6,dumpcap_expected:12})).toBe(50);

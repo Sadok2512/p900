@@ -27,7 +27,7 @@ export const useSession = (id?: string | number | null) => useResource<Session>(
 export const useEvents = (id?: string | number | null) => useResource<Event[]>(`/sessions/${idPath(id)}/events`, {}, id != null);
 export const useProcedures = (id?: string | number | null) => useResource<RecordData[]>(`/sessions/${idPath(id)}/procedures`, {}, id != null);
 export const useCallflow = (id?: string | number | null) => useResource<RecordData | Event[]>(`/sessions/${idPath(id)}/callflow`, {}, id != null);
-export const useCorrelations = (id?: string | number | null) => useResource<Correlation[]>(`/sessions/${idPath(id)}/correlations`, {}, id != null);
+export const useCorrelations = (id?: string | number | null) => useResource<Correlation[] | { edges: Correlation[] }>(`/sessions/${idPath(id)}/correlations`, {}, id != null);
 export const useEvent = (id?: string | number | null) => useResource<Event>(`/events/${idPath(id)}`, {}, id != null);
 export const useProvenance = (id?: string | number | null) => useResource<RecordData>(`/events/${idPath(id)}/provenance`, {}, id != null);
 export const usePackets = (params: QueryParams = {}, enabled = true) => useResource<RecordData[]>('/packets', params, enabled);

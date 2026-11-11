@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.1
+- Adaptateur sessions aligné sur les champs réels `session_id`, `ue_pseudonym`, `state`, `technology`, `procedure` et `decode_completeness`; aucun identifiant de remplacement n'est fabriqué.
+- Ladder alimenté par `message_name`, les participants, statuts, groupes de procédure, références paquet et arbre IE réels, dans l'ordre exact renvoyé par l'API.
+- Corrélations lues depuis `edges` avec `confidence`/`evidence_type`, `rule_id`, `matching_identifiers` et `matched_rules`; seuls EXACT et OUVERT sont affichés.
+- Pied de page et Paramètres alignés sur le contrat détaillé de `/version`; champs absents rendus par `—`.
+- Ancre de session affichée depuis `anchor_capture_id` et `first_packet_number`; l'ordre du ladder reste celui de l'API.
+- Hors Démo, aucun onglet issu des données de démonstration ne subsiste; un détail en échec indique son endpoint et son statut HTTP.
+- Tests Vitest de contrat construits sur les noms de champs observés par ANR1, sans identité abonné en clair.
+
 ## 0.9.0
 - Couche REST POLARIS typée en même origine : enveloppes, erreurs, confidentialité et hooks TanStack Query par ressource.
 - Accueil, rôle en lecture seule, versions, sessions, ladder, preuves et Probe Manager raccordés sans refonte visuelle.
