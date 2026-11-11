@@ -116,7 +116,7 @@ describe('main screens with simulated REST responses',()=>{
         return new Response(JSON.stringify({data:body,meta:{}}),{headers:{'Content-Type':'application/json'}});
       }
       if (path==='/interfaces/TEST-FICTIVE' && options.method==='DELETE') {
-        interfaces=interfaces.filter(row=>row.name!=='TEST-FICTIVE');
+        interfaces=interfaces.filter(row=>row['name']!=='TEST-FICTIVE');
         return new Response(JSON.stringify({data:{deleted:true},meta:{}}),{headers:{'Content-Type':'application/json'}});
       }
       const data=path==='/interfaces'?interfaces:payloads[path] ?? [];
