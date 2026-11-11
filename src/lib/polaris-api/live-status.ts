@@ -23,9 +23,8 @@ const OFFLINE: TopBarLiveIndicator = {
 
 export function pendingGrewForThreePolls(history: readonly number[] = []): boolean {
   const recent = history.slice(-4);
-  return (
-    recent.length === 4 && recent.every((value, index) => index === 0 || value > recent[index - 1])
-  );
+  if (recent.length !== 4) return false;
+  return recent.every((value, index) => index === 0 || value > (recent[index - 1] ?? value));
 }
 
 export function topBarLiveIndicator({
