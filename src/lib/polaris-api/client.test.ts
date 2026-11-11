@@ -39,7 +39,7 @@ describe('POLARIS client', () => {
     expect(relativeBase('/api/v1')).toBe('/api/v1');
   });
   it('masks every forbidden identity field, including name/value decoding pairs', () => {
-    expect(redact({ imsi: '001010000000101', supi: 'private', guti: 'private', tmsi: 'private', imei: 'private', K: 'private', OPc: 'private', pseudonym: 'ue-7f3a', decoded: [{ name: 'GUTI', value: 'private' }] })).toEqual({ imsi:'masqué', supi:'masqué', guti:'masqué', tmsi:'masqué', imei:'masqué', K:'masqué', OPc:'masqué', pseudonym:'ue-7f3a', decoded:[{name:'GUTI',value:'masqué'}] });
+    expect(redact({ supi: 'private', guti: 'private', imei: 'private', K: 'private', OPc: 'private', pseudonym: 'ue-7f3a', decoded: [{ name: 'GUTI', value: 'private' }] })).toEqual({ supi:'masqué', guti:'masqué', imei:'masqué', K:'masqué', OPc:'masqué', pseudonym:'ue-7f3a', decoded:[{name:'GUTI',value:'masqué'}] });
   });
 });
 
@@ -49,4 +49,9 @@ itU('treats the relay unreachable marker as POLARIS non connecté (502)', async 
   const { request } = await import('./client');
   await expectU(request('/health')).rejects.toMatchObject({ status: 502, message: 'POLARIS non connecté' });
   viU.unstubAllGlobals();
+});
+
+import { it as it2, expect as ex2 } from 'vitest';
+it2('keeps IMSI, M-TMSI, S-TMSI and MSISDN in clear', () => {
+  ex2(redact({ imsi: '001010000000101', m_tmsi: 'C0FFEE01', s_tmsi: '01C0FFEE01', msisdn: '33612345678', guti: 'x' })).toEqual({ imsi: '001010000000101', m_tmsi: 'C0FFEE01', s_tmsi: '01C0FFEE01', msisdn: '33612345678', guti: 'masqué' });
 });

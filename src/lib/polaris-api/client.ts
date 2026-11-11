@@ -15,13 +15,15 @@ export function apiPath(path: string, params: QueryParams = {}, base = relativeB
 }
 // Remove identity-bearing fields before anything can reach a component or Query cache.
 const privateField = /imsi|supi|suci|guti|tmsi|imei|msisdn|password|token|secret|^(k|opc)$/i;
+// Subscriber identities the user asked to see in clear (server decides who receives them).
+const clearField = /^(subscriber_)?(imsi|m_?tmsi|s_?tmsi|msisdn)$/i;
 export function redact<T>(value: T): T {
   if (typeof value === 'string') return value.replace(/\b\d{14,16}\b/g, 'masqué') as T;
   if (Array.isArray(value)) return value.map(redact) as T;
   if (value && typeof value === 'object') {
     const object = value as Record<string, unknown>;
     const sensitiveDescriptor = ['field', 'name', 'key'].some(k => typeof object[k] === 'string' && privateField.test(object[k] as string));
-    return Object.fromEntries(Object.entries(object).map(([k, v]) => [k, privateField.test(k) || sensitiveDescriptor && ['value', 'raw', 'decoded'].includes(k) ? 'masqué' : redact(v)])) as T;
+    return Object.fromEntries(Object.entries(object).map(([k, v]) => [k, clearField.test(k) && (typeof v === 'string' || typeof v === 'number') ? v : privateField.test(k) || sensitiveDescriptor && ['value', 'raw', 'decoded'].includes(k) ? 'masqué' : redact(v)])) as T;
   }
   return value;
 }
