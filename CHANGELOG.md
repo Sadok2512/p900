@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.6.0
+- Live Trace refondu : recherche IMSI/SUPI (operator, saisie masquée, empreinte journalisée, jamais persistée), pseudonyme, GUTI/TMSI, cellule, run ; statuts Trouvé / Non trouvé / À prouver / Invalide.
+- Signalisation en deux modes Flèches (ladder 5G/LTE) et Lignes (tableau), mêmes événements et filtres, sélection synchronisée, décodage + preuves, export CSV (operator).
+- Panneau UE Info (identité, radio, cœur, état UE) remplace Identity Chain ; chaque valeur porte sa preuve (seq) ou « Non disponible ».
+- UE Procedure Updates dérivées des messages observés.
+- Throughput UL/DL agrandi : fenêtres 1/5/15/30 min, légende interactive, min/max/moy, tooltip, zoom par sélection, plein écran.
+- Barre de compteurs compacte, panneaux redimensionnables/repliables, préférences conservées, pause sans perte.
+
 ## 0.5.0
 - Refonte du module KPI : onglets Catalogue KPI, KPI Builder, Dashboards, Anomalies.
 - Arbre SYSTEM / PUBLIC / PRIVATE repliable, recherche, filtres techno/propriétaire, favoris, duplication, ajout à un dashboard, panneau redimensionnable.
