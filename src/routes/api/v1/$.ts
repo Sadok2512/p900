@@ -1,11 +1,12 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { viaHostname } from '@/lib/polaris-api/upstream'
 
 // Relays same-origin /api/v1/* calls to the POLARIS lab server so the hosted preview can read lab data.
 const PASS_REQ = ['accept', 'content-type', 'cookie', 'x-requested-with']
 const PASS_RES = ['content-type', 'content-disposition', 'set-cookie', 'cache-control']
 
 async function relay({ request, params }: { request: Request; params: { _splat?: string } }) {
-  const upstream = (process.env['POLARIS_UPSTREAM_URL'] ?? 'http://151.242.147.49:8091').replace(/\/$/, '')
+  const upstream = viaHostname((process.env['POLARIS_UPSTREAM_URL'] ?? 'http://151.242.147.49:8091').replace(/\/$/, ''))
   const path = (params._splat ?? '').split('/').filter((s) => s && s !== '..').map(encodeURIComponent).join('/')
   const url = `${upstream}/api/v1/${path}${new URL(request.url).search}`
   const headers = new Headers()
