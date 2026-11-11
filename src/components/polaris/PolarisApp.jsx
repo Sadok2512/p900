@@ -136,9 +136,6 @@ function TopBar({role,setRole,page,setPage,onAnalyzer,accent,onSettings}) {
           return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
         })}
       </nav>
-      <div className="flex-1 max-w-[420px] h-8 rounded-md border border-[#EBEBEB] bg-[#FAFAFA] flex items-center gap-2 px-2.5 text-[13px] text-[#8F8F8F]">
-        <I d={ic.search} c="w-[15px] h-[15px] shrink-0"/><span className="truncate">{t("Rechercher…")}</span><kbd className="ml-auto text-[11px] border border-[#EBEBEB] bg-white rounded px-1.5 text-[#666666]">⌘K</kbd>
-      </div>
       <div className="ml-auto flex items-center gap-4 text-[12.5px]">
         <span className="flex items-center gap-1.5 text-[#666666]"><span className="w-[7px] h-[7px] rounded-full bg-[#15803D]"/>{t("Données à jour · retard 4 s")}</span>
         <div className="flex rounded-md border border-[#EBEBEB] p-[2px] bg-[#FAFAFA]">
