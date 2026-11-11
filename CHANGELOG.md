@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+- Onglets de travail réels : ils restent ouverts quand on lance une requête ou quand on revient à « Requêtes » ; seul le × de l'onglet le ferme.
+- Chaque onglet conserve ses conditions, sa sélection et son filtre d'UE (Session / Comparaison / Trace).
+- Lancer une requête ouvre un nouvel onglet ; si un onglet porte exactement les mêmes conditions, il est réactivé au lieu d'être dupliqué.
+- « Modifier la requête » édite l'onglet actif sans en créer de doublon ; « + » et « Nouvelle analyse » ouvrent un onglet de requête vierge ; un onglet non modifié garde son nom.
+- Barre d'onglets visible aussi sur l'écran Requêtes, défilement horizontal si beaucoup d'onglets, libellés traduits (EN).
+
 ## 0.6.0
 - Live Trace refondu : recherche IMSI/SUPI (operator, saisie masquée, empreinte journalisée, jamais persistée), pseudonyme, GUTI/TMSI, cellule, run ; statuts Trouvé / Non trouvé / À prouver / Invalide.
 - Signalisation en deux modes Flèches (ladder 5G/LTE) et Lignes (tableau), mêmes événements et filtres, sélection synchronisée, décodage + preuves, export CSV (operator).
