@@ -1,5 +1,7 @@
 import KpiModule from './kpi/KpiModule';
 import LiveModule from './live/LiveModule';
+import { useAuthMe, useHealth, useVersion, useMetrics, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport } from '@/lib/polaris-api';
+import { DataStatus } from '@/lib/polaris-api/status';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 /* Données fictives — PLMN de test 001/01. Tri canonique (capture_id, seq). */
@@ -7,90 +9,8 @@ const IFC = {
   'N2':['#1D4ED8','#EFF4FF'],'SBI':['#6D28D9','#F4F0FF'],'N4':['#A15C07','#FDF6E7'],'N3':['#15803D','#ECF8F0'],
   'S1-MME':['#1D4ED8','#EFF4FF'],'S6a':['#BE185D','#FDEEF5'],'S11':['#A15C07','#FDF6E7'],'S5-C':['#A15C07','#FDF6E7'],'S1-U':['#15803D','#ECF8F0'],
 };
-const N5 = ['gNB','AMF','AUSF/UDM','SMF','UPF'];
-const N4n = ['eNB','MME','HSS','SGW-C','PGW-C','SGW-U'];
 const nodeIdx = (nodes, n) => nodes.indexOf(n==='AUSF'||n==='UDM' ? 'AUSF/UDM' : n);
-
-const OK5 = { nodes:N5, procs:[['Registration',0,8],['PDU Session',9,18],['Trafic',19,20]],
-  summary:'Registration et PDU Session réussies. Plan usager actif dans les deux sens.',
-  msgs:[
-    ['N2','NGAP InitialUEMessage','gNB → AMF','Registration Request'],
-    ['SBI','Nausf UEAuthentication POST','AMF → AUSF'],
-    ['N2','NGAP DownlinkNASTransport','AMF → gNB','Authentication Request'],
-    ['N2','NGAP UplinkNASTransport','gNB → AMF','Authentication Response'],
-    ['N2','NGAP DownlinkNASTransport','AMF → gNB','Security Mode Command'],
-    ['N2','NGAP UplinkNASTransport','gNB → AMF','Security Mode Complete'],
-    ['SBI','Nudm SDM Get am-data','AMF → UDM'],
-    ['N2','NGAP InitialContextSetupRequest','AMF → gNB','Registration Accept'],
-    ['N2','NGAP InitialContextSetupResponse','gNB → AMF'],
-    ['N2','NGAP UplinkNASTransport','gNB → AMF','PDU Session Establishment Request'],
-    ['SBI','Nsmf CreateSMContext','AMF → SMF',null,'smContextRef','ctx-1'],
-    ['N4','PFCP Session Establishment Request','SMF → UPF',null,'SEID','0x3a1'],
-    ['N4','PFCP Session Establishment Response','UPF → SMF',null,'UL F-TEID','0x0000a1f2'],
-    ['SBI','Namf N1N2MessageTransfer','SMF → AMF',null,'UL TEID','0x0000a1f2'],
-    ['N2','NGAP PDUSessionResourceSetupRequest','AMF → gNB','PDU Session Establishment Accept','UL TEID','0x0000a1f2'],
-    ['N2','NGAP PDUSessionResourceSetupResponse','gNB → AMF',null,'DL TEID','0x00000b07'],
-    ['SBI','Nsmf UpdateSMContext','AMF → SMF',null,'DL TEID','0x00000b07'],
-    ['N4','PFCP Session Modification Request','SMF → UPF',null,'DL F-TEID','0x00000b07'],
-    ['N4','PFCP Session Modification Response','UPF → SMF'],
-    ['N3','GTP-U G-PDU ×1 248 (UL)','gNB → UPF',null,'TEID','0x0000a1f2'],
-    ['N3','GTP-U G-PDU ×3 902 (DL)','UPF → gNB',null,'TEID','0x00000b07'],
-  ],
-  links:[[12,14,'N4','N2','UL TEID 0x0000a1f2','EXACT'],[12,19,'N4','N3','UL TEID 0x0000a1f2','EXACT'],[17,20,'N4','N3','DL TEID 0x00000b07','EXACT'],[13,14,'SBI','N2','n2SmInfo UL TEID','À PROUVER'],[10,11,'SBI','N4','smContextRef ↔ SEID','À PROUVER']],
-};
-const KO5 = { nodes:N5, procs:[['PDU Session',0,5]],
-  summary:'PDU Session refusée par le SMF — 5GSM #27 Missing or unknown DNN.',
-  diverge:'Première divergence au message 5 : attendu PFCP Session Establishment Request (N4), observé CreateSMContext 403 (SBI).',
-  msgs:[
-    ['N2','NGAP UplinkNASTransport','gNB → AMF','PDU Session Establishment Request'],
-    ['SBI','Nsmf CreateSMContext','AMF → SMF',null,'smContextRef','ctx-7'],
-    ['SBI','Nudm SDM Get sm-data','SMF → UDM'],
-    ['SBI','Nudm SDM 200 (DNN absent)','UDM → SMF'],
-    ['SBI','Nsmf CreateSMContext 403','SMF → AMF',null,'cause 5GSM','#27'],
-    ['N2','NGAP DownlinkNASTransport','AMF → gNB','PDU Session Establishment Reject #27'],
-  ],
-  links:[[1,null,'SBI','N4','smContextRef → SEID','ABSENT']],
-};
-const LTE = { nodes:N4n, procs:[['Attach',0,15],['Bearer par défaut',9,17],['Trafic',18,19]],
-  summary:'Attach et bearer par défaut réussis. Les 5 liens attendus sont prouvés.',
-  msgs:[
-    ['S1-MME','S1AP InitialUEMessage','eNB → MME','Attach Request'],
-    ['S6a','Diameter AIR','MME → HSS',null,'Session-Id','d1'],
-    ['S6a','Diameter AIA 2001','HSS → MME',null,'Session-Id','d1'],
-    ['S1-MME','S1AP DownlinkNASTransport','MME → eNB','Authentication Request'],
-    ['S1-MME','S1AP UplinkNASTransport','eNB → MME','Authentication Response'],
-    ['S1-MME','S1AP DownlinkNASTransport','MME → eNB','Security Mode Command'],
-    ['S1-MME','S1AP UplinkNASTransport','eNB → MME','Security Mode Complete'],
-    ['S6a','Diameter ULR','MME → HSS',null,'Session-Id','d2'],
-    ['S6a','Diameter ULA 2001','HSS → MME',null,'Session-Id','d2'],
-    ['S11','GTPv2 Create Session Request','MME → SGW-C'],
-    ['S5-C','GTPv2 Create Session Request','SGW-C → PGW-C'],
-    ['S5-C','GTPv2 Create Session Response 16','PGW-C → SGW-C'],
-    ['S11','GTPv2 Create Session Response 16','SGW-C → MME',null,'S1-U F-TEID','0x00001c3a'],
-    ['S1-MME','S1AP InitialContextSetupRequest','MME → eNB','Attach Accept','UL TEID','0x00001c3a'],
-    ['S1-MME','S1AP InitialContextSetupResponse','eNB → MME',null,'eNB F-TEID','0x0000e214'],
-    ['S1-MME','S1AP UplinkNASTransport','eNB → MME','Attach Complete'],
-    ['S11','GTPv2 Modify Bearer Request','MME → SGW-C',null,'eNB F-TEID','0x0000e214'],
-    ['S11','GTPv2 Modify Bearer Response 16','SGW-C → MME'],
-    ['S1-U','GTP-U G-PDU ×812 (UL)','eNB → SGW-U',null,'TEID','0x00001c3a'],
-    ['S1-U','GTP-U G-PDU ×2 640 (DL)','SGW-U → eNB',null,'TEID','0x0000e214'],
-  ],
-  links:[[12,13,'S11','S1-MME','UL TEID 0x00001c3a','EXACT'],[12,18,'S11','S1-U','UL TEID 0x00001c3a','EXACT'],[14,16,'S1-MME','S11','eNB TEID 0x0000e214','EXACT'],[16,19,'S11','S1-U','eNB TEID 0x0000e214','EXACT'],[1,7,'S6a','S6a','Session-Id','EXACT']],
-};
-const SESS = [
-  {id:1,cap:41,seq:18204,ue:'UE-7f3a',imsi:'001010000000101',rat:'5G SA',proc:'Registration + PDU Session',res:'Succès',cause:'',cell:'gNB-1 / 0x001',ex:'3/5',comp:96,dur:'412 ms',d:OK5},
-  {id:2,cap:41,seq:18877,ue:'UE-2c90',imsi:'001010000000102',rat:'LTE',proc:'Attach + bearer par défaut',res:'Succès',cause:'',cell:'eNB-1 / 0x007',ex:'5/5',comp:100,dur:'538 ms',d:LTE},
-  {id:3,cap:41,seq:20511,ue:'UE-9b14',imsi:'001010000000103',rat:'5G SA',proc:'PDU Session',res:'Échec',cause:'5GSM #27 Missing or unknown DNN',cell:'gNB-1 / 0x001',ex:'0/1',comp:100,dur:'96 ms',d:KO5},
-  {id:4,cap:42,seq:311,ue:'UE-7f3a',imsi:'001010000000101',rat:'5G SA',proc:'Service Request',res:'Succès',cause:'',cell:'gNB-1 / 0x001',ex:'2/3',comp:92,dur:'58 ms',d:OK5},
-  {id:5,cap:42,seq:1290,ue:'UE-51de',imsi:'001010000000104',rat:'LTE',proc:'Attach',res:'Échec',cause:'S6a 5001 USER_UNKNOWN',cell:'eNB-1 / 0x007',ex:'1/1',comp:100,dur:'38 ms',d:LTE},
-  {id:6,cap:42,seq:2044,ue:'UE-2c90',imsi:'001010000000102',rat:'LTE',proc:'Tracking Area Update',res:'Succès',cause:'',cell:'eNB-1 / 0x007',ex:'1/1',comp:100,dur:'44 ms',d:LTE},
-  {id:7,cap:42,seq:3315,ue:'UE-c6e2',imsi:'001010000000105',rat:'5G SA',proc:'Registration',res:'Échec',cause:'5GMM #7 5GS services not allowed',cell:'gNB-1 / 0x001',ex:'0/1',comp:88,dur:'71 ms',d:KO5},
-  {id:8,cap:42,seq:4102,ue:'UE-0ae7',imsi:'001010000000106',rat:'LTE',proc:'Dedicated Bearer Activation',res:'Succès',cause:'',cell:'eNB-1 / 0x007',ex:'4/4',comp:100,dur:'120 ms',d:LTE},
-  {id:9,cap:43,seq:77,ue:'UE-9b14',imsi:'001010000000103',rat:'5G SA',proc:'Deregistration',res:'Succès',cause:'',cell:'gNB-1 / 0x001',ex:'2/2',comp:100,dur:'64 ms',d:OK5},
-  {id:10,cap:43,seq:812,ue:'UE-51de',imsi:'001010000000104',rat:'LTE',proc:'Detach',res:'Succès',cause:'',cell:'eNB-1 / 0x007',ex:'1/1',comp:100,dur:'31 ms',d:LTE},
-  {id:11,cap:43,seq:1555,ue:'UE-44f0',imsi:'001010000000107',rat:'5G SA',proc:'Registration + PDU Session',res:'Succès',cause:'',cell:'gNB-1 / 0x001',ex:'3/5',comp:96,dur:'398 ms',d:OK5},
-  {id:12,cap:43,seq:2210,ue:'UE-0ae7',imsi:'001010000000106',rat:'LTE',proc:'E-RAB Release',res:'Succès',cause:'S1AP radio #20 user-inactivity',cell:'eNB-1 / 0x007',ex:'1/1',comp:100,dur:'22 ms',d:LTE},
-];
+const fmtV = (v,u) => u==='%'?v.toFixed(1)+' %':u==='ms'?Math.round(v)+' ms':u==='s'?v.toFixed(1)+' s':String(Math.round(v));
 const FIELDS = [
   ['Résultat',['Succès','Échec']],['RAT',['5G SA','LTE']],
   ['Procédure',['Registration','PDU Session','Service Request','Attach','Tracking Area Update','Detach','Deregistration','E-RAB Release']],
@@ -98,12 +18,12 @@ const FIELDS = [
   ['Interface',['N2','SBI','N4','N3','S1-MME','S6a','S11','S1-U']],['Cellule',['gNB-1','eNB-1']],['UE',['UE-7f3a','UE-9b14','UE-2c90','UE-51de']],
 ];
 const test = (s,[k,v]) => ({
-  'Résultat':()=>s.res===v,'RAT':()=>s.rat===v,'Procédure':()=>s.proc.includes(v),'Cause':()=>s.cause.includes(v),
-  'Interface':()=>s.d.msgs.some(m=>m[0]===v),'Cellule':()=>s.cell.includes(v),'UE':()=>s.ue===v,
+  'Résultat':()=>s.res===v,'RAT':()=>s.rat===v,'Procédure':()=>String(s.proc ?? '').includes(v),'Cause':()=>String(s.cause ?? '').includes(v),
+  'Interface':()=>s.d.msgs.some(m=>m[0]===v),'Cellule':()=>String(s.cell ?? '').includes(v),'UE':()=>s.ue===v,
 }[k] || (()=>true))();
 
 /* ------------------------------------------------------------------ */
-const EN = {"Débit, santé TCP, applications, congestion": "Throughput, TCP health, applications, congestion", "Aucune charge utile, aucune URL complète stockée.": "No payload, no full URL stored.", "Volume": "Volume", "Débit DL": "DL throughput", "Flux actifs": "Active flows", "Établissement TCP": "TCP setup", "RTT médian": "Median RTT", "Flux congestionnés": "Congested flows", "Vue d'ensemble": "Overview", "Catégorie": "Category", "Application": "Application", "Cellule": "Cell", "Vidéo": "Video", "Transfert": "Transfer", "Messagerie": "Messaging", "Voix": "Voice", "Jeu": "Gaming", "Non identifié": "Unidentified", "Réseau réel : agrégé uniquement, sans historique par abonné.": "Live network: aggregated only, no per-subscriber history.", "Santé TCP": "TCP health", "Sans réponse": "No response", "Retransmissions": "Retransmissions", "ACK dupliqués": "Duplicate ACKs", "Fenêtre nulle": "Zero window", "RTT intra-capture et même interface uniquement.": "RTT intra-capture and same interface only.", "Congestion cellules × temps": "Cell congestion × time", "Radio": "Radio", "Cœur/Internet": "Core/Internet", "Limite QoS": "QoS limit", "Limite récepteur": "Receiver limit", "Limite application": "Application limit", "INDÉTERMINÉ": "UNDETERMINED", "Flux": "Flows", "Règle": "Rule", "Verdict": "Verdict", "Détail du flux": "Flow detail", "Règle appliquée": "Applied rule", "Ouvrir la session dans l'Analyzer →": "Open session in Analyzer →", "Taux d’établissement TCP": "TCP setup rate", "RTT TCP": "TCP RTT", "Retransmissions TCP": "TCP retransmissions", "Live delayed by": "Live delayed by", "flux pris après décodage — dumpcap jamais touchés": "stream taken after decoding — dumpcap never touched", "Cible": "Target", "Pause": "Pause", "Reprendre": "Resume", "Rôle viewer : cible par pseudonyme uniquement, identités masquées.": "Viewer role: pseudonym targets only, identities masked.", "Traces actives": "Active traces", "Expiration": "Expires in", "Messages reçus": "Messages received", "En tampon (pause)": "Buffered (paused)", "Signalisation live": "Live signalling", "en direct": "live", "en pause": "paused", "Ordre (capture_id, seq) — chaque message est retrouvable à l'identique dans l'Analyzer.": "Order (capture_id, seq) — every message is found identical in the Analyzer.", "Chaîne d'identité": "Identity chain", "masqué": "masked", "Débit live": "Live throughput", "Rapport d'usage PFCP": "PFCP usage report", "écart": "gap", "RTP live": "Live RTP", "Codec": "Codec", "Débit": "Bitrate", "Pertes": "Loss", "Gigue": "Jitter", "Déséquencement": "Reordering", "estimation G.107": "G.107 estimate", "En-têtes seulement — aucune charge audio lue ni stockée.": "Headers only — no audio payload read or stored.", "Journal des traces": "Trace log", "trace créée": "trace created", "recherche IMSI": "IMSI lookup", "consultation historique": "history viewed", "Données de démo": "Demo data", "Fraîcheur : 4 s": "Freshness: 4 s", "moyenne": "average", "échecs": "failures", "maintenant": "now", "il y a": "", "preuve": "evidence", "Analyse": "Analysis", "Template": "Template", "il y a 3 min": "3 min ago", "il y a 12 min": "12 min ago", "il y a 40 min": "40 min ago", "il y a 2 h": "2 h ago", "Données de démo — OIRAN non connecté.": "Demo data — OIRAN not connected.", "Accueil": "Home", "Administrateur": "Administrator", "Topologie et état des nœuds du réseau.": "Network node topology and status.", "Analyzer": "Analyzer", "Nœuds": "Nodes", "KPI": "KPI", "Live": "Live", "Trafic": "Traffic", "Templates": "Templates", "Paramètres": "Settings", "Compte": "Account", "Notifications": "Notifications", "Rechercher…": "Search…", "← Retour": "← Back", "Gérez votre compte et l'apparence de POLARIS": "Manage your account and the look of POLARIS", "Apparence": "Appearance", "Couleur et thème": "Color and theme", "Sécurité": "Security", "Mot de passe": "Password", "À propos": "About", "Version et build": "Version and build", "Langue": "Language", "Français ou English": "French or English", "Couleur de l'application": "App color", "Choisissez la couleur d'accent utilisée dans toute l'interface.": "Choose the accent color used across the interface.", "Bleu": "Blue", "Noir": "Black", "Vert": "Green", "Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.": "Use at least 8 characters, with uppercase letters, numbers and symbols.", "Mot de passe actuel": "Current password", "Nouveau mot de passe": "New password", "Confirmer le mot de passe": "Confirm password", "Mettre à jour le mot de passe": "Update password", "Versions des composants installés.": "Versions of installed components.", "Langue de l'interface": "Interface language", "Choisissez la langue utilisée dans POLARIS.": "Choose the language used in POLARIS.", "Mot de passe actuel requis et 8 caractères minimum.": "Current password required, 8 characters minimum.", "Les mots de passe ne correspondent pas.": "Passwords do not match.", "Mot de passe mis à jour.": "Password updated.", "Bienvenue sur POLARIS": "Welcome to POLARIS", "Analyse, diagnostic et supervision des sessions et du trafic réseau.": "Analysis, diagnostics and monitoring of network sessions and traffic.", "Nouvelle analyse": "New analysis", "Ouvrir un template": "Open a template", "Explorer un run": "Explore a run", "Trace live": "Live trace", "Bientôt": "Soon", "Modules": "Modules", "KPI & Anomalies": "KPI & Anomalies", "Plan usager": "User plane", "Requêtes, ladder et corrélation des sessions 4G/5G.": "Queries, ladder and correlation of 4G/5G sessions.", "Indicateurs par procédure et détection d'écarts.": "Per-procedure indicators and anomaly detection.", "Suivi en temps réel des sessions capturées.": "Real-time tracking of captured sessions.", "Débits et flux N3 / S1-U par session.": "N3 / S1-U throughput and flows per session.", "Requêtes enregistrées et modèles prêts à l'emploi.": "Saved queries and ready-to-use models.", "Ouvrir →": "Open →", "Activité récente": "Recent activity", "Voir tout": "View all", "Aucune activité pour l'instant": "No activity yet", "Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.": "Your analyses, KPI queries, templates and viewed runs will appear here.", "Lancer une analyse →": "Start an analysis →", "État de la plateforme": "Platform status", "Voir la supervision": "View monitoring", "Capture": "Capture", "dumpcap actifs / attendus": "active / expected dumpcap", "Fraîcheur des données": "Data freshness", "dernier import": "last import", "Alertes": "Alerts", "points de vigilance": "watch points", "Service OIRAN non connecté : aucune donnée en direct.": "OIRAN service not connected: no live data.", "Données à jour · retard 4 s": "Data up to date · 4 s delay", "Fraîcheur : — (OIRAN non connecté)": "Freshness: — (OIRAN not connected)", "Rechercher un KPI…": "Search a KPI…", "Santé sonde": "Probe health", "Procédures 5G": "5G procedures", "Procédures 4G": "4G procedures", "Session N4": "N4 session", "Erreurs": "Errors", "Latence": "Latency", "Corrélation": "Correlation", "Dumpcap actifs": "Active dumpcap", "Segments ignorés": "Dropped segments", "Retard d’import": "Import lag", "Disque disponible": "Disk available", "Succès Registration": "Registration success", "Succès PDU Session": "PDU Session success", "Succès Service Request": "Service Request success", "Succès Attach": "Attach success", "Succès E-RAB Setup": "E-RAB Setup success", "Succès établissement N4": "N4 establishment success", "Erreurs S6a": "S6a errors", "Erreurs SBI par NF": "SBI errors per NF", "Latence par procédure": "Latency per procedure", "Taux de liens EXACT": "EXACT link rate", "Séries": "Series", "Heatmap causes × temps": "Causes × time heatmap", "Top-N": "Top-N", "Granularité": "Granularity", "Aucune donnée à afficher": "No data to display", "Chaque point cliquable ouvrira l'Analyzer pré-filtré (fenêtre + dimension).": "Each clickable point will open the Analyzer pre-filtered (window + dimension).", "Requête générée": "Generated query", "Fiche KPI": "KPI sheet", "Formule": "Formula", "Événements sources": "Source events", "Dimensions": "Dimensions", "Unité": "Unit", "Règle de dédup": "Dedup rule", "Invariant": "Invariant", "Explorer dans l'Analyzer →": "Explore in Analyzer →", "Anomalies": "Anomalies", "Règles et invariants": "Rules and invariants", "Nouveauté": "Novelty", "Invariant de comptage": "Counting invariant", "succès + échec = total, par procédure et par minute": "success + failure = total, per procedure per minute", "Cause obligatoire": "Mandatory cause", "toute procédure en échec porte une cause (NAS, Diameter, HTTP…)": "every failed procedure carries a cause (NAS, Diameter, HTTP…)", "Ordre canonique": "Canonical order", "seq strictement croissant dans une capture (capture_id, seq)": "seq strictly increasing within a capture (capture_id, seq)", "Cause jamais vue": "Never-seen cause", "une cause d’échec absente du référentiel historique": "a failure cause absent from the historical reference", "Séquence hors flux 3GPP": "Out-of-flow 3GPP sequence", "enchaînement de messages incompatible avec la procédure": "message sequence incompatible with the procedure", "jamais déclenchée": "never triggered", "Une anomalie se ferme avec une preuve, ou reste OUVERTE.": "An anomaly closes with evidence, or stays OPEN.", "Requêtes": "Queries", "Requête": "Query", "Session": "Session", "Comparaison": "Comparison", "Trace": "Trace", "Fermer l'onglet": "Close tab", "Nouvel onglet": "New tab", "Vue partagée": "Shared view", "Toutes les sessions": "All sessions", "Nouvelle requête": "New query"};
+const EN = {"Débit, santé TCP, applications, congestion": "Throughput, TCP health, applications, congestion", "Aucune charge utile, aucune URL complète stockée.": "No payload, no full URL stored.", "Volume": "Volume", "Débit DL": "DL throughput", "Flux actifs": "Active flows", "Établissement TCP": "TCP setup", "RTT médian": "Median RTT", "Flux congestionnés": "Congested flows", "Vue d'ensemble": "Overview", "Catégorie": "Category", "Application": "Application", "Cellule": "Cell", "Vidéo": "Video", "Transfert": "Transfer", "Messagerie": "Messaging", "Voix": "Voice", "Jeu": "Gaming", "Non identifié": "Unidentified", "Réseau réel : agrégé uniquement, sans historique par abonné.": "Live network: aggregated only, no per-subscriber history.", "Santé TCP": "TCP health", "Sans réponse": "No response", "Retransmissions": "Retransmissions", "ACK dupliqués": "Duplicate ACKs", "Fenêtre nulle": "Zero window", "RTT intra-capture et même interface uniquement.": "RTT intra-capture and same interface only.", "Congestion cellules × temps": "Cell congestion × time", "Radio": "Radio", "Cœur/Internet": "Core/Internet", "Limite QoS": "QoS limit", "Limite récepteur": "Receiver limit", "Limite application": "Application limit", "INDÉTERMINÉ": "UNDETERMINED", "Flux": "Flows", "Règle": "Rule", "Verdict": "Verdict", "Détail du flux": "Flow detail", "Règle appliquée": "Applied rule", "Ouvrir la session dans l'Analyzer →": "Open session in Analyzer →", "Taux d’établissement TCP": "TCP setup rate", "RTT TCP": "TCP RTT", "Retransmissions TCP": "TCP retransmissions", "Live delayed by": "Live delayed by", "flux pris après décodage — dumpcap jamais touchés": "stream taken after decoding — dumpcap never touched", "Cible": "Target", "Pause": "Pause", "Reprendre": "Resume", "Rôle viewer : cible par pseudonyme uniquement, identités masquées.": "Viewer role: pseudonym targets only, identities masked.", "Traces actives": "Active traces", "Expiration": "Expires in", "Messages reçus": "Messages received", "En tampon (pause)": "Buffered (paused)", "Signalisation live": "Live signalling", "en direct": "live", "en pause": "paused", "Ordre (capture_id, seq) — chaque message est retrouvable à l'identique dans l'Analyzer.": "Order (capture_id, seq) — every message is found identical in the Analyzer.", "Chaîne d'identité": "Identity chain", "masqué": "masked", "Débit live": "Live throughput", "Rapport d'usage PFCP": "PFCP usage report", "écart": "gap", "RTP live": "Live RTP", "Codec": "Codec", "Débit": "Bitrate", "Pertes": "Loss", "Gigue": "Jitter", "Déséquencement": "Reordering", "estimation G.107": "G.107 estimate", "En-têtes seulement — aucune charge audio lue ni stockée.": "Headers only — no audio payload read or stored.", "Journal des traces": "Trace log", "trace créée": "trace created", "recherche IMSI": "IMSI lookup", "consultation historique": "history viewed", "Données de démo": "Demo data", "Fraîcheur : 4 s": "Freshness: 4 s", "moyenne": "average", "échecs": "failures", "maintenant": "now", "il y a": "", "preuve": "evidence", "Analyse": "Analysis", "Template": "Template", "il y a 3 min": "3 min ago", "il y a 12 min": "12 min ago", "il y a 40 min": "40 min ago", "il y a 2 h": "2 h ago", "Données de démo — POLARIS non connecté.": "Demo data — POLARIS not connected.", "Accueil": "Home", "Administrateur": "Administrator", "Topologie et état des nœuds du réseau.": "Network node topology and status.", "Analyzer": "Analyzer", "Nœuds": "Nodes", "KPI": "KPI", "Live": "Live", "Trafic": "Traffic", "Templates": "Templates", "Paramètres": "Settings", "Compte": "Account", "Notifications": "Notifications", "Rechercher…": "Search…", "← Retour": "← Back", "Gérez votre compte et l'apparence de POLARIS": "Manage your account and the look of POLARIS", "Apparence": "Appearance", "Couleur et thème": "Color and theme", "Sécurité": "Security", "Mot de passe": "Password", "À propos": "About", "Version et build": "Version and build", "Langue": "Language", "Français ou English": "French or English", "Couleur de l'application": "App color", "Choisissez la couleur d'accent utilisée dans toute l'interface.": "Choose the accent color used across the interface.", "Bleu": "Blue", "Noir": "Black", "Vert": "Green", "Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.": "Use at least 8 characters, with uppercase letters, numbers and symbols.", "Mot de passe actuel": "Current password", "Nouveau mot de passe": "New password", "Confirmer le mot de passe": "Confirm password", "Mettre à jour le mot de passe": "Update password", "Versions des composants installés.": "Versions of installed components.", "Langue de l'interface": "Interface language", "Choisissez la langue utilisée dans POLARIS.": "Choose the language used in POLARIS.", "Mot de passe actuel requis et 8 caractères minimum.": "Current password required, 8 characters minimum.", "Les mots de passe ne correspondent pas.": "Passwords do not match.", "Mot de passe mis à jour.": "Password updated.", "Bienvenue sur POLARIS": "Welcome to POLARIS", "Analyse, diagnostic et supervision des sessions et du trafic réseau.": "Analysis, diagnostics and monitoring of network sessions and traffic.", "Nouvelle analyse": "New analysis", "Ouvrir un template": "Open a template", "Explorer un run": "Explore a run", "Trace live": "Live trace", "Bientôt": "Soon", "Modules": "Modules", "KPI & Anomalies": "KPI & Anomalies", "Plan usager": "User plane", "Requêtes, ladder et corrélation des sessions 4G/5G.": "Queries, ladder and correlation of 4G/5G sessions.", "Indicateurs par procédure et détection d'écarts.": "Per-procedure indicators and anomaly detection.", "Suivi en temps réel des sessions capturées.": "Real-time tracking of captured sessions.", "Débits et flux N3 / S1-U par session.": "N3 / S1-U throughput and flows per session.", "Requêtes enregistrées et modèles prêts à l'emploi.": "Saved queries and ready-to-use models.", "Ouvrir →": "Open →", "Activité récente": "Recent activity", "Voir tout": "View all", "Aucune activité pour l'instant": "No activity yet", "Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.": "Your analyses, KPI queries, templates and viewed runs will appear here.", "Lancer une analyse →": "Start an analysis →", "État de la plateforme": "Platform status", "Voir la supervision": "View monitoring", "Capture": "Capture", "dumpcap actifs / attendus": "active / expected dumpcap", "Fraîcheur des données": "Data freshness", "dernier import": "last import", "Alertes": "Alerts", "points de vigilance": "watch points", "Service POLARIS non connecté : aucune donnée en direct.": "POLARIS service not connected: no live data.", "Données à jour · retard 4 s": "Data up to date · 4 s delay", "Fraîcheur : — (POLARIS non connecté)": "Freshness: — (POLARIS not connected)", "Rechercher un KPI…": "Search a KPI…", "Santé sonde": "Probe health", "Procédures 5G": "5G procedures", "Procédures 4G": "4G procedures", "Session N4": "N4 session", "Erreurs": "Errors", "Latence": "Latency", "Corrélation": "Correlation", "Dumpcap actifs": "Active dumpcap", "Segments ignorés": "Dropped segments", "Retard d’import": "Import lag", "Disque disponible": "Disk available", "Succès Registration": "Registration success", "Succès PDU Session": "PDU Session success", "Succès Service Request": "Service Request success", "Succès Attach": "Attach success", "Succès E-RAB Setup": "E-RAB Setup success", "Succès établissement N4": "N4 establishment success", "Erreurs S6a": "S6a errors", "Erreurs SBI par NF": "SBI errors per NF", "Latence par procédure": "Latency per procedure", "Taux de liens EXACT": "EXACT link rate", "Séries": "Series", "Heatmap causes × temps": "Causes × time heatmap", "Top-N": "Top-N", "Granularité": "Granularity", "Aucune donnée à afficher": "No data to display", "Chaque point cliquable ouvrira l'Analyzer pré-filtré (fenêtre + dimension).": "Each clickable point will open the Analyzer pre-filtered (window + dimension).", "Requête générée": "Generated query", "Fiche KPI": "KPI sheet", "Formule": "Formula", "Événements sources": "Source events", "Dimensions": "Dimensions", "Unité": "Unit", "Règle de dédup": "Dedup rule", "Invariant": "Invariant", "Explorer dans l'Analyzer →": "Explore in Analyzer →", "Anomalies": "Anomalies", "Règles et invariants": "Rules and invariants", "Nouveauté": "Novelty", "Invariant de comptage": "Counting invariant", "succès + échec = total, par procédure et par minute": "success + failure = total, per procedure per minute", "Cause obligatoire": "Mandatory cause", "toute procédure en échec porte une cause (NAS, Diameter, HTTP…)": "every failed procedure carries a cause (NAS, Diameter, HTTP…)", "Ordre canonique": "Canonical order", "seq strictement croissant dans une capture (capture_id, seq)": "seq strictly increasing within a capture (capture_id, seq)", "Cause jamais vue": "Never-seen cause", "une cause d’échec absente du référentiel historique": "a failure cause absent from the historical reference", "Séquence hors flux 3GPP": "Out-of-flow 3GPP sequence", "enchaînement de messages incompatible avec la procédure": "message sequence incompatible with the procedure", "jamais déclenchée": "never triggered", "Une anomalie se ferme avec une preuve, ou reste OUVERTE.": "An anomaly closes with evidence, or stays OPEN.", "Requêtes": "Queries", "Requête": "Query", "Session": "Session", "Comparaison": "Comparison", "Trace": "Trace", "Fermer l'onglet": "Close tab", "Nouvel onglet": "New tab", "Vue partagée": "Shared view", "Toutes les sessions": "All sessions", "Nouvelle requête": "New query"};
 let LANG = 'fr';
 const t = s => LANG==='en' ? (EN[s] ?? s) : s;
 const I = ({d,c='w-4 h-4'}) => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" className={c}><path d={d}/></svg>;
@@ -114,15 +34,15 @@ const ic = {
   lens:'M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Zm9 2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z', pin:'M9 4h6l-1 6 4 3H6l4-3zM12 13v7',
   split:'M4 5h16v14H4zM12 5v14',
 };
-const Tag = ({i}) => <span className="inline-block font-mono text-[10.5px] font-semibold leading-none rounded-[3px] px-1.5 py-[3px]" style={{color:IFC[i][0],background:IFC[i][1]}}>{i}</span>;
-const Res = ({r}) => <span className="inline-flex items-center gap-1.5"><span className={`w-[7px] h-[7px] rounded-full ${r==='Succès'?'bg-[#15803D]':'bg-[#C2410C]'}`}/>{r}</span>;
+const Tag = ({i}) => <span className="inline-block font-mono text-[10.5px] font-semibold leading-none rounded-[3px] px-1.5 py-[3px]" style={{color:(IFC[i] || IFC.N2)[0],background:(IFC[i] || IFC.N2)[1]}}>{i}</span>;
+const Res = ({r}) => <span className="inline-flex items-center gap-1.5"><span className={`w-[7px] h-[7px] rounded-full ${r==='Succès'||r==='success'?'bg-[#15803D]':r==='Échec'||r==='failed'?'bg-[#C2410C]':'bg-[#D4D4D4]'}`}/>{r}</span>;
 const Stat = ({s}) => {
-  const m = {'EXACT':'text-[#15803D] bg-[#ECF8F0] border-[#BFE5CC]','À PROUVER':'text-[#A15C07] bg-[#FDF6E7] border-[#F1D9A8]','ABSENT':'text-[#B42318] bg-[#FDEFEE] border-[#F5C6C2]'}[s];
+  const m = {'EXACT':'text-[#15803D] bg-[#ECF8F0] border-[#BFE5CC]','OUVERT':'text-[#A15C07] bg-[#FDF6E7] border-[#F1D9A8]','OUVERT':'text-[#B42318] bg-[#FDEFEE] border-[#F5C6C2]'}[s];
   return <span className={`inline-block text-[10.5px] font-semibold tracking-wide border rounded-[3px] px-1.5 py-[2px] ${m}`}>{s}</span>;
 };
 const Lbl = ({children}) => <div className="text-[11px] font-semibold text-[#666666] uppercase tracking-[0.06em] mb-1.5">{children}</div>;
 
-function TopBar({role,setRole,page,setPage,onAnalyzer,accent,onSettings}) {
+function TopBar({role,page,setPage,onAnalyzer,accent,onSettings}) {
   const [menu,setMenu] = useState(false);
   return (
     <header className="h-12 shrink-0 bg-white border-b border-[#EBEBEB] flex items-center px-4 gap-6">
@@ -131,16 +51,13 @@ function TopBar({role,setRole,page,setPage,onAnalyzer,accent,onSettings}) {
         <span className="text-[14px] font-semibold tracking-tight text-[#171717]">POLARIS</span>
       </div>
       <nav className="flex h-full">
-        {[['home','Accueil'],['templates','Dashboard'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],['trafic','Traffic']].map(([k,n]) => {
+        {[['home','Accueil'],['templates','Dashboard'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],...(TRAFFIC_ENABLED ? [['trafic','Traffic']] : [])].map(([k,n]) => {
           const on = page===k, ok = ['home','sessions','nodes','templates','kpi','live','trafic'].includes(k);
           return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
         })}
       </nav>
       <div className="ml-auto flex items-center gap-4 text-[12.5px]">
-        <span className="flex items-center gap-1.5 text-[#666666]"><span className="w-[7px] h-[7px] rounded-full bg-[#15803D]"/>{t("Données à jour · retard 4 s")}</span>
-        <div className="flex rounded-md border border-[#EBEBEB] p-[2px] bg-[#FAFAFA]">
-          {['viewer','operator'].map(r => <button key={r} onClick={()=>setRole(r)} className={`px-2.5 h-6 rounded-[4px] text-[12px] ${role===r ? (r==='operator'?'bg-[#A15C07] text-white':'bg-white text-[#171717] shadow-sm') : 'text-[#666666]'}`}>{r==='operator'?'operator':'viewer'}</button>)}
-        </div>
+        <span className="text-[#666666]" aria-label="Rôle">{role || '—'}</span>
         <button type="button" title={t("Notifications")} className="w-8 h-8 rounded-md grid place-items-center text-[#666666] hover:bg-[#F5F5F5] hover:text-[#171717]"><I d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" c="w-4 h-4"/></button>
         <div className="relative">
           <button type="button" onClick={()=>setMenu(m=>!m)} title={t("Compte")} style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white hover:opacity-90">SD</button>
@@ -227,6 +144,7 @@ function QueryPanel({conds,setConds}) {
 }
 
 function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
+  const { demo } = usePolarisMode(); const sessions = useSessions({ page:1, page_size:100, sort:'capture_id', order:'asc' },false);
   const [more,setMore] = useState(false);
   const [txt,setTxt] = useState('');
   const ko = rows.filter(r=>r.res==='Échec').length;
@@ -241,9 +159,9 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
             placeholder="Filtrer : tape Échec, LTE, N4, 5GSM #27… puis Entrée" className="flex-1 min-w-[160px] outline-none text-[13px] placeholder:text-[#8F8F8F]"/>
         </div>
         <div className="flex items-center gap-2 text-[12.5px] text-[#666666]">
-          <span className="font-semibold text-[#171717] tabular-nums">{rows.length}</span> sessions
+          <span className="font-semibold text-[#171717] tabular-nums">{demo || sessions.data ? rows.length : '—'}</span> sessions
           <div className="w-16 h-1.5 rounded-full bg-[#F2F2F2] overflow-hidden flex"><div className="bg-[#15803D]" style={{width:`${rows.length?(rows.length-ko)/rows.length*100:0}%`}}/><div className="bg-[#C2410C]" style={{width:`${rows.length?ko/rows.length*100:0}%`}}/></div>
-          <span className="tabular-nums">{ko} échecs</span>
+          <span className="tabular-nums">{demo || sessions.data ? ko : '—'} échecs</span>
         </div>
         <button onClick={onEdit} className="h-8 px-2.5 rounded-md border border-[#EBEBEB] text-[12.5px] flex items-center gap-1.5 text-[#4D4D4D] hover:bg-[#FAFAFA]"><I d={ic.search} c="w-3.5 h-3.5"/>Modifier la requête</button>
         <div className="relative">
@@ -272,14 +190,14 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
                   <td className={`px-3 border-b border-[#F2F2F2] ${r.res==='Échec'?'text-[#B42318]':'text-[#666666]'}`}>{r.cause || '—'}</td>
                   <td className="px-3 border-b border-[#F2F2F2]"><span className="flex gap-1">{[...new Set(r.d.msgs.map(m=>m[0]))].map(i=><Tag key={i} i={i}/>)}</span></td>
                   <td className="px-3 border-b border-[#F2F2F2] font-mono text-[12px]">{r.ex}</td>
-                  <td className="px-3 border-b border-[#F2F2F2] tabular-nums">{r.comp} %</td>
+                  <td className="px-3 border-b border-[#F2F2F2] tabular-nums">{r.comp==='—'?'—':`${r.comp} %`}</td>
                   <td className="px-3 border-b border-[#F2F2F2] tabular-nums text-[#666666]">{r.dur}</td>
                   <td className="px-3 border-b border-[#F2F2F2] text-[#666666]">{r.cell}</td>
-                  <td className="px-3 border-b border-[#F2F2F2] font-mono text-[11.5px]">{role==='operator' ? <span className="text-[#A15C07]">{r.imsi}</span> : <span className="text-[#D4D4D4]">masqué</span>}</td>
+                  <td className="px-3 border-b border-[#F2F2F2] font-mono text-[11.5px]">{<span className="text-[#D4D4D4]">masqué</span>}</td>
                 </tr>
               );
             })}
-            {rows.length===0 && <tr><td colSpan={cols.length} className="px-3 py-10 text-center text-[#666666]">Aucune session ne correspond à ces {conds.length} conditions. Retire une condition pour élargir.</td></tr>}
+            {rows.length===0 && <tr><td colSpan={cols.length} className="px-3 py-10 text-center text-[#666666]">{demo || sessions.data ? 'Aucune session' : 'POLARIS non connecté'}</td></tr>}
           </tbody>
         </table>
       </div>
@@ -287,6 +205,7 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
   );
 }
 
+const demoMessageNumber = (d,k) => d.evidence ? null : k+1;
 const isCause = m => !!(m && m[4] && /^cause|code|result/i.test(m[4]));
 function useWidth() {
   const ref = useRef(null); const [w,setW] = useState(900);
@@ -294,7 +213,7 @@ function useWidth() {
   return [ref,w];
 }
 function Ladder({d,sel,setSel,lens,hidden,collapsed,width}) {
-  const W = Math.max(720, width), LG = 170, n = d.nodes.length, ROW = 30, TOP = 46;
+  const W = Math.max(720, width), LG = 170, n = Math.max(2,d.nodes.length), ROW = 30, TOP = 46;
   const x = k => LG + 50 + k*((W-LG-110)/(n-1));
   const inCollapsed = k => d.procs.some(p=>collapsed.includes(p[0]) && k>=p[1] && k<=p[2]);
   const vis = d.msgs.map((m,k)=>k).filter(k=>!hidden.includes(d.msgs[k][0]) && !inCollapsed(k));
@@ -307,7 +226,7 @@ function Ladder({d,sel,setSel,lens,hidden,collapsed,width}) {
       {vis.map((k,row) => {
         const m = d.msgs[k];
         const [a,b] = m[2].split(' → ').map(s=>nodeIdx(d.nodes,s));
-        const y = TOP + row*ROW + 18, x1 = x(a), x2 = x(b), dir = x2>x1?1:-1, c = IFC[m[0]][0];
+        const y = TOP + row*ROW + 18, x1 = x(a), x2 = x(b), dir = x2>x1?1:-1, c = (IFC[m[0]] || IFC.N2)[0];
         const on = sel===k, lit = lens && m[5]===lens, cause = isCause(m);
         const full = m[1] + (m[3] ? '  ·  '+m[3] : '');
         const maxc = Math.max(8, Math.floor((Math.abs(x2-x1)-14)/6.1));
@@ -332,6 +251,7 @@ function Ladder({d,sel,setSel,lens,hidden,collapsed,width}) {
 }
 
 function Detail({s,sel,setSel,lens,ui}) {
+  const { demo } = usePolarisMode(); const auth = useAuthMe();
   const [tab,setTab] = useState('Ladder');
   const [hidden,setHidden] = useState([]);
   const [collapsed,setCollapsed] = useState([]);
@@ -350,7 +270,7 @@ function Detail({s,sel,setSel,lens,ui}) {
           <span className="text-[14px] font-semibold text-[#171717]">{s.proc}</span>
           <span className="font-mono text-[12.5px] text-[#4D4D4D]">{s.ue}</span>
           <Res r={s.res}/>
-          <span className="ml-auto flex items-center gap-4 text-[12px] text-[#666666]"><span><b className="text-[#171717] tabular-nums">{d.msgs.length}</b> messages</span><span><b className="text-[#171717] tabular-nums">{ex}/{d.links.length}</b> liens EXACT</span><span><b className="text-[#171717] tabular-nums">{s.comp} %</b> complétude</span></span>
+          <span className="ml-auto flex items-center gap-4 text-[12px] text-[#666666]"><span><b className="text-[#171717] tabular-nums">{demo || d.msgs.length ? d.msgs.length : '—'}</b> messages</span><span><b className="text-[#171717] tabular-nums">{demo || d.links.length ? `${ex}/${d.links.length}` : '—'}</b> liens EXACT</span><span><b className="text-[#171717] tabular-nums">{s.comp==='—'?'—':`${s.comp} %`}</b> complétude</span></span>
         </div>
         <div className="mt-1.5 text-[12.5px] text-[#4D4D4D]">{d.summary}{d.diverge && <span className="ml-2 text-[#B42318]">{d.diverge}</span>}</div>
         <div className="flex gap-5 mt-2 -mb-2">
@@ -363,7 +283,7 @@ function Detail({s,sel,setSel,lens,ui}) {
         <span className="w-px h-4 bg-[#EBEBEB] mx-2"/>
         <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mr-1">Procédures</span>
         {d.procs.map(([p,a,b])=>{const c=collapsed.includes(p); return <button key={p} onClick={()=>setCollapsed(c?collapsed.filter(x=>x!==p):[...collapsed,p])} className={`${tb} ${c?'border-[#EBEBEB] bg-[#FAFAFA] text-[#8F8F8F]':'border-[#EBEBEB] bg-white text-[#171717]'}`}><span className="text-[10px]">{c?'▸':'▾'}</span>{p}<span className="text-[#A3A3A3] tabular-nums">{b-a+1}</span></button>;})}
-        <div className="ml-auto flex items-center gap-1 shrink-0">
+        <div className="ml-auto flex items-center gap-1 shrink-0"><button disabled={demo} onClick={()=>{window.location.href=apiPath(`/exports/callflow/${encodeURIComponent(s.id)}`);}} className={tb+" border-[#EBEBEB]"}>Exporter</button>{auth.data?.data?.role==='operator' && <button disabled={demo || s.cap==='—'} onClick={()=>{if(window.confirm('Télécharger cet extrait pcap ?')) window.location.href=apiPath(`/captures/${encodeURIComponent(s.cap)}/download`);}} className={tb+" border-[#EBEBEB]"}>PCAP</button>}
           <button onClick={()=>step(-1)} title="Message précédent (↑)" className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>↑</button>
           <button onClick={()=>step(1)} title="Message suivant (↓)" className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>↓</button>
           {!ui.full && <button onClick={()=>ui.setGridHidden(v=>!v)} className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>{ui.gridHidden?'Afficher le tableau':'Masquer le tableau'}</button>}
@@ -374,7 +294,7 @@ function Detail({s,sel,setSel,lens,ui}) {
         {tab==='Ladder' && <Ladder d={d} sel={sel} setSel={setSel} lens={lens} hidden={hidden} collapsed={collapsed} width={width}/>}
         {tab==='Messages' && <table className="w-full text-[12.5px]"><tbody>{d.msgs.map((m,k)=>(
           <tr key={k} onClick={()=>setSel(k)} className={`cursor-pointer ${sel===k?'bg-[color-mix(in_oklab,var(--app-accent)_9%,white)]':'hover:bg-[#FAFAFA]'}`}>
-            <td className="h-7 px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#8F8F8F] w-12">{k+1}</td><td className="px-2 border-b border-[#F2F2F2] w-20"><Tag i={m[0]}/></td>
+            <td className="h-7 px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#8F8F8F] w-12">{available(d.evidence?.[k]?.seq ?? (demoMessageNumber(d,k)))}</td><td className="px-2 border-b border-[#F2F2F2] w-20"><Tag i={m[0]}/></td>
             <td className="px-2 border-b border-[#F2F2F2]">{m[1]}{m[3]&&<span className="text-[#666666]"> · {m[3]}</span>}</td><td className="px-2 border-b border-[#F2F2F2] text-[#666666]">{m[2]}</td>
             <td className="px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#666666]">{m[4]?`${m[4]} ${m[5]}`:''}</td></tr>))}</tbody></table>}
         {tab==='Corrélation' && <table className="w-full text-[12.5px]"><thead><tr>{['De','Vers','Clé','Messages','Statut'].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#EBEBEB]">{h}</th>)}</tr></thead><tbody>{d.links.map((l,k)=>(
@@ -389,6 +309,10 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
   const [tab,setTab] = useState(()=>{ try { return localStorage.getItem('polaris-insp-tab')||'Décodage'; } catch(e) { return 'Décodage'; } });
   useEffect(()=>{ try { localStorage.setItem('polaris-insp-tab',tab); } catch(e) {} },[tab]);
   const d = s.d, m = d.msgs[Math.min(sel,d.msgs.length-1)];
+  const evidence = d.evidence?.[Math.min(sel,d.msgs.length-1)];
+  const eventQuery = useEvent(evidence?.event_id ?? evidence?.id); const provenance = useProvenance(evidence?.event_id ?? evidence?.id); const packets = usePackets({capture_id:provenance.data?.data?.capture_id,packet_number:provenance.data?.data?.packet_number}, provenance.data?.data?.capture_id!=null && provenance.data?.data?.packet_number!=null); const rules = useCorrelationRules(); const versions = useVersion();
+  const proof = provenance.data?.data ?? evidence ?? {};
+  if (!m) return <aside className="p-4 text-[#666666]">Non disponible</aside>;
   const shared = m[5] ? d.msgs.filter(x=>x[5]===m[5]).length : 0;
   return (
     <aside style={{width}} className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-[#EBEBEB] overflow-hidden">
@@ -401,15 +325,17 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
           <div><div className="flex items-center gap-2"><Tag i={m[0]}/><span className="font-mono text-[11.5px] text-[#8F8F8F]">message {Math.min(sel,d.msgs.length-1)+1}</span></div>
             <div className="mt-1.5 text-[14px] font-semibold text-[#171717] leading-snug">{m[1]}</div><div className="text-[#666666]">{m[2]}</div></div>
           <dl className="grid grid-cols-[110px_1fr] gap-y-1 font-mono text-[11.5px]">
-            <dt className="text-[#8F8F8F]">capture_id</dt><dd>{s.cap}</dd><dt className="text-[#8F8F8F]">seq</dt><dd>{s.seq+sel*3}</dd>
-            <dt className="text-[#8F8F8F]">packet_number</dt><dd>{(s.seq+sel*3)*2+1}</dd><dt className="text-[#8F8F8F]">décodeur</dt><dd>2.10.2</dd>
+            <dt className="text-[#8F8F8F]">capture_id</dt><dd>{available(proof.capture_id)}</dd><dt className="text-[#8F8F8F]">seq</dt><dd>{available(proof.seq)}</dd>
+            <dt className="text-[#8F8F8F]">packet_number</dt><dd>{available(proof.packet_number)}</dd><dt className="text-[#8F8F8F]">décodeur</dt><dd>{available(versions.data?.data?.decoder_version)}</dd>
           </dl>
+          {eventQuery.data && <pre className="text-[11.5px] whitespace-pre-wrap">{JSON.stringify(eventQuery.data.data?.decoded ?? {},null,2)}</pre>}
+          {eventQuery.isError && <div>{eventQuery.error.message}</div>}
           <div className="rounded-md border border-[#EBEBEB] bg-[#FAFAFA] p-3 font-mono text-[11.5px] leading-[1.9] text-[#4D4D4D]">
             <div>▾ {m[1].split(' ')[0]} PDU</div>
             <div className="pl-4">▾ {m[1].split(' ').slice(1).join(' ')}</div>
             <div className="pl-8">ue : <span className="text-[#171717]">{s.ue}</span> <span className="text-[#8F8F8F]">(pseudonyme)</span></div>
             {m[3] && <><div className="pl-8">▾ NAS-PDU</div><div className="pl-12">message : <span className="text-[#171717]">{m[3]}</span></div>
-              <div className="pl-12">identité : {role==='operator' ? <span className="text-[#A15C07]">{s.imsi}</span> : <span className="text-[#8F8F8F]">masquée</span>}</div></>}
+              <div className="pl-12">identité : {<span className="text-[#8F8F8F]">masquée</span>}</div></>}
             {m[4] && <div className="pl-8">{m[4]} : <span className="text-[#A15C07]">{m[5]}</span></div>}
           </div>
           {m[5] && (isCause(m) ? <div className="rounded-md border border-[#F5C6C2] bg-[#FFFBFA] p-3">
@@ -422,17 +348,11 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
             <button onClick={()=>setLens(lens===m[5]?null:m[5])} className={`mt-2 h-7 px-3 rounded-md text-[12px] font-medium ${lens===m[5]?'border border-[#EBEBEB] text-[#4D4D4D]':'bg-[var(--app-accent)] text-white'}`}>{lens===m[5]?'Retirer le surlignage':'Surligner dans la session'}</button>
           </div>)}
         </div>}
-        {tab==='Preuves' && <div className="space-y-2">{d.links.map((l,k)=>(
+        {tab==='Preuves' && <div className="space-y-2"><div>event_id : {available(proof.event_id ?? evidence?.id)} · seq : {available(proof.seq)}</div>{provenance.isError && <div>{provenance.error.message}</div>}{packets.data && <div>Paquets : {records(packets.data.data,'packets').length}</div>}<div>Règles : {rules.isError ? rules.error.message : JSON.stringify(rules.data?.data ?? [])}</div>{d.links.map((l,k)=>(
           <div key={k} className="rounded-md border border-[#EBEBEB] p-3"><div className="flex items-center gap-2"><Tag i={l[2]}/><span className="text-[#8F8F8F]">→</span><Tag i={l[3]}/><span className="ml-auto"><Stat s={l[5]}/></span></div>
-          <div className="font-mono text-[11.5px] mt-2 text-[#4D4D4D]">{l[4]}</div><div className="text-[11.5px] text-[#8F8F8F] mt-0.5">messages {l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun message N4'}</div></div>))}</div>}
-        {tab==='Hex' && <pre className="font-mono text-[11px] leading-5 text-[#4D4D4D] whitespace-pre-wrap">{`0000  00 0f 40 4b 00 00 05 00 55 00 02 00 01 00 26 00
-0010  1a 19 7e 00 41 79 00 0d 01 00 f1 10 00 00 00 00
-0020  •• •• •• •• •• 2e 04 f0 f0 f0 f0 00 79 00 13 50
-0030  00 f1 10 00 00 00 01 00 f1 10 00 00 01 00 5a 40`}<div className="mt-3 text-[#8F8F8F] font-sans">Octets d’identité masqués en rôle {role}.</div></pre>}
-        {tab==='Identité' && (role==='operator' ? <div className="space-y-2">
-          <div className="rounded-md border border-[#F1D9A8] bg-[#FDF6E7] p-3 text-[#7A4505]">Rôle operator · consultation journalisée · identités fictives (PLMN 001/01).</div>
-          {[['IMSI / SUPI',s.imsi,'SBI Nausf · EXACT'],['5G-GUTI','00101-01-01-•••-0x1a2b','Registration Accept · EXACT']].map(([k,v,p])=><div key={k} className="rounded-md border border-[#EBEBEB] p-3"><div className="text-[11px] uppercase tracking-[0.06em] text-[#666666] font-semibold">{k}</div><div className="font-mono text-[#A15C07] mt-1">{v}</div><div className="text-[11.5px] text-[#8F8F8F] mt-0.5">rattaché par {p}</div></div>)}
-        </div> : <div className="text-center py-10 text-[#666666]"><I d={ic.lock} c="w-5 h-5 mx-auto text-[#8F8F8F]"/><div className="mt-2 font-medium text-[#171717]">Identités masquées</div><div className="mt-1">Passe en rôle operator pour voir l’IMSI et sa chaîne de rattachement.</div></div>)}
+          <div className="font-mono text-[11.5px] mt-2 text-[#4D4D4D]">{l[4]}</div><div className="text-[11.5px] text-[#8F8F8F] mt-0.5">messages {l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun message N4'} · matched_rules : {JSON.stringify(l[6] ?? [])}</div></div>))}</div>}
+        {tab==='Hex' && <div>Non disponible : backend à venir (octets masqués)</div>}
+        {tab==='Identité' && <div><Lbl>Pseudonyme</Lbl><span className="font-mono">{s.ue}</span><div>Identités masquées</div></div>}
       </div>
     </aside>
   );
@@ -440,16 +360,8 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
 
 
 /* ------------------------------ ACCUEIL ------------------------------ */
-const NODES = [
-  {n:'oiran-capture-01',role:'Capture',st:'ok',ver:'OIRAN 2.10.2',exp:'2.10.2',cpu:31,mem:[2.1,4],disk:76,seen:'il y a 2 s',info:'12/12 dumpcap · PID stables'},
-  {n:'oiran-import-01',role:'Import et décodage',st:'ok',ver:'OIRAN 2.10.2',exp:'2.10.2',cpu:58,mem:[2.9,4],disk:76,seen:'il y a 2 s',info:'retard 4 s · 0 segment ignoré'},
-  {n:'oiran-dataset',role:'Base / dataset',st:'warn',ver:'schéma 7',exp:'7',cpu:22,mem:[1.4,4],disk:76,seen:'il y a 5 s',info:'~1,5 M événements · disque en hausse'},
-  {n:'analyzer-api',role:'API Analyzer',st:'ok',ver:'Analyzer 0.6.0',exp:'0.6.0',cpu:9,mem:[0.4,1],disk:41,seen:'il y a 1 s',info:'p95 requête 0,8 s'},
-  {n:'polaris-control',role:'Orchestrateur',st:'ok',ver:'API 0.30.0 · sim 0.13.4',exp:'0.30.0',cpu:12,mem:[0.6,2],disk:41,seen:'il y a 3 s',info:'run 5G #482 terminé'},
-  {n:'open5gs-core',role:'Cœur 5G / EPC (observé)',st:'ok',ver:'Open5GS 2.8.0',exp:'2.8.0',cpu:null,mem:null,disk:null,seen:'trafic vu il y a 1 s',info:'AMF, SMF, UPF, MME actifs'},
-];
 const IFACES = ['N2','N3','N4','SBI','N6','S1-MME','S1-U','S5-U','S11','S5-C','S6a','Sxa/Sxb'];
-const Dot = ({st}) => <span className={`w-[8px] h-[8px] rounded-full ${st==='ok'?'bg-[#15803D]':st==='warn'?'bg-[#D97706]':'bg-[#B42318]'}`}/>;
+const Dot = ({st}) => <span className={`w-[8px] h-[8px] rounded-full ${st==='ok'?'bg-[#15803D]':st==='warn'?'bg-[#D97706]':st==='error'?'bg-[#B42318]':'bg-[#D4D4D4]'}`}/>;
 const Bar = ({v,warn=70,crit=85}) => <div className="flex items-center gap-2"><div className="w-16 h-1.5 rounded-full bg-[#F2F2F2] overflow-hidden"><div className={`h-full ${v>=crit?'bg-[#B42318]':v>=warn?'bg-[#D97706]':'bg-[var(--app-accent)]'}`} style={{width:`${v}%`}}/></div><span className="tabular-nums text-[12px] text-[#4D4D4D] w-9">{v} %</span></div>;
 const Card = ({title,action,children,className=''}) => (
   <section className={`bg-white rounded-lg border border-[#EBEBEB] ${className}`}>
@@ -474,6 +386,10 @@ const MODULES = [
 const Soon = () => <span className="text-[10.5px] font-medium text-[#8F8F8F] border border-[#EBEBEB] rounded px-1.5 py-[1px]">{t("Bientôt")}</span>;
 
 function Home({setPage,onNew}) {
+  const { demo } = usePolarisMode();
+  const health = useHealth(), metrics = useMetrics(), safety = useStorageSafety();
+  const m = metrics.data?.data, h = health.data?.data;
+
   const go = t => t && setPage(t);
   return (
     <div className="flex-1 overflow-auto scroll-thin bg-white">
@@ -494,7 +410,7 @@ function Home({setPage,onNew}) {
         <section className="mt-14">
           <h2 className="text-[13px] font-semibold text-[#171717] mb-4">{t("Modules")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {MODULES.map(([n,desc,d,tg,adm])=>(
+            {MODULES.filter(x=>x[3]!=='trafic'||TRAFFIC_ENABLED).map(([n,desc,d,tg,adm])=>(
               <button key={n} disabled={!tg} onClick={()=>go(tg)} className="group text-left h-full rounded-xl border border-[#EBEBEB] bg-white p-4 flex flex-col transition hover:border-[#D4D4D4] hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:border-[#EBEBEB]">
                 <span className={`w-8 h-8 rounded-lg grid place-items-center ${tg?'bg-[var(--app-accent)] text-white':'bg-[#F2F2F2] text-[#8F8F8F]'}`}><I d={d} c="w-4 h-4"/></span>
                 <span className={`mt-4 text-[14px] font-semibold flex items-center gap-1.5 flex-wrap ${tg?'text-[#171717]':'text-[#666666]'}`}>{t(n)}{adm && <span className="text-[10px] font-semibold uppercase tracking-wide rounded px-1.5 py-[1px] bg-[var(--app-accent)] text-white">{t("Administrateur")}</span>}</span>
@@ -508,10 +424,10 @@ function Home({setPage,onNew}) {
           <section>
             <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-[#171717]">{t("Activité récente")}</h2><button disabled className="ml-auto text-[12.5px] text-[#A3A3A3] cursor-not-allowed">{t("Voir tout")}</button></div>
             <div className="rounded-xl border border-[#EBEBEB] bg-white divide-y divide-[#F2F2F2]">
-              {[['Analyse','Run 5G #482 · Registration','il y a 3 min','sessions'],['KPI','Succès PDU Session · 15 min','il y a 12 min','kpi'],['Template','Échecs Attach par cellule','il y a 40 min','templates'],['Analyse','Run 4G #219 · E-RAB Setup','il y a 2 h','sessions']].map(([ty,n,w,tg])=>(
+              {(demo ? [['Analyse','Run 5G #482 · Registration','il y a 3 min','sessions'],['KPI','Succès PDU Session · 15 min','il y a 12 min','kpi'],['Template','Échecs Attach par cellule','il y a 40 min','templates'],['Analyse','Run 4G #219 · E-RAB Setup','il y a 2 h','sessions']] : []).map(([ty,n,w,tg])=>(
                 <button key={n} onClick={()=>setPage(tg)} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-[#FAFAFA]"><span className="text-[11px] font-medium text-[#666666] bg-[#F5F5F5] rounded px-1.5 py-[1px] w-16 text-center">{t(ty)}</span><span className="text-[13px] text-[#171717] truncate">{n}</span><span className="ml-auto text-[12px] text-[#8F8F8F] shrink-0">{t(w)}</span></button>))}
             </div>
-            <div className="hidden">
+            <div className={demo ? "hidden" : "py-6 text-center"}>
               <div className="mx-auto w-9 h-9 rounded-full bg-[#F5F5F5] grid place-items-center text-[#8F8F8F]"><I d="M12 7v5l3 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z" c="w-4 h-4"/></div>
               <div className="mt-3 text-[14px] font-medium text-[#171717]">{t("Aucune activité pour l'instant")}</div>
               <div className="mt-1 text-[13px] text-[#666666]">{t("Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.")}</div>
@@ -521,14 +437,14 @@ function Home({setPage,onNew}) {
           <section>
             <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-[#171717]">{t("État de la plateforme")}</h2><button onClick={()=>setPage('nodes')} className="ml-auto text-[12.5px] font-medium text-[#171717] hover:underline">{t("Voir la supervision")}</button></div>
             <div className="rounded-xl border border-[#EBEBEB] divide-y divide-[#F2F2F2]">
-              {[['Capture','dumpcap actifs / attendus','12 / 12','#15803D'],['Fraîcheur des données','dernier import','4 s','#15803D'],['Alertes','points de vigilance','3','#B42318']].map(([n,d,v,c])=>(
+              {[['Capture','État de capture',available(m?.capture_state ?? h?.capture_state),'var(--muted-foreground)'],['Segments en attente','À importer',available(m?.pending_segments),'var(--muted-foreground)'],['Échecs ingestion','Import',available(m?.ingestion_failures),'var(--muted-foreground)'],['Segments ingérés','Importés',available(m?.segments_ingested),'var(--muted-foreground)'],['Segments ouverts','Capture en cours',available(m?.open_segments),'var(--muted-foreground)'],['Segments sans événement','Décodage',available(m?.zero_event_segments),'var(--muted-foreground)'],['Disque disponible','Stockage',available(safety.data?.data?.free_percent),'var(--muted-foreground)']].map(([n,d,v,c])=>(
                 <div key={n} className="px-4 py-3.5 flex items-center gap-3">
                   <span className="w-[7px] h-[7px] rounded-full" style={{background:c}}/>
                   <div className="min-w-0"><div className="text-[13.5px] text-[#171717]">{t(n)}</div><div className="text-[12px] text-[#8F8F8F]">{t(d)}</div></div>
-                  <span className="ml-auto text-[13px] font-medium tabular-nums text-[#171717]">{v}</span>
+                  <span title={`event_id=${available(m?.event_id)} · seq=${available(m?.seq)}`} className="ml-auto text-[13px] font-medium tabular-nums text-[#171717]">{v}</span>
                 </div>))}
             </div>
-            <p className="mt-3 text-[12px] text-[#A15C00]">{t("Données de démo — OIRAN non connecté.")}</p>
+            <p className="mt-3 text-[12px] text-[#A15C00]">{t(demo ? 'Données de démo' : health.isError ? health.error.message : 'POLARIS')}</p>
           </section>
         </div>
       </div>
@@ -538,16 +454,26 @@ function Home({setPage,onNew}) {
 
 function Nodes() {
   const [node,setNode] = useState(null);
+  const { demo } = usePolarisMode(); const probes = useProbes(); const auth = useAuthMe(); const health = useHealth();
+  const raw = records(probes.data?.data, 'probes');
+  const nodes = raw.map((n,i)=>demo ? n : toLegacyProbe(n,i));
+  const current = nodes.find(n=>n.n===node);
+  const resources = useProbeResources(current?.id);
+  const version = useVersion(); const metrics = useMetrics(); const safety = useStorageSafety();
+  const [target,setTarget] = useState(''); const [actionError,setActionError] = useState('');
+  const capture = useCaptureAction(auth.data?.data?.role, health.data?.data?.coordination_open);
+  const doCapture = (action,id) => { if (!window.confirm('Confirmer cette action de capture ?')) return; capture.mutate({action,id,target,confirmed:true},{onError:e=>setActionError(e.message)}); };
+
   return (
     <div className="flex-1 overflow-auto scroll-thin">
       <div className="max-w-[1480px] mx-auto px-8 py-7 space-y-5">
         <div className="flex items-end gap-6">
           <div><div className="text-[12px] text-[#666666]">POLARIS Nœuds</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">Gestion des nœuds</h1>
-            <div className="text-[13px] text-[#666666] mt-1">6 nœuds joignables · versions servies conformes · disque à surveiller.</div></div>
+            <div className="text-[13px] text-[#666666] mt-1">{probes.isError ? probes.error.message : `${nodes.length} nœuds · POLARIS`}</div></div>
           <div className="ml-auto flex gap-2">
-            <button className="h-9 px-4 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.plus} c="w-4 h-4"/>Ajouter un nœud</button>
-            <button className="h-9 px-4 rounded-md border border-[#EBEBEB] bg-white text-[13px] text-[#4D4D4D] hover:bg-[#FAFAFA]">Déploiements</button>
-            <button className="h-9 px-4 rounded-md border border-[#EBEBEB] bg-white text-[13px] text-[#4D4D4D] hover:bg-[#FAFAFA]">Journal d’audit</button>
+            <button disabled title="Non disponible : backend à venir" className="h-9 px-4 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.plus} c="w-4 h-4"/>Ajouter un nœud</button>
+            <button disabled title="Non disponible : backend à venir" className="h-9 px-4 rounded-md border border-[#EBEBEB] bg-white text-[13px] text-[#4D4D4D] hover:bg-[#FAFAFA]">Déploiements</button>
+            <button disabled title="Non disponible : backend à venir" className="h-9 px-4 rounded-md border border-[#EBEBEB] bg-white text-[13px] text-[#4D4D4D] hover:bg-[#FAFAFA]">Journal d’audit</button>
           </div>
         </div>
         <div className="space-y-5">
@@ -555,13 +481,13 @@ function Nodes() {
               <table className="w-full text-[12.5px]">
                 <thead><tr>{['Nœud','Rôle','État','Version servie','CPU','Mémoire','Disque','Dernier contact',''].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#F2F2F2]">{h}</th>)}</tr></thead>
                 <tbody>
-                  {NODES.map(n => (
+                  {nodes.map(n => (
                     <React.Fragment key={n.n}>
                       <tr onClick={()=>setNode(node===n.n?null:n.n)} className={`cursor-pointer ${node===n.n?'bg-[#FAFAFA]':'hover:bg-[#FAFAFA]'}`}>
                         <td className="h-11 px-4 border-b border-[#F2F2F2]"><div className="font-mono text-[12px] text-[#171717]">{n.n}</div><div className="text-[11.5px] text-[#8F8F8F]">{n.info}</div></td>
                         <td className="px-4 border-b border-[#F2F2F2] text-[#4D4D4D]">{n.role}</td>
-                        <td className="px-4 border-b border-[#F2F2F2]"><span className="inline-flex items-center gap-1.5"><Dot st={n.st}/>{n.st==='ok'?'Opérationnel':'Vigilance'}</span></td>
-                        <td className="px-4 border-b border-[#F2F2F2]"><span className="font-mono text-[11.5px]">{n.ver}</span>{n.ver.includes(n.exp) && <span className="ml-1.5 text-[11px] text-[#15803D]">✓ attendue</span>}</td>
+                        <td className="px-4 border-b border-[#F2F2F2]"><span className="inline-flex items-center gap-1.5"><Dot st={n.st}/>{n.st==='ok'?'Opérationnel':n.st==='warn'?'Vigilance':'—'}</span></td>
+                        <td className="px-4 border-b border-[#F2F2F2]"><span className="font-mono text-[11.5px]">{n.ver}</span>{n.exp && n.ver.includes(n.exp) && <span className="ml-1.5 text-[11px] text-[#15803D]">✓ attendue</span>}</td>
                         <td className="px-4 border-b border-[#F2F2F2]">{n.cpu===null?<span className="text-[#D4D4D4]">—</span>:<Bar v={n.cpu}/>}</td>
                         <td className="px-4 border-b border-[#F2F2F2]">{n.mem===null?<span className="text-[#D4D4D4]">—</span>:<div><Bar v={Math.round(n.mem[0]/n.mem[1]*100)}/><div className="text-[10.5px] text-[#8F8F8F] mt-0.5">{n.mem[0]} / {n.mem[1]} Go MemoryMax</div></div>}</td>
                         <td className="px-4 border-b border-[#F2F2F2]">{n.disk===null?<span className="text-[#D4D4D4]">—</span>:<Bar v={n.disk}/>}</td>
@@ -571,9 +497,9 @@ function Nodes() {
                       {node===n.n && (
                         <tr><td colSpan="9" className="bg-[#FAFAFA] border-b border-[#F2F2F2] px-4 py-4">
                           <div className="grid grid-cols-3 gap-6 text-[12.5px]">
-                            <div><Lbl>Services</Lbl>{(n.role==='Capture'?['dumpcap × 12','ring buffer','agent POLARIS']:n.role.startsWith('Import')?['oiran-import.service','décodeurs 5G/4G','corrélation']:['service principal','agent POLARIS']).map(x=><div key={x} className="flex items-center gap-2 h-6"><Dot st="ok"/>{x}</div>)}</div>
-                            <div><Lbl>Dernier déploiement</Lbl><div>2.10.2 · ANR1 · sauvegarde SHA256 OK</div><div className="text-[#8F8F8F] mt-1">rollback disponible vers 0d1b0e9</div></div>
-                            <div><Lbl>Actions</Lbl><div className="flex flex-wrap gap-2"><button className="h-7 px-2.5 rounded border border-[#EBEBEB] bg-white">Journal</button><button className="h-7 px-2.5 rounded border border-[#EBEBEB] bg-white">Configuration</button><button className="h-7 px-2.5 rounded border border-[#EBEBEB] bg-white">Historique</button></div><div className="text-[11.5px] text-[#8F8F8F] mt-2">Toute action sensible demande un motif et est journalisée.</div></div>
+                            <div><Lbl>Interfaces</Lbl>{records(resources.probeInterfaces.data?.data, 'interfaces').map((x,i)=><div key={i}>{available(x.name ?? x.interface)}</div>)}{resources.probeInterfaces.isError && <div>{resources.probeInterfaces.error.message}</div>}</div>
+                            <div><Lbl>Version</Lbl><div>{available(resources.probe.data?.data?.version ?? version.data?.data?.version)}</div></div>
+                            <div><Lbl>Actions</Lbl><div>Non disponible : backend à venir</div></div>
                           </div>
                         </td></tr>
                       )}
@@ -584,37 +510,20 @@ function Nodes() {
             </Card>
 
             <div className="grid grid-cols-2 gap-5">
-              <Card title="Capture · 12 interfaces" action="Détails">
-                <div className="p-4 grid grid-cols-4 gap-2">
-                  {IFACES.map(i => <div key={i} className="rounded-md border border-[#EBEBEB] px-2.5 py-2"><div className="flex items-center gap-1.5 text-[12px] font-medium"><Dot st="ok"/>{i}</div><div className="text-[10.5px] text-[#8F8F8F] mt-0.5 font-mono">PID stable</div></div>)}
-                </div>
-                <div className="px-4 pb-4 text-[11.5px] text-[#666666]">Aucun dumpcap arrêté depuis le dernier déploiement · paquets perdus noyau : 0</div>
-              </Card>
-              <Card title="Base de données et sauvegardes" action="Ouvrir">
-                <div className="p-4 space-y-3 text-[12.5px]">
-                  <div className="flex items-center"><span className="text-[#666666] w-40">Disque</span><Bar v={76}/><span className="ml-2 text-[11.5px] text-[#D97706]">en hausse</span></div>
-                  <div className="flex items-center"><span className="text-[#666666] w-40">Événements publiés</span><span className="tabular-nums font-medium">~1,5 M</span></div>
-                  <div className="flex items-center"><span className="text-[#666666] w-40">Intégrité</span><span>0 perte · 0 doublon</span><span className="ml-2 text-[11.5px] text-[#8F8F8F]">recette ANR2</span></div>
-                  <div className="flex items-center"><span className="text-[#666666] w-40">Dernière sauvegarde</span><span>aujourd’hui 13:48 · SHA256 vérifié</span></div>
-                  <div className="flex items-center"><span className="text-[#666666] w-40">Dernière restauration testée</span><span className="text-[#D97706]">jamais — à planifier</span></div>
-                </div>
-              </Card>
+              <Card title="Capture · interfaces"><div className="p-4 grid grid-cols-4 gap-2">{records(resources.interfaces.data?.data, 'interfaces').map((x,i)=><div key={i} className="rounded-md border border-[#EBEBEB] px-2.5 py-2">{available(x.name ?? x.interface)}</div>)}</div><div className="px-4 pb-4">{resources.interfaces.isError ? resources.interfaces.error.message : 'POLARIS'}</div></Card>
+              <Card title="Stockage et ingestion"><div className="p-4 space-y-3">{[['Disque disponible', safety.data?.data?.free_percent],['Segments ingérés',metrics.data?.data?.segments_ingested],['Échecs ingestion',metrics.data?.data?.ingestion_failures]].map(([label,value])=><div key={label} className="flex justify-between"><span>{label}</span><span>{available(value)}</span></div>)}</div></Card>
+              <Card title="Modules"><div className="p-4">{records(resources.modules.data?.data,'modules').map((x,i)=><div key={i}>{available(x.name)} · {available(x.status)}</div>)}{resources.modules.isError && resources.modules.error.message}</div></Card>
+              <Card title="Captures"><div className="p-4">{records(resources.captures.data?.data,'captures').map((x,i)=><div key={i}>{available(x.id)} · {available(x.status)}{auth.data?.data?.role==='operator' && <button disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)} onClick={()=>doCapture('stop',x.id)}>Arrêter</button>}</div>)}{resources.captures.isError && resources.captures.error.message}</div></Card>
             </div>
+            {auth.data?.data?.role==='operator' && <section className="flex items-center gap-2"><input aria-label="Cible de capture" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)} value={target} onChange={e=>setTarget(e.target.value)} placeholder="Cible de capture" className="h-8 px-3 border rounded-md"/><button disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('validate')}>Valider la capture</button><button disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('start')}>Démarrer la capture</button>{actionError && <span>{actionError}</span>}</section>}
           </div>
 
-        <div className="text-[11.5px] text-[#8F8F8F]">Données de démonstration.</div>
+        <div className="text-[11.5px] text-[#8F8F8F]">{demo ? "Données de démo" : "POLARIS"}</div>
       </div>
     </div>
   );
 }
 
-const SAVED = [
-  {n:'Échecs · run 482',g:'Parcourir',p:'Run 5G #482',c:[['Résultat','Échec']],last:'il y a 12 min',r:3,fav:true},
-  {n:'PDU Session 5G · toutes causes',g:'Parcourir',p:'Captures c41 → c43',c:[['Procédure','PDU Session'],['RAT','5G SA']],last:'il y a 1 h',r:1,fav:true},
-  {n:'Attach LTE · certification',g:'Parcourir',p:'lte-run-976bd44b',c:[['Procédure','Attach'],['RAT','LTE']],last:'hier',r:2},
-  {n:'Sessions passant par N4',g:'Inspecter',p:'Run 5G #482',c:[['Interface','N4']],last:'hier',r:4,shared:true},
-  {n:'Erreurs S6a',g:'Parcourir',p:'Captures c41 → c43',c:[['Cause','S6a 5001']],last:'il y a 3 j',r:1,shared:true},
-];
 const STARTERS = [
   ['Échecs du dernier run','Toutes les sessions en échec, triées par capture',[['Résultat','Échec']]],
   ['PDU Session 5G','Établissements de session de données en 5G SA',[['Procédure','PDU Session'],['RAT','5G SA']]],
@@ -626,7 +535,7 @@ const matchQ = (s,conds,join) => { const r = conds.map(c=>c[2]==='≠'?!test(s,c
 const TPLS = [['Trace','Toutes les sessions d’un UE'],['Parcourir','Une ligne par session'],['Inspecter','Une ligne par message'],['Capture','Extrait pcap d’une session']];
 const SCOPES = ['Run 5G #482','lte-run-976bd44b','Captures c41 → c43','Fenêtre horaire'];
 const GROUPS = ['Aucun','Procédure','Résultat','Cause','Cellule','UE'];
-const mkDraft = (o={}) => ({tpl:'Parcourir',scope:'Run 5G #482',conds:[],join:'ET',group:'Aucun',name:'',...o});
+const mkDraft = (o={}) => ({tpl:'Parcourir',scope:'',conds:[],join:'ET',group:'Aucun',name:'',...o});
 
 function QueryLibrary({saved,onNew,onOpen}) {
   const [q,setQ] = useState(''); const [flt,setFlt] = useState('Toutes');
@@ -675,7 +584,7 @@ function QueryLibrary({saved,onNew,onOpen}) {
             </tbody>
           </table>
         </section>
-        <div className="text-[11.5px] text-[#8F8F8F]">Données de démonstration.</div>
+        <div className="text-[11.5px] text-[#8F8F8F]">local à ce navigateur</div>
       </div>
     </div>
   );
@@ -695,16 +604,21 @@ function QSec({n,title,sub,children}) {
   );
 }
 
-function QueryEditor({draft,setDraft,dirty,run,save,cancel,role}) {
-  const [f,setF] = useState(FIELDS[0][0]);
-  const [v,setV] = useState(FIELDS[0][1][0]);
+function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]}) {
+  const { demo } = usePolarisMode(); const datasets = useDatasets(); const causes = useAvailableCauses();
+  const scopes = records(datasets.data?.data, 'datasets');
+  const fieldList = demo ? FIELDS : [['Message',[]],['Cause',Array.isArray(causes.data?.data) ? causes.data.data.map(x=>typeof x==='string'?x:String(x.cause ?? x.code ?? '—')) : []],['Interface',FIELDS.find(x=>x[0]==='Interface')[1]],['UE',sessionRows.map(x=>x.ue)]];
+
+  const [f,setF] = useState(fieldList[0][0]);
+  const [v,setV] = useState(fieldList[0][1][0] || '');
   const [op,setOp] = useState('=');
   const [err,setErr] = useState('');
-  const vals = (FIELDS.find(x=>x[0]===f)||FIELDS[0])[1];
+  const vals = (fieldList.find(x=>x[0]===f)||fieldList[0])[1];
   const up = o => setDraft({...draft,...o});
-  const count = SESS.filter(s=>matchQ(s,draft.conds,draft.join)).length;
+  const count = sessionRows.filter(s=>matchQ(s,draft.conds,draft.join)).length;
   const idField = x => x==='UE' || x==='IMSI';
   const exec = () => {
+    const unsupported = querySupport(draft,demo); if (unsupported) return setErr(unsupported);
     if (draft.tpl==='Trace' && !draft.conds.some(c=>c[0]==='UE')) return setErr('Le gabarit Trace exige une condition UE.');
     if (draft.conds.some(c=>c[0]==='IMSI') && role!=='operator') return setErr('Les conditions IMSI exigent le rôle operator.');
     setErr(''); run();
@@ -715,13 +629,13 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role}) {
         <div className="flex items-end gap-4 pb-1">
           <div><div className="text-[12px] text-[#666666]">POLARIS Analyzer · Requête</div>
             <input value={draft.name} onChange={e=>up({name:e.target.value})} placeholder="Nouvelle requête" className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1 bg-transparent outline-none w-[520px] placeholder:text-[#171717]"/></div>
-          <span className="ml-auto text-[12px] text-[#666666]">{dirty && <span className="mr-3 inline-flex items-center gap-1.5 text-[#A15C07]"><span className="w-1.5 h-1.5 rounded-full bg-[#A15C07]"/>Modifications non enregistrées</span>}Aperçu : <b className="text-[#171717] tabular-nums">{count}</b> sessions</span>
+          <span className="ml-auto text-[12px] text-[#666666]">{dirty && <span className="mr-3 inline-flex items-center gap-1.5 text-[#A15C07]"><span className="w-1.5 h-1.5 rounded-full bg-[#A15C07]"/>Modifications non enregistrées</span>}Aperçu : <b className="text-[#171717] tabular-nums">{demo ? count : '—'}</b> sessions</span>
         </div>
         <QSec n={1} title="Gabarit" sub="ce que la requête retourne">
           <div className="grid grid-cols-4 gap-2">{TPLS.map(([x,d]) => <button key={x} onClick={()=>up({tpl:x})} className={`text-left rounded-md border px-3 py-2 transition ${draft.tpl===x?'border-[var(--app-accent)] ring-1 ring-[var(--app-accent)]':'border-[#EBEBEB] hover:border-[#D4D4D4]'}`}><div className="text-[13px] font-medium uppercase tracking-wide">{x}</div><div className="text-[11.5px] text-[#8F8F8F] mt-0.5">{d}</div></button>)}</div>
         </QSec>
         <QSec n={2} title="Portée" sub="run, captures ou fenêtre horaire">
-          <div className="flex flex-wrap gap-2">{SCOPES.map(x => <button key={x} onClick={()=>up({scope:x})} className={`h-8 px-3 rounded-md border text-[12.5px] ${draft.scope===x?'border-[var(--app-accent)] bg-[var(--app-accent)] text-white':'border-[#EBEBEB] text-[#4D4D4D] hover:border-[#D4D4D4]'}`}>{x}</button>)}</div>
+          <div className="flex flex-wrap gap-2">{(demo ? SCOPES : scopes.map(x=>String(x.id))).map(x => <button key={x} onClick={()=>up({scope:x})} className={`h-8 px-3 rounded-md border text-[12.5px] ${draft.scope===x?'border-[var(--app-accent)] bg-[var(--app-accent)] text-white':'border-[#EBEBEB] text-[#4D4D4D] hover:border-[#D4D4D4]'}`}>{x}</button>)}</div>
         </QSec>
         <QSec n={3} title="Conditions" sub="champ, opérateur, valeur">
           <div className="space-y-2">
@@ -733,16 +647,16 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role}) {
               {draft.conds.map((c,i) => <span key={i} className="inline-flex items-center h-8 rounded-md border border-[#EBEBEB] text-[12.5px] overflow-hidden">{i>0 && <span className="px-2 h-full flex items-center text-[10.5px] font-semibold text-[#8F8F8F] border-r border-[#EBEBEB]">{draft.join}</span>}<span className="px-2.5 h-full flex items-center bg-[#FAFAFA] border-r border-[#EBEBEB] text-[#666666]">{c[0]}</span><span className="px-2 text-[#8F8F8F]">{c[2]||'='}</span><span className="pr-2.5 font-medium">{c[1]}</span><button onClick={()=>up({conds:draft.conds.filter((_,j)=>j!==i)})} aria-label="Retirer" className="w-7 h-full grid place-items-center text-[#8F8F8F] hover:text-[#B42318] border-l border-[#EBEBEB]"><I d={ic.x} c="w-3.5 h-3.5"/></button></span>)}
             </div>
             <div className="flex items-center gap-2">
-              <select value={f} onChange={e=>{setF(e.target.value); setV(FIELDS.find(x=>x[0]===e.target.value)[1][0]);}} className="h-8 rounded-md border border-[#EBEBEB] text-[12.5px] px-2 bg-white">{FIELDS.map(x=><option key={x[0]} disabled={idField(x[0]) && x[0]==='IMSI' && role!=='operator'}>{x[0]}</option>)}</select>
+              <select value={f} onChange={e=>{setF(e.target.value); setV(fieldList.find(x=>x[0]===e.target.value)[1][0] || '');}} className="h-8 rounded-md border border-[#EBEBEB] text-[12.5px] px-2 bg-white">{fieldList.map(x=><option key={x[0]} disabled={idField(x[0]) && x[0]==='IMSI' && role!=='operator'}>{x[0]}</option>)}</select>
               <select value={op} onChange={e=>setOp(e.target.value)} className="h-8 rounded-md border border-[#EBEBEB] text-[12.5px] px-2 bg-white"><option>=</option><option>≠</option></select>
-              <select value={v} onChange={e=>setV(e.target.value)} className="h-8 rounded-md border border-[#EBEBEB] text-[12.5px] px-2 bg-white min-w-[180px]">{vals.map(x=><option key={x}>{x}</option>)}</select>
+              <input value={v} onChange={e=>setV(e.target.value)} list="polaris-filter-values" className="h-8 rounded-md border border-[#EBEBEB] text-[12.5px] px-2 bg-white min-w-[180px]"/><datalist id="polaris-filter-values">{vals.map(x=><option key={x} value={x}/>)}</datalist>
               <button onClick={()=>up({conds:[...draft.conds,[f,v,op]]})} className="h-8 px-3 rounded-md border border-[#EBEBEB] text-[12.5px] hover:bg-[#FAFAFA] flex items-center gap-1.5"><I d={ic.plus} c="w-3.5 h-3.5"/>Ajouter</button>
               <span className="ml-2 inline-flex items-center gap-1.5 text-[11.5px] text-[#8F8F8F]"><I d={ic.lock} c="w-3 h-3"/>Identités : rôle operator</span>
             </div>
           </div>
         </QSec>
         <QSec n={4} title="Regrouper par" sub="facultatif">
-          <div className="flex flex-wrap gap-2">{GROUPS.map(g=><button key={g} onClick={()=>up({group:g})} className={`h-8 px-3 rounded-md border text-[12.5px] ${draft.group===g?'border-[var(--app-accent)] text-[#171717] ring-1 ring-[var(--app-accent)]':'border-[#EBEBEB] text-[#666666] hover:border-[#D4D4D4]'}`}>{g}</button>)}</div>
+          <div className="flex flex-wrap gap-2">{!demo && <span>Non disponible : backend à venir</span>}{GROUPS.map(g=><button disabled={!demo && g!=='Aucun'} key={g} onClick={()=>up({group:g})} className={`h-8 px-3 rounded-md border text-[12.5px] ${draft.group===g?'border-[var(--app-accent)] text-[#171717] ring-1 ring-[var(--app-accent)]':'border-[#EBEBEB] text-[#666666] hover:border-[#D4D4D4]'}`}>{g}</button>)}</div>
         </QSec>
         <section className="bg-white rounded-lg border border-[#EBEBEB] px-5 h-14 flex items-center gap-2">
           <span className="w-5 h-5 rounded-full bg-[#F2F2F2] text-[11px] font-semibold grid place-items-center text-[#4D4D4D]">5</span><span className="text-[13.5px] font-semibold mr-3">Actions</span>
@@ -758,10 +672,11 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role}) {
 
 const THEMES = [['blue','Bleu','#0062A1'],['black','Noir','#171717'],['green','Vert','#0F5B56']];
 function Settings({theme,setTheme,lang,setLang,onClose}) {
+  const version = useVersion(); const health = useHealth();
   const [sec,setSec]=useState('apparence');
   const [cur,setCur]=useState(''),[nw,setNw]=useState(''),[cf,setCf]=useState(''),[pm,setPm]=useState(null);
   const accent = THEMES.find(t=>t[0]===theme)[2];
-  const save = e => { e.preventDefault(); if(!cur||nw.length<8) return setPm(['err',t("Mot de passe actuel requis et 8 caractères minimum.")]); if(nw!==cf) return setPm(['err',t("Les mots de passe ne correspondent pas.")]); setPm(['ok',t("Mot de passe mis à jour.")]); setCur('');setNw('');setCf(''); };
+  const save = e => { e.preventDefault(); if(!cur||nw.length<8) return setPm(['err',t("Mot de passe actuel requis et 8 caractères minimum.")]); if(nw!==cf) return setPm(['err',t("Les mots de passe ne correspondent pas.")]); setPm(['err',t("Non disponible : backend à venir — authentification gérée par le proxy.")]); setCur('');setNw('');setCf(''); };
   const strength = Math.min(4,[/.{8,}/,/[A-Z]/,/[0-9]/,/[^A-Za-z0-9]/].filter(r=>r.test(nw)).length);
   const inp = "w-full h-11 rounded-lg border border-[#E5E5E5] bg-white px-3.5 text-[14px] outline-none transition focus:border-transparent focus:ring-2";
   const SECS=[['apparence','Apparence','Couleur et thème'],['securite','Sécurité','Mot de passe'],['langue','Langue','Français ou English'],['apropos','À propos','Version et build']];
@@ -807,15 +722,15 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
                     {on && <span className="w-5 h-5 rounded-full grid place-items-center text-white text-[11px]" style={{background:c}}>✓</span>}</div>
                 </button>);})}</div>
             </Card>}
-            {sec==='securite' && <Card title={t("Mot de passe")} desc={t("Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.")}>
+            {sec==='securite' && <Card title={t("Mot de passe")} desc={t("Non disponible : backend à venir — authentification gérée par le proxy.")}>
               <form onSubmit={save} className="space-y-5 max-w-[460px]" style={{'--tw-ring-color':accent+'55'}}>
                 {[['Mot de passe actuel',cur,setCur],['Nouveau mot de passe',nw,setNw],['Confirmer le mot de passe',cf,setCf]].map(([l,v,fn],i)=>(
                   <label key={l} className="block"><span className="block text-[13.5px] font-medium mb-1.5">{t(l)}</span>
-                    <input type="password" value={v} onChange={e=>fn(e.target.value)} className={inp}/>
+                    <input disabled type="password" value={v} onChange={e=>fn(e.target.value)} className={inp}/>
                     {i===1 && nw && <div className="mt-2 flex gap-1.5">{[0,1,2,3].map(j=><span key={j} className="h-1.5 flex-1 rounded-full" style={{background:j<strength?accent:'#EBEBEB'}}/>)}</div>}
                   </label>))}
                 {pm && <div className={`text-[13.5px] rounded-lg px-3.5 py-2.5 ${pm[0]==='ok'?'bg-[#ECF8F0] text-[#15803D]':'bg-[#FDEFEE] text-[#B42318]'}`}>{pm[1]}</div>}
-                <button type="submit" style={{background:accent}} className="h-11 px-6 rounded-lg text-white text-[14px] font-semibold shadow-sm hover:opacity-90">{t("Mettre à jour le mot de passe")}</button>
+                <button disabled title="Non disponible : backend à venir" type="submit" style={{background:accent}} className="h-11 px-6 rounded-lg text-white text-[14px] font-semibold shadow-sm hover:opacity-90">{t("Mettre à jour le mot de passe")}</button>
               </form>
             </Card>}
             {sec==='langue' && <Card title={t("Langue de l'interface")} desc={t("Choisissez la langue utilisée dans POLARIS.")}>
@@ -827,7 +742,7 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
                 </button>);})}</div>
             </Card>}
             {sec==='apropos' && <Card title={t("À propos")} desc={t("Versions des composants installés.")}>
-              <div className="grid grid-cols-2 gap-5">{[['POLARIS Analyzer','0.6.0'],['OIRAN','2.10.2']].map(([n,v])=>(
+              <div className="grid grid-cols-2 gap-5">{[['POLARIS UI',UI_VERSION],['POLARIS',available(version.data?.data?.version ?? health.data?.data?.version)]].map(([n,v])=>(
                 <div key={n} className="rounded-xl border border-[#EBEBEB] p-5"><div className="text-[13px] text-[#666666]">{n}</div><div className="mt-1 text-[26px] font-semibold tracking-tight font-mono" style={{color:accent}}>{v}</div></div>))}</div>
             </Card>}
           </div>
@@ -836,145 +751,9 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
     </div>);
 }
 
-/* ---------------- Live (IMSI trace · débit · RTP) — données de démo ---------------- */
-const LIVE_SCRIPT = [
-  ['N1','UE','AMF','Registration Request','5GMM'],['N2','gNB','AMF','Initial UE Message','NGAP'],
-  ['SBI','AMF','AUSF','POST /ue-authentications','HTTP/2'],['SBI','AUSF','UDM','POST /generate-auth-data','HTTP/2'],
-  ['N1','AMF','UE','Authentication Request','5GMM'],['N1','UE','AMF','Authentication Response','5GMM'],
-  ['N1','AMF','UE','Security Mode Command','5GMM'],['N1','UE','AMF','Security Mode Complete','5GMM'],
-  ['N1','AMF','UE','Registration Accept (5G-GUTI₂)','5GMM'],['N1','UE','AMF','PDU Session Est. Request','5GSM'],
-  ['SBI','AMF','SMF','POST /sm-contexts','HTTP/2'],['N4','SMF','UPF','PFCP Session Est. Request','PFCP'],
-  ['N4','UPF','SMF','PFCP Session Est. Response','PFCP'],['N2','AMF','gNB','PDU Session Resource Setup Req','NGAP'],
-  ['N2','gNB','AMF','PDU Session Resource Setup Resp','NGAP'],['N1','AMF','UE','PDU Session Est. Accept','5GSM'],
-  ['N4','UPF','SMF','PFCP Session Report (usage)','PFCP'],['N1','UE','AMF','Service Request','5GMM'],
-];
-const LIVE_NODES = ['UE','gNB','AMF','AUSF','UDM','SMF','UPF'];
-const IFC_C = {N1:'#0062A1',N2:'#7C3AED',SBI:'#0F5B56',N4:'#A15C07'};
-const LIVE_CHAIN = [
-  ['SUPI','imsi-20801••••••4821','Registration Request (SUCI déchiffré, SBI)','EXACT'],
-  ['5G-GUTI₁','208-01-02-3F-0A1B2C3D','Registration Accept #1 · seq 1 204','EXACT'],
-  ['5G-GUTI₂','208-01-02-3F-0A7E91F0','Configuration Update Command · seq 1 877','EXACT'],
-  ['5G-S-TMSI','3F-0A7E91F0','Service Request · seq 2 310','À PROUVER'],
-];
-const LIVE_JOURNAL = [['00:31:42','SD','operator','trace créée','pseudo ue-7f3a'],['00:12:09','SD','operator','recherche IMSI','empreinte sha256:9c1e…'],['23:58:30','MB','viewer','consultation historique','pseudo ue-21c0']];
-
-function Live({role}) {
-  const [target,setTarget] = useState('ue-7f3a');
-  const [running,setRunning] = useState(true);
-  const [msgs,setMsgs] = useState([]);
-  const [buf,setBuf] = useState(0);
-  const [ttl,setTtl] = useState(30*60);
-  const [delay,setDelay] = useState(4);
-  const [thr,setThr] = useState(()=>Array.from({length:40},(_,i)=>[40+Math.sin(i/3)*12, 6+Math.cos(i/4)*2]));
-  const seq = React.useRef(0);
-  useEffect(()=>{ const id=setInterval(()=>{
-    const s=LIVE_SCRIPT[seq.current%LIVE_SCRIPT.length]; seq.current++;
-    const m={seq:2400+seq.current, ts:new Date().toLocaleTimeString('fr-FR'), ifc:s[0], from:s[1], to:s[2], name:s[3], proto:s[4]};
-    if(running) setMsgs(x=>[...x.slice(-60), m]); else setBuf(b=>b+1);
-    if(running) setMsgs(x=>x); 
-    setTtl(v=>Math.max(0,v-1)); setDelay(3+Math.round(Math.random()*3));
-    setThr(x=>[...x.slice(1),[35+Math.random()*25, 4+Math.random()*5]]);
-  },1100); return ()=>clearInterval(id); },[running]);
-  const resume = () => { const n=buf; const add=[]; for(let i=0;i<n;i++){ const s=LIVE_SCRIPT[(seq.current-n+i)%LIVE_SCRIPT.length]; add.push({seq:2400+seq.current-n+i+1,ts:'(tampon)',ifc:s[0],from:s[1],to:s[2],name:s[3],proto:s[4]}); } setMsgs(x=>[...x,...add].slice(-60)); setBuf(0); setRunning(true); };
-  const box = React.useRef(null);
-  useEffect(()=>{ if(box.current) box.current.scrollTop=box.current.scrollHeight; },[msgs]);
-  const W=640, colW=W/LIVE_NODES.length, cx=n=>colW*LIVE_NODES.indexOf(n)+colW/2;
-  const ul=thr[thr.length-1][1], dl=thr[thr.length-1][0], pfcp=dl*1.03;
-  const path=(k,mx)=>thr.map((p,i)=>`${i?'L':'M'}${(i*(W/39)).toFixed(1)},${(120-p[k]/mx*110).toFixed(1)}`).join(' ');
-  const card="bg-white rounded-xl border border-[#EBEBEB] overflow-hidden";
-  const head=(n,extra)=><div className="h-11 px-4 flex items-center gap-2 border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold text-[#171717]">{t(n)}</h3>{extra}</div>;
-  return (
-    <div className="flex-1 overflow-auto scroll-thin bg-[#FAFAFA]">
-      <div className="sticky top-0 z-10 bg-[#FFF7E6] border-b border-[#FCE2B0] text-[#A15C00] text-[12.5px] px-8 h-8 flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-[#A15C00] animate-pulse"/>{t("Live delayed by")} {delay} s<span className="ml-auto text-[11.5px]">{t("Données de démo")} · {t("flux pris après décodage — dumpcap jamais touchés")}</span></div>
-      <div className="max-w-[1480px] mx-auto px-8 py-7 space-y-5">
-        <div className="flex flex-wrap items-end gap-6">
-          <div><div className="text-[12px] text-[#666666]">POLARIS Live</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">{t("Trace live")}</h1><div className="text-[13px] text-[#666666] mt-1">{t("Suivi en temps réel des sessions capturées.")}</div></div>
-          <div className="ml-auto flex items-center gap-2">
-            <div className="flex items-center gap-2 h-9 px-3 rounded-lg border border-[#EBEBEB] bg-white focus-within:border-[var(--app-accent)] w-[300px]">
-              <span className="text-[11px] text-[#8F8F8F]">{t("Cible")}</span>
-              <input value={target} onChange={e=>setTarget(e.target.value)} placeholder={role==='operator'?'pseudo, IMSI, SUPI, MSISDN':'pseudonyme'} className="flex-1 min-w-0 bg-transparent outline-none text-[13px] font-mono"/>
-            </div>
-            <button onClick={()=>running?setRunning(false):resume()} className="h-9 px-4 rounded-lg bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium">{running?t("Pause"):`${t("Reprendre")}${buf?` (+${buf})`:''}`}</button>
-          </div>
-        </div>
-        {role!=='operator' && <div className="text-[12px] text-[#8F8F8F]">{t("Rôle viewer : cible par pseudonyme uniquement, identités masquées.")}</div>}
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {[['Traces actives','2 / 5'],['Expiration',`${Math.floor(ttl/60)}:${String(ttl%60).padStart(2,'0')}`],['Messages reçus',String(msgs.length+buf)],['En tampon (pause)',String(buf)]].map(([n,v])=>(
-            <div key={n} className="bg-white rounded-xl border border-[#EBEBEB] px-4 py-3"><div className="text-[12px] text-[#8F8F8F]">{t(n)}</div><div className="text-[20px] font-semibold tabular-nums text-[#171717] mt-0.5">{v}</div></div>))}
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-4 items-start">
-          <div className={card}>
-            {head("Signalisation live",<span className="ml-auto flex items-center gap-1.5 text-[11.5px] text-[#666666]"><span className={`w-[7px] h-[7px] rounded-full ${running?'bg-[#15803D] animate-pulse':'bg-[#D4D4D4]'}`}/>{running?t("en direct"):t("en pause")}</span>)}
-            <div className="grid px-0" style={{gridTemplateColumns:`repeat(${LIVE_NODES.length},1fr)`}}>{LIVE_NODES.map(n=><div key={n} className="text-center text-[11.5px] font-semibold text-[#4D4D4D] py-2 border-b border-[#F2F2F2]">{n}</div>)}</div>
-            <div ref={box} className="h-[380px] overflow-auto scroll-thin">
-              <svg viewBox={`0 0 ${W} ${Math.max(1,msgs.length)*28+10}`} className="w-full">
-                {LIVE_NODES.map(n=><line key={n} x1={cx(n)} x2={cx(n)} y1={0} y2={msgs.length*28+10} stroke="#EBEBEB"/>)}
-                {msgs.map((m,i)=>{const y=i*28+20,a=cx(m.from),b=cx(m.to),c=IFC_C[m.ifc]||'#666';return <g key={m.seq+'-'+i}>
-                  <line x1={a} x2={b} y1={y} y2={y} stroke={c} strokeWidth="1.4"/><path d={b>a?`M${b},${y} l-6,-3 v6z`:`M${b},${y} l6,-3 v6z`} fill={c}/>
-                  <text x={(a+b)/2} y={y-5} fontSize="9.5" textAnchor="middle" fill="#171717">{m.name}</text>
-                  <text x={4} y={y+3} fontSize="8.5" fill="#A3A3A3" fontFamily="monospace">{m.seq}</text>
-                  <text x={W-4} y={y+3} fontSize="8.5" textAnchor="end" fill={c}>{m.ifc}</text></g>;})}
-              </svg>
-            </div>
-            <div className="px-4 py-2.5 border-t border-[#F2F2F2] text-[11.5px] text-[#8F8F8F]">{t("Ordre (capture_id, seq) — chaque message est retrouvable à l'identique dans l'Analyzer.")}</div>
-          </div>
-
-          <div className="space-y-4">
-            <div className={card}>
-              {head("Chaîne d'identité")}
-              <div className="p-4 space-y-3">
-                {LIVE_CHAIN.map(([k,v,p,st],i)=>(<div key={k} className="flex gap-3">
-                  <div className="flex flex-col items-center"><span className={`w-2.5 h-2.5 rounded-full mt-1 ${st==='EXACT'?'bg-[var(--app-accent)]':'border-2 border-[#A15C07]'}`}/>{i<LIVE_CHAIN.length-1&&<span className="flex-1 w-px bg-[#EBEBEB]"/>}</div>
-                  <div className="min-w-0 pb-1"><div className="flex items-center gap-2"><span className="text-[12px] font-semibold text-[#171717]">{k}</span><span className={`text-[10px] font-medium rounded px-1 ${st==='EXACT'?'bg-[#ECFDF3] text-[#15803D]':'bg-[#FFF7E6] text-[#A15C07]'}`}>{st}</span></div>
-                  <div className="font-mono text-[11.5px] text-[#4D4D4D] truncate">{role==='operator'||i>0?v:t('masqué')}</div><div className="text-[11px] text-[#8F8F8F]">{p}</div></div></div>))}
-              </div>
-            </div>
-            <div className={card}>
-              {head("Débit live",<span className="ml-auto text-[11px] text-[#8F8F8F]">PDU #1 · QFI 9 · DNN internet</span>)}
-              <div className="p-4">
-                <div className="flex gap-6 text-[12px]"><span><span className="text-[#8F8F8F]">DL </span><b className="tabular-nums">{dl.toFixed(1)} Mb/s</b></span><span><span className="text-[#8F8F8F]">UL </span><b className="tabular-nums">{ul.toFixed(1)} Mb/s</b></span><span className="text-[#8F8F8F]">cell 0A1F</span></div>
-                <svg viewBox={`0 0 ${W} 125`} className="w-full h-[110px] mt-2"><path d={path(0,70)} fill="none" stroke="var(--app-accent)" strokeWidth="2"/><path d={path(1,70)} fill="none" stroke="#A3A3A3" strokeWidth="1.5"/></svg>
-                <div className="mt-2 flex items-center justify-between text-[11.5px] rounded-md bg-[#FFF7E6] text-[#A15C00] px-2.5 py-1.5"><span>{t("Rapport d'usage PFCP")} {pfcp.toFixed(1)} Mb/s</span><span>{t("écart")} +3,0 % · {t("OUVERT")}</span></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <div className={card}>
-            {head("RTP live",<span className="ml-auto text-[10.5px] font-medium text-[#8F8F8F] border border-[#EBEBEB] rounded px-1.5">LIVE-2</span>)}
-            <div className="p-4 grid grid-cols-3 gap-3 text-[12px]">
-              {[['Codec','AMR-WB 23.85'],['Bearer','5QI 1 · N3'],['Débit',`${(24+Math.random()).toFixed(1)} kb/s`],['Pertes','0,4 %'],['Gigue','7 ms'],['Déséquencement','0,1 %']].map(([n,v])=><div key={n}><div className="text-[#8F8F8F]">{t(n)}</div><div className="font-semibold tabular-nums text-[#171717]">{v}</div></div>)}
-              <div className="col-span-3 flex items-center gap-2 pt-2 border-t border-[#F2F2F2]"><span className="text-[#8F8F8F]">MOS</span><b className="text-[16px]">4,1</b><span className="text-[10.5px] rounded bg-[#F5F5F5] px-1.5 text-[#666666]">{t("estimation G.107")}</span><span className="ml-auto text-[11px] text-[#8F8F8F]">{t("En-têtes seulement — aucune charge audio lue ni stockée.")}</span></div>
-            </div>
-          </div>
-          <div className={card}>
-            {head("Journal des traces")}
-            <div className="divide-y divide-[#F2F2F2]">{LIVE_JOURNAL.map(([h,u,r,a,c])=>(<div key={h} className="px-4 py-2.5 flex items-center gap-3 text-[12px]"><span className="font-mono text-[#8F8F8F]">{h}</span><span className="font-semibold">{u}</span><span className={`text-[10.5px] rounded px-1 ${r==='operator'?'bg-[#A15C07] text-white':'bg-[#F2F2F2] text-[#666666]'}`}>{r}</span><span className="text-[#4D4D4D]">{t(a)}</span><span className="ml-auto font-mono text-[11px] text-[#8F8F8F]">{c}</span></div>))}</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ---------------- Traffic (flux, santé TCP, applications, congestion) — démo ---------------- */
-const TR_CATS = [['Vidéo',41.2,'#0062A1'],['Web',22.8,'#0F5B56'],['Transfert',11.5,'#7C3AED'],['Messagerie',7.9,'#A15C07'],['Voix',4.1,'#15803D'],['Jeu',2.6,'#DB2777'],['DNS',0.4,'#666666'],['Non identifié',9.5,'#D4D4D4']];
-const TR_APPS = [['YouTube',28.4,'SNI *.googlevideo.com · r3'],['Netflix',9.1,'SNI *.nflxvideo.net · r3'],['Meta',8.7,'SNI *.fbcdn.net · r3'],['Google',7.6,'SNI *.google.com · r2'],['WhatsApp',5.2,'SNI *.whatsapp.net · r3'],['Steam',2.4,'port 27015-27050 · r1']];
-const TR_CELLS = ['0A1F','0B07','0C12','0D3E','0E44','0F01'];
-const TR_V = {RADIO:['Radio','#B42318'],CORE:['Cœur/Internet','#A15C07'],QOS:['Limite QoS','#7C3AED'],RCV:['Limite récepteur','#0062A1'],APP:['Limite application','#0F5B56'],IND:['INDÉTERMINÉ','#8F8F8F'],OK:['OK','#15803D']};
-const TR_FLOWS = [
-  ['ue-7f3a','TCP','10.45.0.12:51544','142.250.75.14:443','YouTube','Vidéo','r3 SNI','PDU#1 · 5QI 9','0A1F',38.2,24,0.2,'OK','RTT 24 ms, retrans 0,2 %, débit < AMBR'],
-  ['ue-21c0','QUIC','10.45.0.31:60112','157.240.21.35:443','Meta','Vidéo','r3 SNI','PDU#1 · 5QI 9','0B07',12.1,96,3.8,'RADIO','RTT UE 81 ms ≫ RTT réseau 15 ms, pertes 3,8 %'],
-  ['ue-9b44','TCP','10.45.0.18:44210','151.101.1.69:443','—','Web','r1 port','PDU#1 · 5QI 9','0C12',4.9,41,0.6,'QOS','débit 5,0 Mb/s = AMBR session'],
-  ['ue-7f3a','UDP','10.45.0.12:40000','10.46.0.2:5004','—','Voix','r2 port RTP','PDU#2 · 5QI 1','0A1F',0.05,18,0.1,'OK','5QI 1, gigue 7 ms'],
-  ['ue-c812','TCP','10.45.0.44:52001','34.120.4.11:443','Google','Transfert','r2 SNI','PDU#1 · 5QI 8','0D3E',2.2,178,5.1,'CORE','RTT réseau 160 ms ≫ RTT UE 18 ms'],
-  ['ue-5e10','TCP','10.45.0.52:49330','52.84.3.20:443','—','Transfert','r1 port','PDU#1 · 5QI 9','0E44',0.3,22,0.0,'RCV','fenêtre nulle ×14 côté UE'],
-  ['ue-0d7a','TCP','10.45.0.60:50112','203.0.113.9:8443','—','Non identifié','aucune','PDU#1 · 5QI 9','0F01',1.4,55,1.2,'IND','mesures insuffisantes (capture partielle)'],
-];
 function Traffic({setPage}){
+  const { TR_CATS, TR_APPS, TR_CELLS, TR_V, TR_FLOWS, seedRand } = useTrafficDemo();
   const [sel,setSel]=useState(0); const [by,setBy]=useState('cat');
   const f=TR_FLOWS[sel]; const card="bg-white rounded-xl border border-[#EBEBEB] overflow-hidden";
   const head=(n,x)=><div className="h-11 px-4 flex items-center gap-2 border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold text-[#171717]">{t(n)}</h3>{x}</div>;
@@ -1035,66 +814,6 @@ function Traffic({setPage}){
 
 /* ---------------- KPI & Anomalies ---------------- */
 // Fiche KPI : [id, nom, version, unité, numérateur, dénominateur, événements sources, dimensions, dédup, invariant, requête]
-const KPI_CATS = [
-  ['Santé sonde', [
-    ['kpi.probe.dumpcap','Dumpcap actifs','1.0.0','%','dumpcap actifs','dumpcap attendus','heartbeat sonde (60 s)','nœud','1 valeur / nœud / minute','actifs ≤ attendus',"SELECT minute, node, count(*) FILTER (WHERE dumpcap_up) / count(*) FROM probe_heartbeat GROUP BY 1, 2"],
-    ['kpi.probe.segments','Segments ignorés','1.0.0','segments','segments ignorés','segments reçus','journal d\u2019import','nœud, interface','compteur monotone','ignorés ≤ reçus',"SELECT minute, node, sum(segments_dropped), sum(segments_received) FROM import_journal GROUP BY 1, 2"],
-    ['kpi.probe.lag','Retard d\u2019import','1.0.0','s','now() − dernier segment importé','—','horodatage d\u2019import','nœud','max par minute','retard ≥ 0',"SELECT minute, node, max(extract(epoch from now() - last_segment_at)) FROM import_state GROUP BY 1, 2"],
-    ['kpi.probe.disk','Disque disponible','1.0.0','%','espace libre','espace total','sonde disque','nœud, volume','dernière mesure / minute','libre ≤ total',"SELECT minute, node, volume, avg(free_bytes) / avg(total_bytes) FROM disk_probe GROUP BY 1, 2, 3"],
-  ]],
-  ['Procédures 5G', [
-    ['kpi.5g.registration','Succès Registration','1.0.0','%','Registration Accept','Registration Request','N1/N2 (NAS 5GMM)','RAT, cellule, TAC, DNN, S-NSSAI, run','1ère tentative / UE / procédure','succès + échec = total',"SELECT minute, count(*) FILTER (WHERE msg='RegistrationAccept') / count(*) FILTER (WHERE msg='RegistrationRequest') FROM msg WHERE ifc IN ('N1','N2') GROUP BY 1"],
-    ['kpi.5g.pdu','Succès PDU Session','1.0.0','%','PDU Session Establishment Accept','PDU Session Establishment Request','N1/N2 (NAS 5GSM)','RAT, DNN, S-NSSAI, run','1ère tentative / PDU session','succès + échec = total',"SELECT minute, count(*) FILTER (WHERE msg='PDUSessionEstablishmentAccept') / count(*) FILTER (WHERE msg='PDUSessionEstablishmentRequest') FROM msg GROUP BY 1"],
-    ['kpi.5g.servicereq','Succès Service Request','1.0.0','%','Service Accept','Service Request','N1/N2 (NAS 5GMM)','RAT, cellule, run','1ère tentative / UE','succès + échec = total',"SELECT minute, count(*) FILTER (WHERE msg='ServiceAccept') / count(*) FILTER (WHERE msg='ServiceRequest') FROM msg GROUP BY 1"],
-  ]],
-  ['Procédures 4G', [
-    ['kpi.4g.attach','Succès Attach','1.0.0','%','Attach Accept','Attach Request','S1-MME (NAS EMM)','cellule, TAC, run','1ère tentative / UE','succès + échec = total',"SELECT minute, count(*) FILTER (WHERE msg='AttachAccept') / count(*) FILTER (WHERE msg='AttachRequest') FROM msg WHERE ifc='S1-MME' GROUP BY 1"],
-    ['kpi.4g.erab','Succès E-RAB Setup','1.0.0','%','E-RAB Setup Response','E-RAB Setup Request','S1-MME (S1AP)','cellule, run','par E-RAB id','succès + échec = total',"SELECT minute, count(*) FILTER (WHERE msg='ERABSetupResponse') / count(*) FILTER (WHERE msg='ERABSetupRequest') FROM msg WHERE ifc='S1-MME' GROUP BY 1"],
-  ]],
-  ['Session N4', [
-    ['kpi.n4.session','Succès établissement N4','1.0.0','%','PFCP Session Establishment Response (cause=Accepted)','PFCP Session Establishment Request','N4 (PFCP)','NF, run','par SEID','réponses ≤ requêtes',"SELECT minute, count(*) FILTER (WHERE msg='PFCPSessionEstablishmentResponse' AND cause='Accepted') / count(*) FILTER (WHERE msg='PFCPSessionEstablishmentRequest') FROM msg WHERE ifc='N4' GROUP BY 1"],
-  ]],
-  ['Erreurs', [
-    ['kpi.err.s6a','Erreurs S6a','1.0.0','err/min','réponses S6a avec code erreur Diameter','—','S6a (Diameter)','code, run','par (capture_id, seq)','compteur ≥ 0',"SELECT minute, result_code, count(*) FROM msg WHERE ifc='S6a' AND result_code >= 3000 GROUP BY 1, 2"],
-    ['kpi.err.sbi','Erreurs SBI par NF','1.0.0','err/min','réponses SBI HTTP ≥ 400','—','SBI (HTTP/2)','NF, code, run','par (capture_id, seq)','compteur ≥ 0',"SELECT minute, nf, status, count(*) FROM msg WHERE ifc='SBI' AND status >= 400 GROUP BY 1, 2, 3"],
-  ]],
-  ['Latence', [
-    ['kpi.lat.proc','Latence par procédure','1.0.0','ms','seq(réponse) − seq(requête), même capture','—','toutes interfaces','procédure, run','paire req/resp unique','intra-capture uniquement, jamais ts',"SELECT minute, proc, percentile_cont(0.5) WITHIN GROUP (ORDER BY resp_seq - req_seq) FROM pairs WHERE same_capture GROUP BY 1, 2"],
-  ]],
-  ['TCP / Traffic', [
-    ['kpi.tcp.setup','Taux d\u2019établissement TCP','1.0.0','%','SYN-ACK + ACK reçus','SYN émis','N3 / S1-U (IP interne GTP-U)','cellule, DNN, 5QI, run','par 5-uplet','établis + RST + sans réponse = SYN',"SELECT minute, count(*) FILTER (WHERE established) / count(*) FROM tcp_flow GROUP BY 1"],
-    ['kpi.tcp.rtt','RTT TCP','1.0.0','ms','médiane SYN → SYN-ACK','—','N3 / S1-U','cellule, côté (réseau/UE)','par 5-uplet','intra-capture, même interface',"SELECT minute, cell, percentile_cont(0.5) WITHIN GROUP (ORDER BY rtt_net_ms) FROM tcp_flow GROUP BY 1, 2"],
-    ['kpi.tcp.retrans','Retransmissions TCP','1.0.0','%','segments retransmis','segments total','N3 / S1-U','cellule, application','par 5-uplet','retransmis ≤ total',"SELECT minute, sum(retrans) / sum(segments) FROM tcp_flow GROUP BY 1"],
-    ['kpi.tcp.congested','Flux congestionnés','1.0.0','%','flux avec verdict ≠ OK/INDÉTERMINÉ','flux total','moteur de verdicts','cellule, verdict','par 5-uplet','somme verdicts = total',"SELECT minute, cell, count(*) FILTER (WHERE verdict NOT IN ('OK','IND')) / count(*) FROM flow_verdict GROUP BY 1, 2"],
-  ]],
-  ['Corrélation', [
-    ['kpi.corr.exact','Taux de liens EXACT','1.0.0','%','liens EXACT','liens total (EXACT + À PROUVER + ABSENT)','moteur de corrélation','interface, run','par paire de messages','EXACT + À PROUVER + ABSENT = total',"SELECT minute, count(*) FILTER (WHERE link='EXACT') / count(*) FROM correlation GROUP BY 1"],
-  ]],
-];
-const ALL_KPIS = KPI_CATS.flatMap(([c,ks]) => ks.map(k => ({cat:c, id:k[0], name:k[1], ver:k[2], unit:k[3], num:k[4], den:k[5], src:k[6], dims:k[7], dedup:k[8], inv:k[9], q:k[10]})));
-const ANOM_N1 = [
-  ['Invariant de comptage','succès + échec = total, par procédure et par minute'],
-  ['Cause obligatoire','toute procédure en échec porte une cause (NAS, Diameter, HTTP…)'],
-  ['Ordre canonique','seq strictement croissant dans une capture (capture_id, seq)'],
-];
-const ANOM_N2 = [
-  ['Cause jamais vue','une cause d\u2019échec absente du référentiel historique'],
-  ['Séquence hors flux 3GPP','enchaînement de messages incompatible avec la procédure'],
-];
-
-
-/* ---- Données de démo (mock) ---- */
-const seedRand = (str) => { let h=2166136261; for(const c of str){h^=c.charCodeAt(0);h=Math.imul(h,16777619);} return () => { h^=h<<13; h^=h>>>17; h^=h<<5; return ((h>>>0)%10000)/10000; }; };
-const MOCK_BASE = {'%':[97,2.5],'segments':[12,10],'s':[4,3],'err/min':[6,5],'ms':[38,15]};
-const GRAN_N = {'1 min':60,'15 min':48,'1 h':24,'1 j':14};
-function mockSeries(k, gran){
-  const r=seedRand(k.id+gran); const [b,v]=MOCK_BASE[k.unit]||[50,10]; const n=GRAN_N[gran]||48;
-  return Array.from({length:n},(_,i)=>{ let x=b+(r()-0.5)*2*v+Math.sin(i/4)*v*0.4; if(r()>0.94) x+= (k.unit==='%'?-v*3:v*2.5); if(k.unit==='%') x=Math.min(100,x); return Math.max(0,+x.toFixed(1)); });
-}
-const fmtV = (v,u) => u==='%'?v.toFixed(1)+' %':u==='ms'?Math.round(v)+' ms':u==='s'?v.toFixed(1)+' s':String(Math.round(v));
-const mockNow = (k) => { const s=mockSeries(k,'15 min'); return s[s.length-1]; };
-const MOCK_CAUSES = ['5GMM #7','5GMM #11','5GSM #27','5GSM #33','EMM #15','DIA 5001','HTTP 404','HTTP 503'];
-const MOCK_TOP = [['Cellule 208-01-0A1F',0],['Cellule 208-01-0B07',0],['DNN internet',0],['DNN ims',0],['S-NSSAI 1-000001',0],['Run 5G #482',0],['Run 4G #219',0]];
 function MockChart({data,unit}){
   const w=640,h=240,pad=28; const mn=Math.min(...data), mx=Math.max(...data); const lo=mn-(mx-mn)*0.1, hi=mx+(mx-mn)*0.1||1;
   const X=i=>pad+i*(w-pad*2)/(data.length-1), Y=v=>h-pad-(v-lo)/(hi-lo||1)*(h-pad*2);
@@ -1109,161 +828,56 @@ function MockChart({data,unit}){
   </svg>;
 }
 
-function Kpis({setPage}) {
-  const [kid,setKid] = useState('kpi.probe.dumpcap');
-  const [q,setQ] = useState('');
-  const [dv,setDv] = useState('series');
-  const [gran,setGran] = useState('15 min');
-  const k = ALL_KPIS.find(x=>x.id===kid) || ALL_KPIS[0];
-  const ql = q.trim().toLowerCase();
-  const series = mockSeries(k, gran);
-  const match = x => !ql || (x.name+' '+x.id+' '+x.src+' '+x.dims).toLowerCase().includes(ql);
-  return (
-    <div className="flex-1 overflow-auto scroll-thin bg-[#FAFAFA]">
-      <div className="max-w-[1480px] mx-auto px-8 py-7 space-y-5">
-        <div className="flex flex-wrap items-end gap-6">
-          <div>
-            <div className="text-[12px] text-[#666666]">POLARIS KPI</div>
-            <h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">{t("KPI & Anomalies")}</h1>
-            <div className="text-[13px] text-[#666666] mt-1">{t("Indicateurs par procédure et détection d'écarts.")}</div>
-          </div>
-          <div className="ml-auto flex items-center gap-3">
-            <span className="text-[11px] font-medium text-[#A15C00] bg-[#FFF7E6] border border-[#FCE2B0] rounded px-1.5 py-[1px]">{t("Données de démo")}</span>
-            <span className="flex items-center gap-1.5 text-[12px] text-[#666666]"><span className="w-[7px] h-[7px] rounded-full bg-[#15803D]"/>{t("Fraîcheur : 4 s")}</span>
-            <div className="flex rounded-lg border border-[#EBEBEB] bg-white overflow-hidden">
-              {['1 min','15 min','1 h','1 j'].map(g=>(
-                <button key={g} onClick={()=>setGran(g)} className={`h-8 px-3 text-[12.5px] ${gran===g?'bg-[var(--app-accent)] text-white font-medium':'text-[#4D4D4D] hover:bg-[#FAFAFA]'}`}>{g}</button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)_360px] gap-4 items-start">
-          {/* Catalogue */}
-          <div className="bg-white rounded-xl border border-[#EBEBEB] overflow-hidden">
-            <div className="p-3 border-b border-[#F2F2F2]">
-              <div className="flex items-center gap-2 h-8 px-2.5 rounded-md border border-[#EBEBEB] focus-within:border-[var(--app-accent)]">
-                <I d={ic.search} c="w-3.5 h-3.5 text-[#8F8F8F]"/>
-                <input value={q} onChange={e=>setQ(e.target.value)} placeholder={t("Rechercher un KPI…")} className="flex-1 min-w-0 bg-transparent outline-none text-[12.5px] placeholder:text-[#A3A3A3]"/>
-              </div>
-            </div>
-            <div className="max-h-[520px] overflow-auto scroll-thin py-1">
-              {KPI_CATS.map(([c,ks])=>{
-                const list = ks.filter(x=>match({name:x[1],id:x[0],src:x[6],dims:x[7]}));
-                if(!list.length) return null;
-                return <div key={c}>
-                  <div className="px-3 pt-3 pb-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F]">{t(c)}</div>
-                  {list.map(x=>(
-                    <button key={x[0]} onClick={()=>setKid(x[0])} className={`w-full text-left px-3 py-2 flex items-center gap-2 ${kid===x[0]?'bg-[#FAFAFA] border-l-2 border-l-[var(--app-accent)]':'border-l-2 border-l-transparent hover:bg-[#FAFAFA]'}`}>
-                      <span className="min-w-0"><span className={`block truncate text-[12.5px] ${kid===x[0]?'font-semibold text-[#171717]':'text-[#4D4D4D]'}`}>{t(x[1])}</span><span className="block truncate font-mono text-[10.5px] text-[#A3A3A3]">{x[0]} · v{x[2]}</span></span>
-                      <span className="ml-auto shrink-0 text-[12px] tabular-nums text-[#4D4D4D]">{fmtV(mockNow({id:x[0],unit:x[3]}),x[3])}</span>
-                    </button>
-                  ))}
-                </div>;
-              })}
-            </div>
-          </div>
-
-          {/* Dataviews */}
-          <div className="bg-white rounded-xl border border-[#EBEBEB] overflow-hidden">
-            <div className="h-11 px-4 flex items-center gap-1 border-b border-[#F2F2F2]">
-              {[['series','Séries'],['heat','Heatmap causes × temps'],['top','Top-N']].map(([k2,n])=>(
-                <button key={k2} onClick={()=>setDv(k2)} className={`h-7 px-3 rounded-md text-[12.5px] ${dv===k2?'bg-[#F2F2F2] font-semibold text-[#171717]':'text-[#666666] hover:text-[#171717]'}`}>{t(n)}</button>
-              ))}
-              <span className="ml-auto text-[11.5px] text-[#A3A3A3]">{t("Granularité")} {gran}</span>
-            </div>
-            <div className="h-[340px] p-4">
-              {dv==='series' && <div className="h-full flex flex-col"><div className="flex items-baseline gap-3 mb-1"><span className="text-[22px] font-semibold tabular-nums text-[#171717]">{fmtV(series[series.length-1],k.unit)}</span><span className="text-[12px] text-[#8F8F8F]">{t("moyenne")} {fmtV(series.reduce((a,b)=>a+b,0)/series.length,k.unit)}</span></div><div className="flex-1 min-h-0"><MockChart data={series} unit={k.unit}/></div></div>}
-              {dv==='heat' && <div className="h-full overflow-auto scroll-thin"><table className="text-[11px] w-full"><tbody>{MOCK_CAUSES.map(c=>{const r=seedRand(k.id+c+gran);return <tr key={c}><td className="pr-2 py-[3px] font-mono text-[#B42318] whitespace-nowrap">{c}</td>{Array.from({length:24},(_,i)=>{const v=Math.pow(r(),3);return <td key={i} className="p-[1px]"><div title={Math.round(v*40)+' '+t('échecs')} className="h-6 rounded-[3px] bg-[var(--app-accent)]" style={{opacity:0.06+v*0.94}}/></td>;})}</tr>;})}</tbody></table><div className="mt-2 flex justify-between text-[10.5px] text-[#A3A3A3]"><span>−24 × {gran}</span><span>{t("maintenant")}</span></div></div>}
-              {dv==='top' && <div className="space-y-2.5">{MOCK_TOP.map(([n],i)=>{const r=seedRand(k.id+n);const v=Math.round(20+r()*400)/(i+1);return [n,v];}).sort((a,b)=>b[1]-a[1]).map(([n,v],i,arr)=>(<div key={n} className="flex items-center gap-3 text-[12.5px]"><span className="w-5 text-[#A3A3A3] tabular-nums">{i+1}</span><span className="w-44 truncate text-[#4D4D4D]">{n}</span><div className="flex-1 h-2 rounded-full bg-[#F2F2F2]"><div className="h-2 rounded-full bg-[var(--app-accent)]" style={{width:(v/arr[0][1]*100)+'%'}}/></div><span className="w-12 text-right tabular-nums text-[#171717]">{Math.round(v)}</span></div>))}</div>}
-            </div>
-            <div className="border-t border-[#F2F2F2] px-4 py-3">
-              <Lbl>{t("Requête générée")}</Lbl>
-              <pre className="font-mono text-[11.5px] leading-relaxed text-[#4D4D4D] bg-[#FAFAFA] border border-[#F2F2F2] rounded-md p-3 overflow-x-auto scroll-thin whitespace-pre-wrap">{k.q}</pre>
-            </div>
-          </div>
-
-          {/* Fiche KPI */}
-          <div className="bg-white rounded-xl border border-[#EBEBEB] overflow-hidden">
-            <div className="h-11 px-4 flex items-center border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold text-[#171717]">{t("Fiche KPI")}</h3><span className="ml-auto font-mono text-[11px] text-[#8F8F8F]">v{k.ver}</span></div>
-            <div className="p-4 space-y-4 text-[12.5px]">
-              <div><div className="text-[14px] font-semibold text-[#171717]">{t(k.name)}</div><div className="font-mono text-[11px] text-[#8F8F8F] mt-0.5">{k.id}</div></div>
-              {[['Formule',`${k.num} / ${k.den}`],['Événements sources',k.src],['Dimensions',k.dims],['Unité',k.unit],['Règle de dédup',k.dedup],['Invariant',k.inv]].map(([n,v])=>(
-                <div key={n}><Lbl>{t(n)}</Lbl><div className="text-[#4D4D4D] leading-snug">{v}</div></div>
-              ))}
-              <button onClick={()=>setPage('sessions')} className="w-full h-9 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[12.5px] font-medium">{t("Explorer dans l'Analyzer →")}</button>
-            </div>
-          </div>
-        </div>
-
-        {/* Anomalies */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {[['N1',t("Règles et invariants"),ANOM_N1],['N2',t("Nouveauté"),ANOM_N2]].map(([lv,sub,rules])=>(
-            <div key={lv} className="bg-white rounded-xl border border-[#EBEBEB] overflow-hidden">
-              <div className="h-11 px-4 flex items-center gap-2 border-b border-[#F2F2F2]">
-                <h3 className="text-[13px] font-semibold text-[#171717]">{t("Anomalies")} {lv}</h3>
-                <span className="text-[11.5px] text-[#8F8F8F]">{sub}</span>
-                <span className="ml-auto flex items-center gap-3 text-[11.5px]"><span className="flex items-center gap-1.5 text-[#8F8F8F]"><span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]"/>{t("OUVERT")} {lv==='N1'?2:1}</span><span className="flex items-center gap-1.5 text-[#8F8F8F]"><span className="w-[7px] h-[7px] rounded-full bg-[#15803D]"/>{t("FERMÉ")} {lv==='N1'?5:3}</span></span>
-              </div>
-              <div className="divide-y divide-[#F2F2F2]">
-                {rules.map(([n,d],ri)=>(
-                  <div key={n} className="px-4 py-3 flex items-start gap-3">
-                    <span className={`mt-0.5 w-[7px] h-[7px] rounded-full shrink-0 ${ri%2===0?'bg-[#B42318]':'bg-[#15803D]'}`}/>
-                    <div className="min-w-0"><div className="text-[12.5px] font-medium text-[#171717]">{t(n)}</div><div className="text-[12px] text-[#666666]">{t(d)}</div></div>
-                    <span className={`ml-auto shrink-0 text-[11px] font-medium ${ri%2===0?'text-[#B42318]':'text-[#15803D]'}`}>{ri%2===0?`${t("OUVERT")} · ${t("il y a")} ${6+ri*7} min`:`${t("FERMÉ")} · ${t("preuve")} #${310+ri}`}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="px-4 py-3 border-t border-[#F2F2F2] text-[12px] text-[#8F8F8F]">{t("Une anomalie se ferme avec une preuve, ou reste OUVERTE.")}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function App() {
-  const [role,setRole] = useState('viewer');
+  const { demo } = usePolarisMode(); const auth = useAuthMe(); const role = auth.data?.data?.role ?? null;
+  const health = useHealth(), version = useVersion(), metrics = useMetrics();
+  const kpis = useKpiCatalogue(); const demoLibrary = useDemoLibrary(); const sessionFilter = useSessionFilter();
+
   const [lang,setLangS] = useState(()=>{ try { return localStorage.getItem('polaris-lang')||'fr'; } catch(e) { return 'fr'; } });
   const setLang = l => { try { localStorage.setItem('polaris-lang',l); } catch(e) {} setLangS(l); };
   LANG = lang;
   const [theme,setThemeS] = useState(()=>{ try { return localStorage.getItem('polaris-theme')||'blue'; } catch(e) { return 'blue'; } });
   const setTheme = t => { try { localStorage.setItem('polaris-theme',t); } catch(e) {} setThemeS(t); };
   const accent = THEMES.find(t=>t[0]===theme)?.[2] || '#0062A1';
-    const readP = () => { const h=(location.hash||'').replace('#',''); return ['sessions','nodes','settings','templates','kpi','live','trafic'].includes(h) ? h : 'home'; };
+    const readP = () => { const h=(location.hash||'').replace('#',''); return (h!=='trafic'||TRAFFIC_ENABLED) && ['sessions','nodes','settings','templates','kpi','live','trafic'].includes(h) ? h : 'home'; };
   const [page,setPageS] = useState(readP);
-  const setPage = p => { try { location.hash = p; } catch(e) {} setPageS(p); };
+  const setPage = p => { if(p==='trafic'&&!TRAFFIC_ENABLED) p='home'; try { location.hash = p; } catch(e) {} setPageS(p); };
   useEffect(()=>{ const f=()=>setPageS(readP()); window.addEventListener('hashchange',f); return ()=>window.removeEventListener('hashchange',f); },[]);
-  const [tabs,setTabs] = useState(()=>[
-    {id:'t1',k:'Requête',n:'Échecs · run 482',conds:[['Résultat','Échec']]},
-    {id:'t2',k:'Session',n:'UE-9b14 · PDU Session',conds:[['UE','UE-9b14']]},
-    {id:'t3',k:'Comparaison',n:'UE-9b14 ↔ UE-7f3a',ue:['UE-9b14','UE-7f3a'],conds:[]},
-    {id:'t4',k:'Trace',n:'UE-7f3a',ue:['UE-7f3a'],conds:[],live:true},
-  ]);
+  const [tabs,setTabs] = useState([]);
+  const seededDemo = useRef(false);
+  useEffect(()=>{ if(demo && !seededDemo.current) { seededDemo.current=true; setTabs(ts=>ts.length ? ts : demoLibrary.tabs); } },[demo]);
   const [tabId,setTabId] = useState('t1');
-  const [saved,setSaved] = useState(SAVED);
+  const [saved,setSaved] = useState(()=>{ try { return redact(JSON.parse(localStorage.getItem('polaris-saved-queries') || '[]')); } catch { return []; } });
+  useEffect(()=>{localStorage.setItem('polaris-saved-queries',JSON.stringify(saved));},[saved]);
+  const savedList = [...saved,...demoLibrary.saved.filter(x=>!saved.some(y=>y.n===x.n))];
   const [aview,setAview] = useState('queries');
   const active = tabs.find(x=>x.id===tabId);
   const view = aview==='queries' || !active ? 'library' : (active.mode==='edit' ? 'edit' : 'results');
   const conds = active ? active.conds : [];
   const setConds = c => active && setTabs(ts=>ts.map(x=>x.id===active.id?{...x,conds:c.map(y=>y.length>2?y:[y[0],y[1],'='])}:x));
+  const sessionsQuery = useSessions({ page:1, page_size:100, sort:'capture_id', order:'asc' }, page==='sessions');
+  const sourceRows = records(sessionsQuery.data?.data, 'sessions').map((x,i)=>demo ? x : toLegacySession(x,i));
   const rows = useMemo(()=>{
     if (!active) return [];
     const ue = active.ue;
-    return SESS.filter(s=>(!ue || (Array.isArray(ue)?ue.includes(s.ue):s.ue===ue)) && matchQ(s,active.conds,active.join));
-  },[active]);
+    const data = demo ? sourceRows : (active.apiRows || sourceRows);
+    return demo ? data.filter(s=>(!ue || (Array.isArray(ue)?ue.includes(s.ue):s.ue===ue)) && matchQ(s,active.conds,active.join)) : data;
+  },[active,demo,sessionsQuery.data]);
   const [sel,setSel] = useState(3);
-  const s = rows.find(r=>r.id===sel) || rows[0] || SESS[0];
-  const nameOf = c => `${c.length?c.map(x=>x[1]).join(' · '):'Toutes les sessions'} · run 482`;
+  const s = rows.find(r=>r.id===sel) || rows[0];
+  const bundle = useSessionBundle(page==='sessions' && view==='results' ? s?.id : null);
+  const selected = s ? (demo ? s : {...s,...(bundle.session.data?.data ? toLegacySession(bundle.session.data.data) : {}),d:bundle.detail || s.d}) : null;
+  const nameOf = c => `${c.length?c.map(x=>x[1]).join(' · '):'Toutes les sessions'}${demo ? ' · run 482' : ''}`;
   const patch = (id,o) => setTabs(ts=>ts.map(x=>x.id===id?{...x,...o}:x));
   const newTab = (draft=mkDraft(),title) => { const id='q'+Date.now(); setTabs(ts=>[...ts,{id,k:'Requête',n:title||'Nouvelle requête',conds:[],mode:'edit',draft,dirty:!!title}]); setTabId(id); setAview('tab'); };
-  const openSaved = q => { const id='q'+Date.now(); const c=q.c.map(y=>[y[0],y[1],y[2]||'=']); setTabs(ts=>[...ts,{id,k:'Requête',n:q.n,conds:c,join:'ET',mode:'results',draft:mkDraft({tpl:q.g,scope:q.p,conds:c,name:q.n})}]); setTabId(id); setAview('tab'); };
+  const openSaved = q => { const id='q'+Date.now(); const c=q.c.map(y=>[y[0],y[1],y[2]||'=']); setTabs(ts=>[...ts,{id,k:'Requête',n:q.n,conds:c,join:'ET',mode:demo?'results':'edit',draft:mkDraft({tpl:q.g,scope:q.p,conds:c,name:q.n})}]); setTabId(id); setAview('tab'); };
   const editActive = () => { if (!active) return; patch(active.id,{mode:'edit',draft:active.draft||mkDraft({conds:active.conds,name:active.n,join:active.join||'ET'})}); };
   const setDraft = d => patch(active.id,{draft:d,dirty:true,n:d.name||'Nouvelle requête'});
-  const runQuery = () => { const d=active.draft; patch(active.id,{conds:d.conds,join:d.join,n:d.name||nameOf(d.conds),mode:'results',ran:true}); };
+  const runQuery = () => { const d=active.draft; const id=active.id;
+    sessionFilter.mutate(d,{onSuccess:response=>patch(id,{conds:d.conds,join:d.join,n:d.name||nameOf(d.conds),mode:'results',ran:true,apiRows:demo?undefined:records(response.data,'sessions').map(toLegacySession)}),onError:e=>window.alert(e.message)});
+  };
   const saveQuery = () => { const d=active.draft; const n=d.name||nameOf(d.conds);
-    setSaved(sv=>[{n,g:d.tpl,p:d.scope,c:d.conds,last:"à l'instant",r:SESS.filter(x=>matchQ(x,d.conds,d.join)).length,fav:false},...sv.filter(x=>x.n!==n)]);
+    setSaved(sv=>[{n,g:d.tpl,p:d.scope,c:d.conds,last:"à l'instant",r:demo ? sourceRows.filter(x=>matchQ(x,d.conds,d.join)).length : '—',fav:false},...sv.filter(x=>x.n!==n)]);
     patch(active.id,{dirty:false,n,draft:{...d,name:n}}); };
   const cancelEdit = () => {
     if (active.ran || active.conds.length) { patch(active.id,{mode:'results'}); return; }
@@ -1285,7 +899,7 @@ function App() {
       else setTabId(nx[Math.max(0,i-1)].id);
     }
   };
-  const [msg,setMsg] = useState(4);
+  const [msg,setMsg] = useState(0);
   const [lens,setLens] = useState(null);
   const L0 = (()=>{ try { return JSON.parse(localStorage.getItem('polaris-layout'))||{}; } catch(e) { return {}; } })();
   const [gridPct,setGridPct] = useState(L0.gridPct ?? 42);
@@ -1300,29 +914,30 @@ function App() {
     const up = () => { window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up); document.body.style.cursor=''; };
     document.body.style.cursor = kind==='h'?'row-resize':'col-resize'; window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up); };
   const ui = {full,setFull,gridHidden,setGridHidden};
-  useEffect(()=>{ setMsg(s.d===KO5?4:Math.min(14,s.d.msgs.length-1)); setLens(null); },[s.id]);
+  useEffect(()=>{ setMsg(0); setLens(null); },[s?.id]);
   return (
     <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-[13px]">
-      <TopBar role={role} setRole={setRole} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')}/>
-      {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · les identités sont visibles · chaque consultation est journalisée</div>}
-      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={ALL_KPIS} mockSeries={mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? <Traffic setPage={setPage}/> : page==='nodes' ? <Nodes/> : page==='templates' ? <QueryLibrary saved={saved} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
-      {!full && <Tabs tabs={tabs} active={tabId} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
-      {view==='library' ? <QueryLibrary saved={saved} onNew={newTab} onOpen={openSaved}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role}/> : <div className="flex-1 flex min-h-0 p-3 bg-[#FAFAFA]">
+      <TopBar role={role} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')}/>
+      <DataStatus t={t}/>
+      {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · identités masquées · actions soumises au proxy</div>}
+      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Nodes/> : page==='templates' ? <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
+      {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
+      {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role} sessionRows={sourceRows}/> : <div className="flex-1 flex min-h-0 p-3 bg-[#FAFAFA]">
         <main ref={mainRef} className="flex-1 min-w-0 flex flex-col">
           {!full && !gridHidden && <>
-            <Grid rows={rows} sel={s.id} setSel={setSel} role={role} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`}/>
+            <Grid rows={rows} sel={s?.id} setSel={setSel} role={role} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`}/>
             <div onMouseDown={e=>drag(e,'h')} onDoubleClick={()=>setGridPct(42)} title="Glisser pour redimensionner · double-clic pour réinitialiser" className="group h-3 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[5px] h-[2px] w-10 rounded-full bg-[#E0E0E0] group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
           </>}
-          <Detail s={s} sel={msg} setSel={setMsg} lens={lens} ui={ui}/>
+          {selected ? <Detail s={selected} sel={msg} setSel={setMsg} lens={lens} ui={ui}/> : <div className="p-8 text-[#666666]">{sessionsQuery.isError ? sessionsQuery.error.message : sessionsQuery.isPending ? "Connexion POLARIS…" : "Aucune session"}</div>}
         </main>
-        {!full && (insHidden
+        {selected && !full && (insHidden
           ? <button onClick={()=>setInsHidden(false)} title="Afficher le panneau" className="ml-3 w-9 shrink-0 bg-white rounded-xl border border-[#EBEBEB] flex flex-col items-center pt-3 gap-3 text-[#666666] hover:text-[#171717]"><I d="M9 4v16M4 4h16v16H4z" c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[12px]">Décodage</span></button>
           : <><div onMouseDown={e=>drag(e,'v')} onDoubleClick={()=>setInsW(360)} title="Glisser pour redimensionner" className="group w-3 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[5px] w-[2px] h-10 rounded-full bg-[#E0E0E0] group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div>
-            <Inspector s={s} sel={msg} role={role} lens={lens} setLens={setLens} width={insW} onHide={()=>setInsHidden(true)}/></>)}
+            <Inspector s={selected} sel={msg} role={role} lens={lens} setLens={setLens} width={insW} onHide={()=>setInsHidden(true)}/></>)}
       </div>}</>}
       <footer className="h-7 shrink-0 bg-white border-t border-[#EBEBEB] flex items-center gap-5 px-4 text-[11.5px] text-[#666666]">
-        <span className="flex items-center gap-1.5"><span className="w-[6px] h-[6px] rounded-full bg-[#15803D]"/>12/12 dumpcap</span><span>Import à jour</span><span>Segments ignorés : 0</span>
-        <span>{rows.length} sessions · requête 0,8 s</span><span className="ml-auto font-mono">OIRAN 2.10.2 · Analyzer 0.8.1 · données fictives</span>
+        <span>Capture : {available(metrics.data?.data?.capture_state)}</span><span>Segments ingérés : {available(metrics.data?.data?.segments_ingested)}</span>
+        <span className="ml-auto font-mono">POLARIS {available(version.data?.data?.version ?? health.data?.data?.version)} · UI {UI_VERSION}{demo ? ' · Données de démo' : ''}</span>
       </footer>
     </div>
   );

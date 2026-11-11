@@ -29,3 +29,7 @@ use the editor.
 - **Secrets.** Lovable manages them. Do not put secret values in the repo.
 <!-- LOVABLE:END -->
 - KPI module UI lives in src/components/polaris/kpi/KpiModule.tsx and receives catalogue/helpers via props from PolarisApp.jsx — avoids circular imports with the monolithic mockup file.
+
+- Read lab data through src/lib/polaris-api resource hooks and adapters, never from UI fixtures; keeps the existing views independent of backend schemas.
+- External lab authentication stays with the same-origin reverse proxy; the browser reads its role and never creates a local authority or backend.
+- PolarisDataProvider owns the explicit demo mode; caches separate API/demo keys so simulations cannot silently replace real data.

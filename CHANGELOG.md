@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.0
+- Couche REST POLARIS typée en même origine : enveloppes, erreurs, confidentialité et hooks TanStack Query par ressource.
+- Accueil, rôle en lecture seule, versions, sessions, ladder, preuves et Probe Manager raccordés sans refonte visuelle.
+- Données de démonstration isolées et signalées; Démo désactivée par défaut, aucune substitution automatique après une erreur réseau.
+- Fonctions sans endpoint explicitement indisponibles; Trafic masqué par défaut, identités toujours masquées, actions de capture operator avec confirmation et coordination.
+- Version UI depuis package.json, requêtes enregistrées locales à ce navigateur, documentation des raccordements partiels et tests client/adaptateur/écrans.
+
 ## 0.8.1
 - Analyzer : « Annuler » sur une nouvelle requête (onglet vierge ou ouvert depuis un modèle) ferme cet onglet et ramène à la page Requêtes ; les autres onglets restent ouverts.
 - « Annuler » sur une requête déjà exécutée revient aux résultats de l'onglet, sans le fermer.

@@ -1,0 +1,16 @@
+export type Role = 'viewer' | 'operator' | 'administrator';
+export type RecordData = { [key: string]: unknown };
+export type Meta = RecordData & { total?: number; page?: number; page_size?: number };
+export type Envelope<T> = { data: T; meta: Meta };
+export type ApiFailure = { code: string; message: string; status: number };
+export type Evidence = RecordData & { event_id?: string | number; seq?: number; capture_id?: string | number; packet_number?: number };
+export type Session = Evidence & { id?: string | number; ue_id?: string; pseudonym?: string; technology?: string; status?: string; procedure?: string; cause?: string; cell?: string; duration_ms?: number };
+export type Event = Evidence & { id?: string | number; interface?: string; protocol?: string; message?: string; source?: string; destination?: string; decoded?: RecordData };
+export type Correlation = Evidence & { status?: 'EXACT' | 'OUVERT'; matched_rules?: unknown[]; source_event_id?: string | number; target_event_id?: string | number };
+export type AuthMe = RecordData & { role?: Role };
+export type Health = RecordData & { status?: string; capture_state?: string; version?: string };
+export type Metrics = Evidence & { capture_state?: string; pending_segments?: number; segments_ingested?: number; ingestion_failures?: number; open_segments?: number; zero_event_segments?: number; dumpcap_active?: number; dumpcap_expected?: number; import_lag_seconds?: number };
+export type Safety = Evidence & { free_bytes?: number; total_bytes?: number; free_percent?: number };
+export type Probe = RecordData & { id?: string | number; name?: string; role?: string; status?: string; version?: string; cpu_percent?: number; disk_percent?: number; memory_used_gb?: number; memory_total_gb?: number; last_seen?: string };
+export type Version = RecordData & { version?: string; decoder_version?: string };
+export type QueryParams = Record<string, string | number | boolean | undefined>;

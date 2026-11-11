@@ -1,4 +1,5 @@
 import { createFileRoute, ClientOnly } from "@tanstack/react-router";
+import { PolarisDataProvider } from "@/lib/polaris-api";
 import { lazy, Suspense } from "react";
 
 const PolarisApp = lazy(() => import("@/components/polaris/PolarisApp"));
@@ -21,7 +22,7 @@ function Index() {
   return (
     <ClientOnly fallback={<div className="min-h-screen bg-background" />}>
       <Suspense fallback={<div className="min-h-screen bg-background" />}>
-        <PolarisApp />
+        <PolarisDataProvider><PolarisApp /></PolarisDataProvider>
       </Suspense>
     </ClientOnly>
   );

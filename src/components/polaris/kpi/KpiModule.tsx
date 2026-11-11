@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { usePolarisMode, useMetrics, useStorageSafety, healthKpi, useKpiCatalogue, useKpiDemo } from '@/lib/polaris-api';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 /* ===== Persistence ===== */
@@ -28,13 +29,6 @@ const wCompat = (type, unit) => {
   if (type === 'donut' && unit !== 'count' && unit !== 'err/min') return 'Réservé aux répartitions de comptage.';
   return null;
 };
-const SYS_DASH = [
-  { id:'sys.5g', lib:'SYSTEM', name:'5G SA Overview', kpis:['kpi.5g.registration','kpi.5g.pdu','kpi.5g.servicereq','kpi.lat.proc','kpi.err.sbi','kpi.n4.session'] },
-  { id:'sys.lte', lib:'SYSTEM', name:'LTE Overview', kpis:['kpi.4g.attach','kpi.4g.erab','kpi.err.s6a'] },
-  { id:'sys.up', lib:'SYSTEM', name:'User Plane Performance', kpis:['kpi.tcp.setup','kpi.tcp.rtt','kpi.tcp.retrans','kpi.tcp.congested'] },
-  { id:'sys.probe', lib:'SYSTEM', name:'Probe Health', kpis:['kpi.probe.dumpcap','kpi.probe.lag','kpi.probe.segments','kpi.probe.disk','kpi.corr.exact'] },
-].map(d => ({ ...d, widgets: d.kpis.map((k, i) => ({ id: d.id + i, kpi: k, type: i === 0 ? 'card' : 'series', title: '', x: (i % 3) * 4, y: Math.floor(i / 3) * 3, w: 4, h: 3, inherit: true, color: '', thr: '' })) }));
-
 /* ===== UI atoms ===== */
 const card = 'bg-white rounded-xl border border-[#EBEBEB]';
 const Btn = ({ primary, children, className = '', ...p }) => <button {...p} className={`h-8 px-3 rounded-md text-[12.5px] font-medium disabled:opacity-40 disabled:cursor-not-allowed ${primary ? 'bg-[var(--app-accent)] text-white hover:opacity-90' : 'border border-[#EBEBEB] bg-white text-[#171717] hover:bg-[#FAFAFA]'} ${className}`}>{children}</button>;
@@ -47,7 +41,9 @@ const Empty = ({ title, sub }) => <div className="h-full min-h-[220px] grid plac
 /* ===== Main ===== */
 export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChart, fmtV }) {
   const [tab, setTab] = useStore('polaris-kpi-tab', 'catalog');
-  const [demo, setDemo] = useStore('polaris-kpi-demo', false);
+  const { demo, setDemo } = usePolarisMode();
+  const metrics = useMetrics(); const safety = useStorageSafety();
+  const measurement = id => healthKpi(id, metrics.data?.data, safety.data?.data);
   const [custom, setCustom] = useStore('polaris-kpi-custom', []);
   const [favs, setFavs] = useStore('polaris-kpi-favs', []);
   const [dashes, setDashes] = useStore('polaris-dashboards', []);
@@ -59,7 +55,8 @@ export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChar
   const log = (a) => setAudit(x => [{ ts: new Date().toLocaleString('fr-FR'), who: 'SD', role, a }, ...x].slice(0, 100));
   const all = useMemo(() => [...KPIS.map(k => ({ ...k, lib: 'SYSTEM', owner: 'system', tech: TECH(k.id) })), ...custom], [KPIS, custom]);
   const byId = (id) => all.find(k => k.id === id);
-  const ctx = { t, role, canWrite, demo, all, byId, custom, setCustom, favs, setFavs, dashes, setDashes, log, audit, mockSeries, MockChart, fmtV, setPage, setTab, setEditKpi, setOpenDash };
+  const metricEvidence = metrics.data?.data; const storageEvidence = safety.data?.data;
+  const ctx = { metricEvidence, storageEvidence, measurement, t, role, canWrite, demo, all, byId, custom, setCustom, favs, setFavs, dashes, setDashes, log, audit, mockSeries, MockChart, fmtV, setPage, setTab, setEditKpi, setOpenDash };
   const TABS = [['catalog', 'Catalogue KPI'], ['builder', 'KPI Builder'], ['dash', 'Dashboards'], ['anom', 'Anomalies']];
   return (
     <div className="flex-1 overflow-auto scroll-thin bg-[#FAFAFA]">
@@ -68,19 +65,20 @@ export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChar
           <div className="flex flex-wrap items-end gap-4">
             <div><div className="text-[12px] text-[#666666]">POLARIS KPI</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">{t('KPI & Anomalies')}</h1></div>
             <div className="ml-auto flex items-center gap-3 pb-1">
-              <span className="text-[12px] text-[#8F8F8F]">{t('Rôle')} <b className={role === 'operator' ? 'text-[#A15C07]' : 'text-[#171717]'}>{role}</b>{!canWrite && ' · ' + t('consultation uniquement')}</span>
+              <span className="text-[12px] text-[#8F8F8F]">{t('Rôle')} <b className={role === 'operator' ? 'text-[#A15C07]' : 'text-[#171717]'}>{role || '—'}</b>{!canWrite && ' · ' + t('consultation uniquement')}</span>
               <button onClick={() => setDemo(!demo)} className={`h-7 px-2.5 rounded-full text-[11.5px] font-medium border flex items-center gap-1.5 ${demo ? 'bg-[#FFF7E6] border-[#FCE2B0] text-[#A15C00]' : 'border-[#EBEBEB] text-[#666666]'}`}><span className={`w-6 h-3.5 rounded-full relative ${demo ? 'bg-[#A15C00]' : 'bg-[#D4D4D4]'}`}><span className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all ${demo ? 'left-[12px]' : 'left-[2px]'}`} /></span>{t('Démo')}</button>
             </div>
           </div>
           <div className="flex gap-6 mt-3">{TABS.map(([k, n]) => <button key={k} onClick={() => { setTab(k); setOpenDash(null); }} className={`h-9 text-[13px] border-b-2 ${tab === k ? 'border-[var(--app-accent)] font-semibold text-[#171717]' : 'border-transparent text-[#666666] hover:text-[#171717]'}`}>{t(n)}</button>)}</div>
         </div>
       </div>
-      {!demo && <div className="max-w-[1600px] mx-auto px-6 pt-3"><div className="text-[12px] text-[#8F8F8F] flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]" />{t('Service OIRAN non connecté : aucune donnée en direct.')} {t('Activez « Démo » pour un aperçu.')}</div></div>}
+      {!demo && (metrics.isError || safety.isError) && <div className="max-w-[1600px] mx-auto px-6 pt-3"><div className="text-[12px] text-[#8F8F8F] flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]" />{t('POLARIS non connecté : aucune donnée en direct.')} {t('Activez « Démo » pour un aperçu.')}</div></div>}
       <div className="max-w-[1600px] mx-auto px-6 py-4">
         {tab === 'catalog' && <Catalog {...ctx} />}
-        {tab === 'builder' && <Builder key={(editKpi?.id || 'new') + bk} {...ctx} initial={editKpi} onNew={() => { setEditKpi(null); setBk(b => b + 1); }} />}
-        {tab === 'dash' && (openDash ? <DashEditor {...ctx} dash={openDash} /> : <DashLib {...ctx} />)}
-        {tab === 'anom' && <Anomalies {...ctx} />}
+        {!demo && tab!=='catalog' && <Empty title={t('Non disponible : backend à venir')} sub={t('Source POLARIS indisponible pour cette fonction.')} />}
+        {demo && tab === 'builder' && <Builder key={(editKpi?.id || 'new') + bk} {...ctx} initial={editKpi} onNew={() => { setEditKpi(null); setBk(b => b + 1); }} />}
+        {demo && tab === 'dash' && (openDash ? <DashEditor {...ctx} dash={openDash} /> : <DashLib {...ctx} />)}
+        {demo && tab === 'anom' && <Anomalies {...ctx} />}
       </div>
     </div>
   );
@@ -109,13 +107,14 @@ function Tree({ t, all, favs, sel, setSel, q, tech, owner }) {
 
 function Catalog(p) {
   const { t, all, byId, favs, setFavs, demo, mockSeries, MockChart, fmtV, canWrite, setCustom, log, setTab, setEditKpi, dashes, setDashes, setPage } = p;
-  const [sel, setSel] = useStore('polaris-kpi-sel', 'kpi.5g.registration');
+  const [sel, setSel] = useStore('polaris-kpi-sel', 'kpi.probe.dumpcap');
   const [q, setQ] = useState(''); const [tech, setTech] = useState('all'); const [owner, setOwner] = useState('all');
   const [treeW, setTreeW] = useStore('polaris-kpi-treew', 300); const [sheet, setSheet] = useStore('polaris-kpi-sheet', true);
   const [treeOpen, setTreeOpen] = useStore('polaris-kpi-treeopen', true); const [sheetW, setSheetW] = useStore('polaris-kpi-sheetw', 320);
   const [gran, setGran] = useState('15 min'); const [drill, setDrill] = useState(0); const [addTo, setAddTo] = useState(false); const [qOpen, setQOpen] = useState(false);
   const k = byId(sel) || all[0];
   const series = demo && k ? mockSeries(k, gran) : null;
+  const measured = !demo && k ? p.measurement(k.id) : null;
   const drag = (e) => { const x0 = e.clientX, w0 = treeW; const mv = (ev) => setTreeW(Math.max(220, Math.min(480, w0 + ev.clientX - x0))); const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); }; addEventListener('pointermove', mv); addEventListener('pointerup', up); };
   const dragR = (e) => { const x0 = e.clientX, w0 = sheetW; const mv = (ev) => setSheetW(Math.max(260, Math.min(560, w0 - (ev.clientX - x0)))); const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); }; addEventListener('pointermove', mv); addEventListener('pointerup', up); };
   const dup = () => { const id = 'kpi.my.' + k.id.split('.').pop() + '.' + Date.now().toString(36).slice(-4); setCustom(c => [...c, { ...k, id, name: k.name + ' (copie)', lib: 'PRIVATE', owner: 'SD', ver: '0.1.0', status: 'draft', folder: 'My KPI' }]); log('KPI dupliqué ' + k.id + ' → ' + id); setSel(id); };
@@ -144,9 +143,9 @@ function Catalog(p) {
             <div className="min-w-0"><div className="flex items-center gap-2"><h2 className="text-[16px] font-semibold text-[#171717] truncate">{t(k.name)}</h2><Tag c={LIBC[k.lib]}>{k.lib}</Tag>{k.status === 'draft' && <Tag c="#A15C07">{t('Brouillon')}</Tag>}</div><div className="font-mono text-[11px] text-[#8F8F8F] mt-0.5">{k.id} · v{k.ver} · {k.tech} · {k.unit}</div></div>
             <div className="ml-auto flex flex-wrap gap-1.5">
               <Btn onClick={() => setFavs(f => f.includes(k.id) ? f.filter(x => x !== k.id) : [...f, k.id])}>{favs.includes(k.id) ? '★' : '☆'} {t('Favori')}</Btn>
-              <Btn disabled={!canWrite} title={!canWrite ? t('Rôle operator requis') : ''} onClick={dup}>{t('Dupliquer')}</Btn>
-              {k.lib !== 'SYSTEM' && <Btn disabled={!canWrite} onClick={() => { setEditKpi(k); setTab('builder'); }}>{t('Modifier')}</Btn>}
-              <div className="relative"><Btn onClick={() => setAddTo(!addTo)}>+ Dashboard</Btn>{addTo && <div className="absolute right-0 top-9 z-20 w-56 bg-white rounded-lg border border-[#EBEBEB] shadow-lg py-1">{dashes.length === 0 && <div className="px-3 py-2 text-[12px] text-[#8F8F8F]">{t('Aucun dashboard personnel')}</div>}{dashes.map(d => <button key={d.id} onClick={() => { setDashes(ds => ds.map(x => x.id === d.id ? { ...x, widgets: [...x.widgets, { id: 'w' + Date.now(), kpi: k.id, type: 'series', title: '', x: 0, y: 99, w: 4, h: 3, inherit: true, color: '', thr: '' }] } : x)); log('KPI ' + k.id + ' ajouté à ' + d.name); setAddTo(false); }} className="w-full text-left px-3 py-1.5 text-[12.5px] hover:bg-[#FAFAFA]">{d.name}</button>)}</div>}</div>
+              <Btn disabled={!canWrite || !demo} title={!canWrite ? t('Rôle operator requis') : ''} onClick={dup}>{t('Dupliquer')}</Btn>
+              {k.lib !== 'SYSTEM' && <Btn disabled={!canWrite || !demo} onClick={() => { setEditKpi(k); setTab('builder'); }}>{t('Modifier')}</Btn>}
+              <div className="relative"><Btn disabled={!demo} title={!demo ? t('Non disponible : backend à venir') : ''} onClick={() => setAddTo(!addTo)}>+ Dashboard</Btn>{addTo && <div className="absolute right-0 top-9 z-20 w-56 bg-white rounded-lg border border-[#EBEBEB] shadow-lg py-1">{dashes.length === 0 && <div className="px-3 py-2 text-[12px] text-[#8F8F8F]">{t('Aucun dashboard personnel')}</div>}{dashes.map(d => <button key={d.id} onClick={() => { setDashes(ds => ds.map(x => x.id === d.id ? { ...x, widgets: [...x.widgets, { id: 'w' + Date.now(), kpi: k.id, type: 'series', title: '', x: 0, y: 99, w: 4, h: 3, inherit: true, color: '', thr: '' }] } : x)); log('KPI ' + k.id + ' ajouté à ' + d.name); setAddTo(false); }} className="w-full text-left px-3 py-1.5 text-[12.5px] hover:bg-[#FAFAFA]">{d.name}</button>)}</div>}</div>
               <Btn onClick={() => setSheet(!sheet)}>{sheet ? t('Masquer la fiche') : t('Fiche KPI')}</Btn>
             </div>
           </div>
@@ -155,7 +154,7 @@ function Catalog(p) {
             <span className="ml-auto whitespace-nowrap text-[11.5px] text-[#8F8F8F]">{t("Drill-down")}:</span>
             {DR.map((d, i) => <button key={d} onClick={() => { setDrill(i); if (i > 0 && demo) setPage('sessions'); }} disabled={!demo && i > 0} className={`text-[11.5px] px-2 h-6 whitespace-nowrap rounded ${drill === i ? 'bg-[#F2F2F2] font-semibold' : 'text-[#666666]'} disabled:opacity-40`}>{t(d)}{i < 4 ? ' →' : ''}</button>)}
           </div>
-          <div className="h-[320px] p-5">{series ? <div className="h-full flex flex-col"><div className="flex items-baseline gap-3"><span className="text-[26px] font-semibold tabular-nums text-[#171717]">{fmtV(series[series.length - 1], k.unit)}</span><span className="text-[12px] text-[#8F8F8F]">{t('moyenne')} {fmtV(series.reduce((a, b) => a + b, 0) / series.length, k.unit)}</span><Tag c="#A15C00">{t('Données de démo')}</Tag></div><div className="flex-1 min-h-0"><MockChart data={series} unit={k.unit} /></div></div> : <Empty title={t('Aucune donnée à afficher')} sub={t('Source OIRAN indisponible. Le KPI sera calculé via la requête ci-dessous dès connexion.')} />}</div>
+          <div className="h-[320px] p-5">{measured!=null ? <div><span title={`event_id=${(k.id==='kpi.probe.disk'?p.storageEvidence:p.metricEvidence)?.event_id ?? '—'} · seq=${(k.id==='kpi.probe.disk'?p.storageEvidence:p.metricEvidence)?.seq ?? '—'}`} className="text-[26px] font-semibold tabular-nums">{fmtV(measured,k.unit)}</span><div className="mt-2 text-[12px]">Santé sonde POLARIS</div></div> : series ? <div className="h-full flex flex-col"><div className="flex items-baseline gap-3"><span className="text-[26px] font-semibold tabular-nums text-[#171717]">{fmtV(series[series.length - 1], k.unit)}</span><span className="text-[12px] text-[#8F8F8F]">{t('moyenne')} {fmtV(series.reduce((a, b) => a + b, 0) / series.length, k.unit)}</span><Tag c="#A15C00">{t('Données de démo')}</Tag></div><div className="flex-1 min-h-0"><MockChart data={series} unit={k.unit} /></div></div> : <Empty title={t('Aucune donnée à afficher')} sub={t(k.id.startsWith('kpi.probe.') ? 'POLARIS non connecté.' : 'Non disponible : backend à venir')} />}</div>
           <div className="border-t border-[#F2F2F2] px-5 py-2.5"><button onClick={() => setQOpen(!qOpen)} className="w-full flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] hover:text-[#171717]"><span className={`text-[9px] transition ${qOpen ? 'rotate-90' : ''}`}>▶</span>{t('Requête générée')} · v{k.ver}</button>{qOpen && <pre className="mt-2 font-mono text-[11.5px] text-[#4D4D4D] bg-[#FAFAFA] border border-[#F2F2F2] rounded-md p-3 whitespace-pre-wrap">{k.q}</pre>}</div>
         </div>}
       </div>
@@ -207,7 +206,7 @@ function Builder(p) {
         <div className="px-5 h-12 flex items-center gap-1 border-b border-[#F2F2F2]">{STEPS.map((s, i) => <button key={s} onClick={() => setStep(i)} className={`flex items-center gap-2 h-8 px-2.5 rounded-md text-[12.5px] ${step === i ? 'bg-[#F5F5F5] font-semibold text-[#171717]' : 'text-[#666666]'}`}><span className={`w-5 h-5 rounded-full grid place-items-center text-[10.5px] ${step >= i ? 'bg-[var(--app-accent)] text-white' : 'bg-[#F2F2F2] text-[#8F8F8F]'}`}>{i + 1}</span>{t(s)}</button>)}
           <button onClick={p.onNew} className="ml-auto text-[12px] text-[#666666] hover:text-[#171717]">{t('Nouveau')}</button></div>
         {!canWrite && <div className="mx-5 mt-4 text-[12px] rounded-md bg-[#FFF7E6] text-[#A15C00] px-3 py-2">{t('Rôle viewer : consultation uniquement. Passez en operator pour créer un KPI.')}</div>}
-        <fieldset disabled={!canWrite} className="p-5 space-y-4 disabled:opacity-60">
+        <fieldset disabled={!canWrite || !demo} className="p-5 space-y-4 disabled:opacity-60">
           {step === 0 && <div className="grid grid-cols-2 gap-4">
             <Field label={t('Nom du KPI')}><input className={inp} value={f.name} onChange={e => set('name', e.target.value)} placeholder="PDU Session Establishment Success Rate" /></Field>
             <Field label={t('Identifiant unique')}><input className={inp + ' font-mono'} value={f.id} onChange={e => set('id', e.target.value)} /></Field>
@@ -234,7 +233,7 @@ function Builder(p) {
           {step === 3 && <div className="space-y-4">
             <div className="flex items-end gap-3"><Field label={t('Portée des données')}><select className={inp + ' w-64'}><option>Run 5G #482</option><option>Run 4G #219</option><option>{t('Dernières 24 h')}</option></select></Field><Btn primary type="button" onClick={() => setTested(errs.length ? { ok: false } : demo ? { ok: true, v: mockSeries({ id: f.id, unit: f.unit }, '15 min') } : { ok: false, src: true })}>{t('Exécuter le KPI')}</Btn></div>
             {errs.length > 0 && <div className="rounded-md bg-[#FEF3F2] text-[#B42318] text-[12.5px] px-3 py-2">{errs.map(e => <div key={e}>• {t(e)}</div>)}</div>}
-            {tested?.src && <div className="rounded-md bg-[#FFF7E6] text-[#A15C00] text-[12.5px] px-3 py-2">{t('Source OIRAN indisponible : exécution impossible. Activez « Démo » pour un aperçu.')}</div>}
+            {tested?.src && <div className="rounded-md bg-[#FFF7E6] text-[#A15C00] text-[12.5px] px-3 py-2">{t('Source POLARIS indisponible : exécution impossible. Activez « Démo » pour un aperçu.')}</div>}
             {tested?.ok && <div className="space-y-2"><div className="flex items-center gap-3"><span className="text-[22px] font-semibold tabular-nums">{fmtV(tested.v[tested.v.length - 1], f.unit)}</span><Tag c="#15803D">{t('Invariant vérifié')}</Tag><Tag c="#A15C00">{t('Données de démo')}</Tag><button type="button" onClick={() => p.setPage('sessions')} className="ml-auto text-[12px] font-medium text-[var(--app-accent)]">{t('Ouvrir les sessions sources →')}</button></div><div className="h-[180px]"><MockChart data={tested.v} unit={f.unit} /></div></div>}
           </div>}
           {step === 4 && <div className="space-y-4">
@@ -263,6 +262,7 @@ function Builder(p) {
 
 /* ===== Dashboards ===== */
 function DashLib(p) {
+  const { dashboards: SYS_DASH } = useKpiDemo();
   const { t, dashes, setDashes, canWrite, log, setOpenDash } = p;
   const [confirm, setConfirm] = useState(null);
   const all = [...SYS_DASH, ...dashes];
@@ -270,18 +270,18 @@ function DashLib(p) {
   const dup = (d) => { const n = { ...d, id: 'd' + Date.now(), lib: 'PRIVATE', name: d.name + ' (copie)', widgets: d.widgets.map(w => ({ ...w, id: w.id + 'c' + Date.now() })) }; setDashes(x => [...x, n]); log('Dashboard dupliqué ' + d.name); };
   const exp = (d) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' })); a.download = d.name + '.json'; a.click(); };
   return <div className="space-y-6">
-    <div className="flex items-center"><div className="text-[13px] text-[#666666]">{all.length} dashboards</div><Btn primary className="ml-auto" disabled={!canWrite} onClick={nw}>+ {t('Nouveau dashboard')}</Btn></div>
+    <div className="flex items-center"><div className="text-[13px] text-[#666666]">{all.length} dashboards</div><Btn primary className="ml-auto" disabled={!canWrite || !demo} onClick={nw}>+ {t('Nouveau dashboard')}</Btn></div>
     {['SYSTEM', 'PUBLIC', 'PRIVATE'].map(L => { const ds = all.filter(d => d.lib === L); return <section key={L}><h2 className="text-[11px] font-bold tracking-[0.06em] mb-3" style={{ color: LIBC[L] }}>{L} <span className="text-[#A3A3A3] font-normal">{ds.length}</span></h2>
       {ds.length === 0 ? <div className="rounded-xl border border-dashed border-[#E5E5E5] px-5 py-6 text-[12.5px] text-[#8F8F8F]">{t('Aucun dashboard')}</div> :
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">{ds.map(d => <div key={d.id} className={card + ' p-4 flex flex-col hover:border-[#D4D4D4] transition'}>
           <button onClick={() => setOpenDash(d)} className="text-left"><div className="h-20 rounded-md bg-[#FAFAFA] border border-[#F2F2F2] grid grid-cols-3 gap-1 p-1.5">{d.widgets.slice(0, 6).map(w => <div key={w.id} className="rounded-sm bg-white border border-[#EBEBEB]" />)}</div><div className="mt-3 text-[14px] font-semibold text-[#171717]">{d.name}</div><div className="text-[12px] text-[#8F8F8F]">{d.widgets.length} widgets</div></button>
           <div className="mt-3 flex flex-wrap gap-1 text-[11.5px]">
             <button onClick={() => setOpenDash(d)} className="font-medium text-[var(--app-accent)]">{t('Ouvrir')}</button><span className="text-[#D4D4D4]">·</span>
-            <button disabled={!canWrite} onClick={() => dup(d)} className="text-[#666666] disabled:opacity-40">{t('Dupliquer')}</button><span className="text-[#D4D4D4]">·</span>
+            <button disabled={!canWrite || !demo} onClick={() => dup(d)} className="text-[#666666] disabled:opacity-40">{t('Dupliquer')}</button><span className="text-[#D4D4D4]">·</span>
             <button onClick={() => exp(d)} className="text-[#666666]">{t('Exporter')}</button>
-            {d.lib !== 'SYSTEM' && <><span className="text-[#D4D4D4]">·</span><button disabled={!canWrite} onClick={() => { const n = prompt(t('Renommer'), d.name); if (n) { setDashes(x => x.map(y => y.id === d.id ? { ...y, name: n } : y)); log('Dashboard renommé ' + n); } }} className="text-[#666666] disabled:opacity-40">{t('Renommer')}</button><span className="text-[#D4D4D4]">·</span>
-              <button disabled={!canWrite} onClick={() => { setDashes(x => x.map(y => y.id === d.id ? { ...y, lib: y.lib === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC' } : y)); log('Dashboard partagé ' + d.name); }} className="text-[#666666] disabled:opacity-40">{d.lib === 'PUBLIC' ? t('Rendre privé') : t('Partager')}</button><span className="text-[#D4D4D4]">·</span>
-              <button disabled={!canWrite} onClick={() => setConfirm(d)} className="text-[#B42318] disabled:opacity-40">{t('Supprimer')}</button></>}
+            {d.lib !== 'SYSTEM' && <><span className="text-[#D4D4D4]">·</span><button disabled={!canWrite || !demo} onClick={() => { const n = prompt(t('Renommer'), d.name); if (n) { setDashes(x => x.map(y => y.id === d.id ? { ...y, name: n } : y)); log('Dashboard renommé ' + n); } }} className="text-[#666666] disabled:opacity-40">{t('Renommer')}</button><span className="text-[#D4D4D4]">·</span>
+              <button disabled={!canWrite || !demo} onClick={() => { setDashes(x => x.map(y => y.id === d.id ? { ...y, lib: y.lib === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC' } : y)); log('Dashboard partagé ' + d.name); }} className="text-[#666666] disabled:opacity-40">{d.lib === 'PUBLIC' ? t('Rendre privé') : t('Partager')}</button><span className="text-[#D4D4D4]">·</span>
+              <button disabled={!canWrite || !demo} onClick={() => setConfirm(d)} className="text-[#B42318] disabled:opacity-40">{t('Supprimer')}</button></>}
           </div></div>)}</div>}</section>; })}
     {confirm && <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center" onClick={() => setConfirm(null)}><div onClick={e => e.stopPropagation()} className="bg-white rounded-xl p-5 w-[380px] shadow-xl"><div className="text-[15px] font-semibold">{t('Supprimer le dashboard ?')}</div><div className="mt-1 text-[13px] text-[#666666]">« {confirm.name} » — {t('cette action est journalisée.')}</div><div className="mt-4 flex justify-end gap-2"><Btn onClick={() => setConfirm(null)}>{t('Annuler')}</Btn><button onClick={() => { setDashes(x => x.filter(y => y.id !== confirm.id)); log('Dashboard supprimé ' + confirm.name); setConfirm(null); }} className="h-8 px-3 rounded-md bg-[#B42318] text-white text-[12.5px] font-medium">{t('Supprimer')}</button></div></div></div>}
   </div>;
@@ -291,7 +291,7 @@ function Widget({ w, k, p, filters }) {
   const { t, demo, mockSeries, MockChart, fmtV } = p;
   if (!k) return <Empty title={t('KPI introuvable')} sub={w.kpi} />;
   const data = demo ? mockSeries(k, filters.period) : null;
-  if (!data) return <Empty title={t('Aucune donnée')} sub={t('Source OIRAN indisponible.')} />;
+  if (!data) return <Empty title={t('Aucune donnée')} sub={t('POLARIS non connecté.')} />;
   const last = data[data.length - 1];
   if (w.type === 'card') return <div className="h-full flex flex-col justify-center px-2"><div className="text-[30px] font-semibold tabular-nums text-[#171717]">{fmtV(last, k.unit)}</div><div className="text-[12px] text-[#8F8F8F]">{t('moyenne')} {fmtV(data.reduce((a, b) => a + b, 0) / data.length, k.unit)}</div>{w.thr && <div className={`mt-1 text-[11.5px] ${last < +w.thr ? 'text-[#B42318]' : 'text-[#15803D]'}`}>{t('seuil')} {w.thr}</div>}</div>;
   if (['bar', 'stack', 'hist'].includes(w.type)) { const vals = w.type === 'hist' ? Array.from({ length: 12 }, (_, i) => data.filter(v => { const mn = Math.min(...data), mx = Math.max(...data), s = (mx - mn) / 12 || 1; return v >= mn + i * s && v < mn + (i + 1) * s + (i === 11 ? 1 : 0); }).length) : data.slice(-16); const mx = Math.max(...vals) || 1; return <div className="h-full flex items-end gap-[3px] pt-2">{vals.map((v, i) => <div key={i} className="flex-1 rounded-t-sm" style={{ height: (v / mx * 100) + '%', background: w.color || 'var(--app-accent)', opacity: w.type === 'stack' ? 0.5 + (i % 2) * 0.5 : 1 }} title={String(v)} />)}</div>; }
@@ -358,13 +358,8 @@ function DashEditor(p) {
 }
 
 /* ===== Anomalies ===== */
-const ANOMS = [
-  { id: 'AN-0142', kpi: 'kpi.5g.pdu', lvl: 'N1', sev: 'Critique', st: 'OUVERT', rule: 'Cause obligatoire', at: '00:31', ev: [['00:31', 'Détectée : 3 PDU Session Reject sans cause 5GSM (capture 482, seq 1 902-1 940)']] },
-  { id: 'AN-0141', kpi: 'kpi.4g.attach', lvl: 'N1', sev: 'Majeure', st: 'OUVERT', rule: 'Invariant de comptage', at: '00:12', ev: [['00:12', 'succès 412 + échec 21 ≠ total 436 (minute 00:11)']] },
-  { id: 'AN-0139', kpi: 'kpi.err.sbi', lvl: 'N2', sev: 'Mineure', st: 'OUVERT', rule: 'Cause jamais vue', at: '23:48', ev: [['23:48', 'HTTP 429 sur Nudm_UECM, absent du référentiel']] },
-  { id: 'AN-0131', kpi: 'kpi.n4.session', lvl: 'N1', sev: 'Majeure', st: 'FERMÉ', rule: 'Ordre canonique', at: 'hier', ev: [['hier 14:02', 'seq non croissant capture 479'], ['hier 15:10', 'Fermée — preuve #311 : réimport du segment 12']] },
-];
 function Anomalies(p) {
+  const { anomalies: ANOMS } = useKpiDemo();
   const { t, demo, byId, canWrite, log, setPage } = p;
   const [list, setList] = useStore('polaris-anoms', ANOMS);
   const [f, setF] = useState({ q: '', sev: 'all', st: 'all', kpi: 'all', per: '24 h' }); const [sel, setSel] = useState(null); const [just, setJust] = useState(''); const [proof, setProof] = useState('');
@@ -384,7 +379,7 @@ function Anomalies(p) {
       <select value={f.per} onChange={e => setF({ ...f, per: e.target.value })} className="h-8 rounded-md border border-[#EBEBEB] text-[12px] px-1.5 bg-white">{['1 h', '24 h', '7 j'].map(o => <option key={o}>{t('Période')}: {o}</option>)}</select>
     </div>
     <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_420px] gap-4 items-start">
-      <div className={card + ' overflow-hidden'}>{rows.length === 0 ? <Empty title={demo ? t('Aucune anomalie pour ces filtres') : t('Aucune anomalie')} sub={demo ? '' : t('Service OIRAN non connecté : aucune règle évaluée.')} /> :
+      <div className={card + ' overflow-hidden'}>{rows.length === 0 ? <Empty title={demo ? t('Aucune anomalie pour ces filtres') : t('Aucune anomalie')} sub={demo ? '' : t('Service POLARIS non connecté : aucune règle évaluée.')} /> :
         <table className="w-full text-[12.5px]"><thead><tr className="text-left text-[11px] text-[#8F8F8F]">{['ID', 'KPI', t('Règle'), t('Niveau'), t('Sévérité'), t('Statut'), t('Détectée')].map(h => <th key={h} className="px-4 py-2 font-medium border-b border-[#F2F2F2]">{h}</th>)}</tr></thead>
           <tbody>{rows.map(x => <tr key={x.id} onClick={() => setSel(x.id)} className={`cursor-pointer ${a?.id === x.id ? 'bg-[#FAFAFA] shadow-[inset_2px_0_0_var(--app-accent)]' : 'hover:bg-[#FAFAFA]'}`}><td className="px-4 py-2.5 font-mono">{x.id}</td><td className="px-4">{t(byId(x.kpi)?.name || x.kpi)}</td><td className="px-4">{t(x.rule)}</td><td className="px-4">{x.lvl}</td><td className="px-4" style={{ color: SEV[x.sev] }}>{x.sev}</td><td className="px-4"><Tag c={x.st === 'OUVERT' ? '#B42318' : '#15803D'}>{t(x.st)}</Tag></td><td className="px-4 text-[#8F8F8F]">{x.at}</td></tr>)}</tbody></table>}</div>
       {a && <div className={card + ' overflow-hidden'}>
@@ -394,7 +389,7 @@ function Anomalies(p) {
           <div><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mb-1.5">{t('Historique')}</div>{a.ev.map(([h, m], i) => <div key={i} className="flex gap-3 py-1"><span className="font-mono text-[11px] text-[#8F8F8F] w-20 shrink-0">{h}</span><span className="text-[#4D4D4D]">{m}</span></div>)}</div>
           <div className="text-[11.5px] text-[#8F8F8F]">{t('Constat factuel uniquement — aucune cause supposée sans preuve.')}</div>
           <div className="flex gap-2"><Btn onClick={() => setPage('sessions')}>{t('Sessions')} →</Btn><Btn onClick={() => setPage('sessions')}>{t('Preuves')} →</Btn></div>
-          {a.st === 'OUVERT' && <div className="pt-3 border-t border-[#F2F2F2] space-y-2"><Field label={t('Justification')}><textarea disabled={!canWrite} className={inp + ' h-16 py-2'} value={just} onChange={e => setJust(e.target.value)} /></Field><Field label={t('Preuve (réf.)')}><input disabled={!canWrite} className={inp} value={proof} onChange={e => setProof(e.target.value)} placeholder="#312" /></Field><Btn primary disabled={!canWrite || !just.trim() || !proof.trim()} onClick={close}>{t('Fermer l’anomalie')}</Btn></div>}
+          {a.st === 'OUVERT' && <div className="pt-3 border-t border-[#F2F2F2] space-y-2"><Field label={t('Justification')}><textarea disabled={!canWrite || !demo} className={inp + ' h-16 py-2'} value={just} onChange={e => setJust(e.target.value)} /></Field><Field label={t('Preuve (réf.)')}><input disabled={!canWrite || !demo} className={inp} value={proof} onChange={e => setProof(e.target.value)} placeholder="#312" /></Field><Btn primary disabled={!canWrite || !just.trim() || !proof.trim()} onClick={close}>{t('Fermer l’anomalie')}</Btn></div>}
         </div></div>}
     </div>
   </div>;

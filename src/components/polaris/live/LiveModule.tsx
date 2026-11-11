@@ -1,74 +1,22 @@
 // @ts-nocheck
+import { useLiveDemo, usePolarisMode } from '@/lib/polaris-api';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 /* ---------- Scripts (demo) : [ifc, proto, from, to, message, procedure, result, cause, kind] ---------- */
-const S5G = [
-  ['N2','NGAP/NAS-5GMM','UE','AMF','Registration Request','Registration','—','', 'start'],
-  ['SBI','HTTP/2','AMF','AUSF','POST /ue-authentications','Authentication','—','', ''],
-  ['SBI','HTTP/2','AUSF','UDM','POST /generate-auth-data','Authentication','201','', ''],
-  ['N2','NGAP/NAS-5GMM','AMF','UE','Authentication Request','Authentication','—','', ''],
-  ['N2','NGAP/NAS-5GMM','UE','AMF','Authentication Response','Authentication','Succès','', 'end'],
-  ['N2','NGAP/NAS-5GMM','AMF','UE','Security Mode Command','Security Mode','—','', 'start'],
-  ['N2','NGAP/NAS-5GMM','UE','AMF','Security Mode Complete','Security Mode','Succès','', 'end'],
-  ['N2','NGAP/NAS-5GMM','AMF','UE','Registration Accept','Registration','Succès','', 'end'],
-  ['N2','NGAP/NAS-5GSM','UE','AMF','PDU Session Establishment Request','PDU Session Establishment','—','', 'start'],
-  ['SBI','HTTP/2','AMF','SMF','POST /sm-contexts','PDU Session Establishment','201','', ''],
-  ['N4','PFCP','SMF','UPF','PFCP Session Establishment Request','PDU Session Establishment','—','', ''],
-  ['N4','PFCP','UPF','SMF','PFCP Session Establishment Response','PDU Session Establishment','Accepted','', ''],
-  ['N2','NGAP','AMF','gNB','PDU Session Resource Setup Request','PDU Session Establishment','—','', ''],
-  ['N2','NGAP','gNB','AMF','PDU Session Resource Setup Response','PDU Session Establishment','Succès','', ''],
-  ['N2','NGAP/NAS-5GSM','AMF','UE','PDU Session Establishment Accept','PDU Session Establishment','Succès','', 'end'],
-  ['N2','NGAP/NAS-5GSM','UE','AMF','PDU Session Establishment Request','PDU Session Establishment','—','', 'start'],
-  ['N2','NGAP/NAS-5GSM','AMF','UE','PDU Session Establishment Reject','PDU Session Establishment','Échec','5GSM #27 missing or unknown DNN', 'end'],
-  ['N2','NGAP/NAS-5GMM','UE','AMF','Service Request','Service Request','—','', 'start'],
-  ['N2','NGAP/NAS-5GMM','AMF','UE','Service Accept','Service Request','Succès','', 'end'],
-  ['N4','PFCP','SMF','UPF','PFCP Session Modification Request','Session Modification','—','', 'start'],
-  ['N4','PFCP','UPF','SMF','PFCP Session Modification Response','Session Modification','Accepted','', 'end'],
-];
-const SLTE = [
-  ['S1-MME','S1AP/NAS-EMM','UE','MME','Attach Request','Attach','—','', 'start'],
-  ['S6a','Diameter','MME','HSS','Authentication-Information-Request','Authentication','—','', 'start'],
-  ['S6a','Diameter','HSS','MME','Authentication-Information-Answer','Authentication','2001','', ''],
-  ['S1-MME','S1AP/NAS-EMM','MME','UE','Authentication Request','Authentication','—','', ''],
-  ['S1-MME','S1AP/NAS-EMM','UE','MME','Authentication Response','Authentication','Succès','', 'end'],
-  ['S1-MME','S1AP/NAS-EMM','MME','UE','Security Mode Command','Security Mode','—','', 'start'],
-  ['S1-MME','S1AP/NAS-EMM','UE','MME','Security Mode Complete','Security Mode','Succès','', 'end'],
-  ['S6a','Diameter','MME','HSS','Update-Location-Request','Attach','—','', ''],
-  ['S6a','Diameter','HSS','MME','Update-Location-Answer','Attach','2001','', ''],
-  ['S11','GTPv2-C','MME','SGW','Create Session Request','Attach','—','', ''],
-  ['S5','GTPv2-C','SGW','PGW','Create Session Request','Attach','—','', ''],
-  ['S5','GTPv2-C','PGW','SGW','Create Session Response','Attach','Accepted','', ''],
-  ['S11','GTPv2-C','SGW','MME','Create Session Response','Attach','Accepted','', ''],
-  ['S1-MME','S1AP','MME','eNB','Initial Context Setup Request','Attach','—','', ''],
-  ['S1-MME','S1AP','eNB','MME','Initial Context Setup Response','Attach','Succès','', ''],
-  ['S1-MME','S1AP/NAS-EMM','MME','UE','Attach Accept','Attach','Succès','', 'end'],
-  ['S1-MME','S1AP/NAS-EMM','UE','MME','Tracking Area Update Request','TAU','—','', 'start'],
-  ['S1-MME','S1AP/NAS-EMM','MME','UE','Tracking Area Update Reject','TAU','Échec','EMM #9 UE identity cannot be derived', 'end'],
-];
-const NODES = { '5G': ['UE','gNB','AMF','AUSF','UDM','SMF','UPF'], 'LTE': ['UE','eNB','MME','HSS','SGW','PGW'] };
-const IFC_C = { N2:'#0062A1', SBI:'#0F5B56', N4:'#A15C07', 'S1-MME':'#0062A1', S6a:'#7C3AED', S11:'#A15C07', S5:'#DB2777' };
-/* Known identities (demo lookup table, stands in for the correlated identity chain API) */
-const DIR = {
-  'ue-7f3a': { tech:'5G', st:'Trouvé', imsiMask:'208 01 •••••• 4821', proof:'Registration Request · SUCI→SUPI (SBI Nausf, capture 482 seq 1 204)', cap:482,
-    info: { 'Technologie':['5G SA',1204], 'PLMN':['208-01',1204], 'Site':['Lab-Paris',null], 'Cell Name':[null,null], 'NR-CGI':['208-01-0000A1F01',1205], 'TAC':['0x000101',1205], 'gNB ID':['0x0A1F',1205],
-      'AMF':['amf-1 (GUAMI 208-01-02-3F)',1211], 'SMF':['smf-1',1222], 'UPF':['upf-1',1224], 'DNN':['internet',1220], 'S-NSSAI':['1-000001',1220], 'PDU Session ID':['1',1220], '5QI':['9',1228], 'QFI':['1',1228] } },
-  'ue-21c0': { tech:'LTE', st:'À prouver', imsiMask:'208 01 •••••• 1190', proof:'User-Name S6a observé, GUTI non relié (EXACT manquant)', cap:219,
-    info: { 'Technologie':['LTE',801], 'PLMN':['208-01',801], 'Site':['Lab-Paris',null], 'Cell Name':[null,null], 'ECGI':['208-01-0B07A1',802], 'TAC':['0x0102',802], 'eNB ID':['0x0B07',802],
-      'MME':['mme-1',801], 'SMF':[null,null], 'SGW':['sgw-1',810], 'APN':['internet',810], 'S-NSSAI':[null,null], 'Bearer ID':['5',812], 'QCI':['9',812], 'QFI':[null,null] } },
-};
-const IMSI_MAP = { '208010000004821':'ue-7f3a', '208010000001190':'ue-21c0' };
 const fingerprint = (s) => { let h = 5381; for (const c of s) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return 'sha256:' + h.toString(16).padStart(8,'0') + '…'; };
 
 const useStore = (key, init) => { const [v,setV] = useState(init); useEffect(()=>{ try{ const s=localStorage.getItem(key); if(s) setV(JSON.parse(s)); }catch{} },[key]); const set=(x)=>setV(p=>{ const n=typeof x==='function'?x(p):x; try{localStorage.setItem(key,JSON.stringify(n));}catch{} return n; }); return [v,set]; };
 const card = 'bg-white rounded-xl border border-[#EBEBEB]';
 const Btn = ({ primary, on, children, className='', ...p }) => <button {...p} className={`h-8 px-3 rounded-md text-[12.5px] font-medium whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${primary?'bg-[var(--app-accent)] text-white hover:opacity-90':on?'bg-[#F2F2F2] text-[#171717] border border-[#E5E5E5]':'border border-[#EBEBEB] bg-white text-[#171717] hover:bg-[#FAFAFA]'} ${className}`}>{children}</button>;
 const Tag = ({ c='#666666', children }) => <span className="text-[10.5px] font-medium rounded px-1.5 py-[1px] border whitespace-nowrap" style={{ color:c, borderColor:c+'33', background:c+'0D' }}>{children}</span>;
+const IFC_C = { N2:'#0062A1', SBI:'#0F5B56', N4:'#A15C07', 'S1-MME':'#0062A1', S6a:'#7C3AED', S11:'#A15C07', S5:'#DB2777' };
 const RES_C = (r) => r==='Échec'?'#B42318':r==='Succès'||r==='Accepted'||/^2\d\d/.test(r)?'#15803D':'#8F8F8F';
 const fmtRate = (v) => v>=1000?(v/1000).toFixed(2)+' Gb/s':v>=1?v.toFixed(1)+' Mb/s':(v*1000).toFixed(0)+' kb/s';
 
 export default function LiveModule({ t, role, setPage }) {
   const op = role === 'operator';
-  const [demo, setDemo] = useStore('polaris-live-demo', true);
+  const { demo, setDemo } = usePolarisMode();
+  const liveData = useLiveDemo(); const DIR = liveData.directory; const NODES = liveData.nodes; const IFC_C = liveData.colors;
   const [ttype, setTtype] = useState('pseudo');
   const [q, setQ] = useState('');
   const [res, setRes] = useState(null); // {st, ue, err}
@@ -91,14 +39,14 @@ export default function LiveModule({ t, role, setPage }) {
   const onSigScroll = (e) => { const b = e.currentTarget; atEnd.current = b.scrollTop + b.clientHeight >= b.scrollHeight - 40; };
   const ue = res?.ue && DIR[res.ue];
   const tech = ue?.tech || '5G';
-  const tracking = demo && ue && (res.st === 'Trouvé' || res.st === 'À prouver');
+  const tracking = demo && ue && (res.st === 'Trouvé' || res.st === 'OUVERT');
 
   useEffect(() => { if (ttype === 'imsi' && !op) setTtype('pseudo'); }, [op]);
-  useEffect(() => { setMsgs([]); setBuf([]); setThr([]); seq.current = 0; setSel(null); setTtl(30*60); }, [res?.ue]);
-  useEffect(() => { if (!tracking) return; const script = tech==='LTE'?SLTE:S5G; const t0 = Date.now();
+  useEffect(() => { setMsgs([]); setBuf([]); setThr([]); seq.current = 0; setSel(null); setTtl(30*60); }, [res?.ue, demo]);
+  useEffect(() => { if (!tracking) return; const script = liveData.scripts[tech]; const t0 = Date.now();
     const id = setInterval(() => {
       const s = script[seq.current % script.length]; seq.current++;
-      const m = { cap: ue.cap, seq: 1200 + seq.current, ts: new Date().toLocaleTimeString('fr-FR'), rel: ((Date.now()-t0)/1000).toFixed(3), ifc:s[0], proto:s[1], from:s[2], to:s[3], name:s[4], proc:s[5], res:s[6], cause:s[7], kind:s[8], corr: res.st==='Trouvé'?'EXACT':'À PROUVER' };
+      const m = { cap: ue.cap, seq: 1200 + seq.current, ts: new Date().toLocaleTimeString('fr-FR'), rel: ((Date.now()-t0)/1000).toFixed(3), ifc:s[0], proto:s[1], from:s[2], to:s[3], name:s[4], proc:s[5], res:s[6], cause:s[7], kind:s[8], corr: res.st==='Trouvé'?'EXACT':'OUVERT' };
       const now = Date.now(); const k = now/4000; const p = { ts: now, dl: Math.max(0, 42 + Math.sin(k)*14 + (Math.random()-0.5)*10), ul: Math.max(0, 6 + Math.cos(k/1.3)*2 + (Math.random()-0.5)*2) };
       if (running) { setMsgs(x => [...x, m].slice(-400)); setThr(x => [...x, p].filter(z => now - z.ts < 30*60000)); }
       else { setBuf(b => [...b, { m, p }]); }
@@ -106,15 +54,14 @@ export default function LiveModule({ t, role, setPage }) {
     }, 1000); return () => clearInterval(id); }, [tracking, running, tech, res?.st]);
   const resume = () => { setMsgs(x => [...x, ...buf.map(b=>b.m)].slice(-400)); setThr(x => [...x, ...buf.map(b=>b.p)]); setBuf([]); setRunning(true); };
 
-  const find = (e) => { e?.preventDefault(); const v = q.trim(); let r;
+  const find = (e) => { e?.preventDefault(); if(!demo) { setRes({st:'Indisponible',err:t('Non disponible : backend à venir')}); return; } const v = q.trim(); let r;
     if (!v) r = { st:'Invalide', err:t('Identifiant requis.') };
-    else if (ttype === 'imsi') { if (!op) r = { st:'Refusé', err:t('Rôle operator requis.') }; else if (!/^\d{15}$/.test(v.replace(/\s/g,''))) r = { st:'Invalide', err:t('Format IMSI invalide (15 chiffres).') }; else { const u = IMSI_MAP[v.replace(/\s/g,'')]; r = u ? { st: DIR[u].st, ue:u } : { st:'Non trouvé' }; }
-      setJournal(j => [{ ts:new Date().toLocaleTimeString('fr-FR'), who:'SD', role, a:'recherche IMSI', c: fingerprint(v), r: r.st }, ...j]); setQ(''); }
+    else if (ttype === 'imsi' || ttype === 'guti') r = {st:'Indisponible',err:t('Non disponible : backend à venir')};
     else if (ttype === 'pseudo') { if (!/^ue-[0-9a-f]{4}$/.test(v)) r = { st:'Invalide', err:t('Format pseudonyme : ue-xxxx') }; else r = DIR[v] ? { st:DIR[v].st, ue:v } : { st:'Non trouvé' }; setJournal(j => [{ ts:new Date().toLocaleTimeString('fr-FR'), who:'SD', role, a:'recherche pseudo', c:v, r:r.st }, ...j]); }
     else if (ttype === 'guti') { r = /^[0-9A-F-]{8,}$/i.test(v) ? (v.toUpperCase().includes('0A7E91F0') ? { st:'Trouvé', ue:'ue-7f3a' } : { st:'Non trouvé' }) : { st:'Invalide', err:t('Format GUTI/TMSI invalide.') }; }
     else if (ttype === 'cell') { r = ['0A1F','0B07'].includes(v.toUpperCase()) ? { st:'Trouvé', ue: v.toUpperCase()==='0A1F'?'ue-7f3a':'ue-21c0' } : { st:'Non trouvé' }; }
     else { r = /482/.test(v) ? { st:'Trouvé', ue:'ue-7f3a' } : /219/.test(v) ? { st:'Trouvé', ue:'ue-21c0' } : { st:'Non trouvé' }; }
-    if (!demo && r.ue) r = { st:'Indisponible', err:t('API de recherche OIRAN non connectée.') };
+    if (!demo && r.ue) r = { st:'Indisponible', err:t('API de recherche POLARIS non connectée.') };
     setRes(r); };
 
   const shown = useMemo(() => msgs.filter(m => !hide.includes(m.ifc) && (!fq || (m.name+' '+m.proc+' '+m.cause+' '+m.proto).toLowerCase().includes(fq.toLowerCase()))), [msgs, hide, fq]);
@@ -122,7 +69,7 @@ export default function LiveModule({ t, role, setPage }) {
   useEffect(() => { const b = sigBox.current; if (b && mode === 'table' && atEnd.current) b.scrollTop = b.scrollHeight; }, [shown.length, mode]);
   const selM = msgs.find(m => m.seq === sel);
   const drag = (e, kind) => { e.preventDefault(); const x0=e.clientX, y0=e.clientY, w0=rightW, h0=ladH; const mv=(ev)=>{ if(kind==='w') setRightW(Math.max(280, Math.min(560, w0 - (ev.clientX-x0)))); else setLadH(Math.max(200, Math.min(800, h0 + ev.clientY-y0))); }; const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);}; addEventListener('pointermove',mv); addEventListener('pointerup',up); };
-  const ST_C = { 'Trouvé':'#15803D', 'À prouver':'#A15C07', 'Non trouvé':'#666666', 'Invalide':'#B42318', 'Refusé':'#B42318', 'Indisponible':'#A15C07' };
+  const ST_C = { 'Trouvé':'#15803D', 'OUVERT':'#A15C07', 'Non trouvé':'#666666', 'Invalide':'#B42318', 'Refusé':'#B42318', 'Indisponible':'#A15C07' };
   const exportCsv = () => { const h='capture_id,seq,t_rel,interface,protocol,message,src,dst,procedure,result,cause\n'; const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([h+shown.map(m=>[m.cap,m.seq,m.rel,m.ifc,m.proto,m.name,m.from,m.to,m.proc,m.res,m.cause].map(x=>`"${x}"`).join(',')).join('\n')],{type:'text/csv'})); a.download='live-'+res.ue+'.csv'; a.click(); };
 
   const sig = <div className={card+' overflow-hidden flex flex-col'} style={full==='sig'?{height:'calc(100vh - 220px)'}:{}}>
@@ -156,10 +103,10 @@ export default function LiveModule({ t, role, setPage }) {
           <div className="mr-2"><div className="text-[12px] text-[#666666]">POLARIS Live</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">Live Trace</h1></div>
           <form onSubmit={find} className="flex items-center h-9 rounded-lg border border-[#EBEBEB] bg-white focus-within:border-[var(--app-accent)] overflow-hidden">
             <select value={ttype} onChange={e=>{setTtype(e.target.value);setQ('');}} className="h-full px-2 text-[12px] bg-[#FAFAFA] border-r border-[#EBEBEB] outline-none">
-              <option value="pseudo">{t('Pseudonyme')}</option>{op && <option value="imsi">IMSI / SUPI</option>}<option value="guti">GUTI / TMSI</option><option value="cell">{t('Cellule')}</option><option value="run">Run</option>
+              <option value="pseudo">{t('Pseudonyme')}</option><option disabled value="imsi">IMSI / SUPI — Non disponible</option><option disabled value="guti">GUTI / TMSI — Non disponible</option><option value="cell">{t('Cellule')}</option><option value="run">Run</option>
             </select>
-            <input value={q} onChange={e=>setQ(e.target.value)} type={ttype==='imsi'?'password':'text'} autoComplete="off" placeholder={{pseudo:'ue-7f3a',imsi:'208010000004821',guti:'0A7E91F0',cell:'0A1F',run:'482'}[ttype]} className="w-48 px-3 text-[13px] font-mono outline-none"/>
-            <button className="h-full px-3 bg-[var(--app-accent)] text-white text-[12.5px] font-medium hover:opacity-90">{ttype==='imsi'?'Find IMSI':t('Rechercher')}</button>
+            <input value={q} onChange={e=>setQ(e.target.value)} type={ttype==='imsi'?'password':'text'} autoComplete="off" disabled={!demo} placeholder={{pseudo:'ue-7f3a',imsi:'masqué',guti:'masqué',cell:'0A1F',run:'482'}[ttype]} className="w-48 px-3 text-[13px] font-mono outline-none"/>
+            <button disabled={!demo} title={!demo ? t('Non disponible : backend à venir') : ''} className="h-full px-3 bg-[var(--app-accent)] text-white text-[12.5px] font-medium hover:opacity-90">{ttype==='imsi'?'Find IMSI':t('Rechercher')}</button>
           </form>
           {res && <span className="flex items-center gap-1.5 text-[12px]"><Tag c={ST_C[res.st]||'#666'}>{t(res.st)}</Tag>{res.ue && <span className="font-mono text-[#171717]">{res.ue}</span>}{res.err && <span className="text-[#B42318]">{res.err}</span>}</span>}
           <div className="ml-auto flex items-center gap-2">
@@ -173,9 +120,9 @@ export default function LiveModule({ t, role, setPage }) {
         </div>
         {/* compact counters */}
         <div className="max-w-[1600px] mx-auto px-6 h-8 flex items-center gap-5 text-[11.5px] text-[#666666] border-t border-[#F5F5F5]">
-          {[['Traces actives', tracking?'2 / 5':'1 / 5'],['Expiration', tracking?`${Math.floor(ttl/60)}:${String(ttl%60).padStart(2,'0')}`:'—'],['Messages', msgs.length],['Tampon', buf.length],['Marqueurs', marks.length],['Techno', ue?(ue.tech==='LTE'?'LTE':'5G SA'):'—']].map(([n,v])=><span key={n}>{t(n)} <b className="text-[#171717] tabular-nums">{v}</b></span>)}
+          {[['Traces actives', tracking?'2 / 5':'—'],['Expiration', tracking?`${Math.floor(ttl/60)}:${String(ttl%60).padStart(2,'0')}`:'—'],['Messages', demo ? msgs.length : '—'],['Tampon', demo ? buf.length : '—'],['Marqueurs', demo ? marks.length : '—'],['Techno', ue?(ue.tech==='LTE'?'LTE':'5G SA'):'—']].map(([n,v])=><span key={n}>{t(n)} <b className="text-[#171717] tabular-nums">{v}</b></span>)}
           {!op && <span className="text-[#8F8F8F]">· {t('viewer : recherche IMSI masquée, pseudonymes uniquement')}</span>}
-          {demo && <span className="ml-auto text-[#A15C00]">{t('Données de démo — API live OIRAN (WebSocket) non connectée')}</span>}
+          {demo && <span className="ml-auto text-[#A15C00]">{t('Données de démo — API live POLARIS (WebSocket) non connectée')}</span>}
         </div>
       </div>
 
@@ -204,8 +151,8 @@ export default function LiveModule({ t, role, setPage }) {
 function Empty({ t, demo, res }) {
   return <div className="h-full min-h-[240px] grid place-items-center text-center px-6"><div>
     <div className="mx-auto w-9 h-9 rounded-full bg-[#F5F5F5] grid place-items-center text-[#8F8F8F]">⌕</div>
-    <div className="mt-3 text-[13.5px] font-medium text-[#171717]">{!demo?t('API live OIRAN non connectée'):res?.st==='Non trouvé'?t('Aucun abonné rattaché à cet identifiant'):t('Recherchez un UE pour démarrer le suivi')}</div>
-    <div className="mt-1 text-[12.5px] text-[#666666]">{!demo?t('Aucune donnée simulée n’est affichée. Activez « Démo » pour un aperçu.'):t('Exemples : ue-7f3a (5G, EXACT) · ue-21c0 (LTE, À prouver) · cellule 0A1F · run 482')}</div></div></div>;
+    <div className="mt-3 text-[13.5px] font-medium text-[#171717]">{!demo?t('Non disponible : backend à venir — Live (WebSocket)'):res?.st==='Non trouvé'?t('Aucun abonné rattaché à cet identifiant'):t('Recherchez un UE pour démarrer le suivi')}</div>
+    <div className="mt-1 text-[12.5px] text-[#666666]">{!demo?t('Aucune donnée simulée n’est affichée. Activez « Démo » pour un aperçu.'):t('Exemples : ue-7f3a (5G, EXACT) · ue-21c0 (LTE, OUVERT) · cellule 0A1F · run 482')}</div></div></div>;
 }
 
 function Ladder({ t, msgs, nodes, sel, setSel, marks, atEnd }) {
@@ -287,9 +234,9 @@ function UeInfo({ t, ue, res, op, tracking, msgs, onHide }) {
     {!tracking ? <div className="px-4 py-6 text-[12.5px] text-[#8F8F8F]">{t('Aucun UE suivi.')}</div> : <>
       <Sec title="Identité">
         <Row n={t('Pseudonyme')} v={res.ue} s={null} />
-        <Row n="IMSI / SUPI" v={op ? ue.imsiMask : null} s={op ? 1201 : null} />
+        <Row n="IMSI / SUPI" v={null} s={null} />
         {!op && <div className="text-[11px] text-[#A3A3A3] -mt-0.5 mb-1">{t('masqué en rôle viewer')}</div>}
-        <div className="flex items-center gap-2 py-1 text-[12px]"><span className="w-[120px] text-[#8F8F8F]">{t('Rattachement')}</span><Tag c={res.st === 'Trouvé' ? '#15803D' : '#A15C07'}>{res.st === 'Trouvé' ? 'EXACT' : 'À PROUVER'}</Tag><button onClick={() => setProof(!proof)} className="ml-auto text-[11px] text-[var(--app-accent)]">{proof ? t('masquer') : t('preuve')}</button></div>
+        <div className="flex items-center gap-2 py-1 text-[12px]"><span className="w-[120px] text-[#8F8F8F]">{t('Rattachement')}</span><Tag c={res.st === 'Trouvé' ? '#15803D' : '#A15C07'}>{res.st === 'Trouvé' ? 'EXACT' : 'OUVERT'}</Tag><button onClick={() => setProof(!proof)} className="ml-auto text-[11px] text-[var(--app-accent)]">{proof ? t('masquer') : t('preuve')}</button></div>
         {proof && <div className="text-[11px] text-[#4D4D4D] bg-[#FAFAFA] rounded p-2 mb-1">{ue.proof}</div>}
       </Sec>
       <Sec title="Réseau radio">{['Technologie', 'PLMN', 'Site', 'Cell Name', ue.tech === 'LTE' ? 'ECGI' : 'NR-CGI', 'TAC', ue.tech === 'LTE' ? 'eNB ID' : 'gNB ID'].map(k => { const [v, s] = has(k); return <Row key={k} n={k} v={v} s={s} />; })}</Sec>
