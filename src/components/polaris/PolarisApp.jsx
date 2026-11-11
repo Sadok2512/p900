@@ -6,6 +6,7 @@ import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
 import Administration from './admin/Administration';
 import LiveCapture from './admin/LiveCapture';
 import ProbeRegistration from './admin/ProbeRegistration';
+import ProbeManagement from './admin/ProbeManagement';
 import { loadHidden, saveHidden, toggleHidden, isVisible, sanitizeHidden } from './admin/modules';
 import SubscriberJourney, { OtherSessions } from './analyzer/SubscriberJourney';
 import { shortPseudo, groupBySubscriber } from './analyzer/subscriber';
@@ -758,6 +759,8 @@ function Nodes() {
   const metrics = useMetrics(); const safety = useStorageSafety(); const version = useVersion();
   const [open,setOpen] = useState(null);
   const [registering,setRegistering] = useState(false);
+  const [menu,setMenu] = useState(null);
+  const [managing,setManaging] = useState(null);
   const raw = records(probes.data?.data, 'probes');
   const nodes = raw.map((n,i)=>({ ...(demo ? n : toLegacyProbe(n,i,metrics.data?.data,safety.data?.data,version.data?.data?.backend_api)), raw:n }));
   const current = open==null ? null : nodes.find(n=>n.n===open) ?? null;
@@ -784,7 +787,7 @@ function Nodes() {
                 <td className="px-4 border-b border-[#F2F2F2]">{n.memoryBytes==null?<span className="text-[#D4D4D4]">—</span>:<div><div className="font-mono text-[11.5px]">{fmtBytes(n.memoryBytes)}</div><div className="text-[10.5px] text-[#8F8F8F] mt-0.5">anon {fmtBytes(n.memoryAnonBytes)} · file {fmtBytes(n.memoryFileBytes)}</div></div>}</td>
                 <td className="px-4 border-b border-[#F2F2F2]">{n.disk==null?<span className="text-[#D4D4D4]">—</span>:<div><Bar v={Math.round(n.disk)} warn={95} crit={99}/><div className="text-[10.5px] text-[#8F8F8F] mt-0.5">{fmtBytes(n.diskFreeBytes)} libres · seuils 95 / 99 %</div></div>}</td>
                 <td className="px-4 border-b border-[#F2F2F2] text-[#666666]">{n.seen}</td>
-                <td className="px-4 border-b border-[#F2F2F2] text-right"><span className="inline-flex items-center gap-1 text-[12px] text-[#171717]">Détails<I d={ic.chev} c="w-3.5 h-3.5 -rotate-90"/></span></td>
+                <td className="relative px-4 border-b border-[#F2F2F2] text-right"><button type="button" aria-label={`Actions ${n.n}`} onClick={event=>{event.stopPropagation();setMenu(menu===n.n?null:n.n);}} className="h-8 w-8 rounded-md text-[18px] leading-none hover:bg-[#F2F2F2]">⋯</button>{menu===n.n&&<><button type="button" aria-label="Fermer le menu" onClick={event=>{event.stopPropagation();setMenu(null);}} className="fixed inset-0 z-40 cursor-default"/><div className="absolute right-3 top-9 z-50 w-52 rounded-md border border-[#EBEBEB] bg-white py-1 text-left shadow-lg"><button type="button" onClick={event=>{event.stopPropagation();setOpen(n.n);setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-[#FAFAFA]">Détails</button><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'edit',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-[#FAFAFA]">Modifier</button><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'software',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-[#FAFAFA]">Mettre à jour le logiciel</button><div className="my-1 border-t border-[#EBEBEB]"/><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'delete',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] text-[#B42318] hover:bg-[#FDEFEE]">Supprimer</button></div></>}</td>
               </tr>
             ))}
             {!nodes.length && <tr><td colSpan="9" className="px-4 py-8 text-center text-[#8F8F8F]">{probes.isPending ? 'Connexion au Node Manager…' : failure(probes,'/probes') ? `${failure(probes,'/probes')} · nouvelle tentative dans 5 s` : 'Aucune sonde renvoyée par /probes'}</td></tr>}
@@ -792,6 +795,7 @@ function Nodes() {
         </table>
       </Card>
       {registering && <ProbeRegistration auth={auth.data?.data} backendVersion={version.data?.data?.backend_api} onClose={()=>setRegistering(false)}/>}
+      {managing && <ProbeManagement mode={managing.mode} node={managing.node} auth={auth.data?.data} onClose={()=>setManaging(null)}/>}
       <div className="text-[11.5px] text-[#8F8F8F]">{demo ? "Données de démo" : "POLARIS"}</div>
     </div>
   );

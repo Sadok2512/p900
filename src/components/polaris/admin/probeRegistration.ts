@@ -24,6 +24,23 @@ export const emptyProbeDraft = (): ProbeRegistrationDraft => ({
   interfaces: [{ interface: 'ens3', role: 'N2', bpf_filter: 'sctp port 38412' }],
 });
 
+export function probeDraftFromRecord(record: Record<string, unknown> = {}, interfaces: Array<Record<string, unknown>> = []): ProbeRegistrationDraft {
+  const sourceInterfaces = interfaces.length ? interfaces : Array.isArray(record.interfaces) ? record.interfaces as Array<Record<string, unknown>> : [];
+  const type = String(record.probe_type ?? '').toLowerCase();
+  return {
+    probe_type: type === 'physical' ? 'physical' : 'virtual',
+    name: String(record.name ?? ''),
+    host: String(record.host ?? ''),
+    mgmt_ip: String(record.mgmt_ip ?? ''),
+    site: String(record.site ?? ''),
+    interfaces: sourceInterfaces.map(item => ({
+      interface: String(item.interface ?? item.name ?? item.device ?? ''),
+      role: (['N2','N3','N4','S1','N6'].includes(String(item.role)) ? String(item.role) : 'N2') as ProbeInterfaceInput['role'],
+      bpf_filter: String(item.bpf_filter ?? item.filter ?? ''),
+    })),
+  };
+}
+
 export function probeIdFor(draft: Pick<ProbeRegistrationDraft, 'probe_type' | 'name'>): string {
   const stem = draft.name
     .normalize('NFKD')
@@ -50,6 +67,10 @@ export function probePayload(draft: ProbeRegistrationDraft) {
       bpf_filter: item.bpf_filter.trim(),
     })),
   };
+}
+
+export function probeUpdatePayload(probeId: string, draft: ProbeRegistrationDraft) {
+  return { ...probePayload(draft), probe_id: probeId };
 }
 
 export function probeDraftErrors(draft: ProbeRegistrationDraft): string[] {

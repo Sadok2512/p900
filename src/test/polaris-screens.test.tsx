@@ -7,11 +7,11 @@ import { PolarisDataProvider } from '@/lib/polaris-api';
 const session = { session_id: 's1', ue_pseudonym: 'ue-test', technology: '5G SA', state: 'ACTIVE', procedure:'Registration', decode_completeness:100, interfaces:['N2'], message_count:1, ue_ip:'198.51.100.10' };
 const event = { event_id:'e1', capture_id:'c1', interface:'N2', protocol:'NGAP', message_name:'Registration Accept', source_participant:'AMF', destination_participant:'UE', direction:'CORE_TO_RAN', decoding_status:'DECODED', semantic_status:'SUCCESS', procedure_group:'Registration', packet_references:[{packet_number:45}], decoded_ie_tree:{result:'accepted'}, errors:[] };
 const payloads: Record<string,unknown> = {
-  '/auth/me':{role:'operator',permissions:['probes.create']}, '/health':{status:'healthy',coordination_open:false}, '/version':{backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{ngap:'0.6.0'}},
+  '/auth/me':{role:'operator',permissions:['probes.create','probes.update','probes.delete','probes.software_update']}, '/health':{status:'healthy',coordination_open:false}, '/version':{backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{ngap:'0.6.0'}},
   '/metrics':{capture_state:'active',pending_segments:7,segments_ingested:18,ingestion_failures:0,open_segments:2,zero_event_segments:1,dumpcap_active:6,dumpcap_expected:12}, '/storage/safety':{filesystem:{usage_percent:75,available_bytes:268435456}},
   '/sessions':[session], '/sessions/filter':[session], '/sessions/s1':session, '/sessions/s1/events':[event], '/sessions/s1/callflow':{events:[event]}, '/sessions/s1/procedures':[], '/sessions/s1/correlations':{edges:[{edge_id:'edge-1',source_event_id:'e1',target_event_id:'e1',source_interface:'N2',target_interface:'N2',matching_identifiers:['ctx=test'],rule_id:'context-rule',rule_version:'1',matched_rules:['context-rule'],evidence_description:'same context',evidence_type:'EXACT_CONTEXT',confidence:'EXACT',scope:'session',limitations:[],packet_references:[]}]},
   '/events/e1':event, '/events/e1/provenance':{capture_id:'c1',event_id:'e1',packet_number:45}, '/packets':[{id:'p1'}],
-  '/probes':[{id:'p1',name:'lab-probe',role:'Capture',status:'healthy',version:'probe-test'}], '/probes/p1':{id:'p1',version:'probe-test'}, '/probes/p1/interfaces':[{name:'N2'}],
+  '/probes':[{id:'p1',probe_id:'p1',name:'lab-probe',host:'localhost',mgmt_ip:'127.0.0.1',site:'lab-a',probe_type:'virtual',role:'Capture',status:'healthy',version:'probe-test'}], '/probes/p1':{id:'p1',probe_id:'p1',name:'lab-probe',host:'localhost',mgmt_ip:'127.0.0.1',site:'lab-a',probe_type:'virtual',version:'probe-test'}, '/probes/p1/interfaces':[{interface:'ens3',role:'N2',bpf_filter:'sctp port 38412'}],
   '/interfaces':[{name:'N2',interface:'N2',device:'br-test',protocol:'NGAP',status:'CAPTURING'}], '/interfaces/runtime':[{interface:'N2',pid:9001,active:true,bpf_filter:'sctp port 38412',device:'br-test'}], '/captures':[], '/modules':[], '/datasets':[{id:'d1',name:'Dataset test'}], '/sessions/available_causes':['#27'], '/correlation/rules':[]
 };
 let fetcher: ReturnType<typeof vi.fn>;
@@ -124,6 +124,41 @@ describe('main screens with simulated REST responses',()=>{
     const request=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/probes' && options?.method==='POST');
     expect(JSON.parse(String(request?.[1]?.body))).toMatchObject({probe_id:'vprobe-lab-vprobe-site-a',probe_type:'virtual',host:'namespace.container.local',mgmt_ip:'10.77.0.1',site:'Lab A'});
   });
+  it('offers details, full edit, software update and deletion from the row menu', async()=>{
+    open('nodes'); await screen.findByText('lab-probe');
+    fireEvent.click(screen.getByRole('button',{name:'Actions lab-probe'}));
+    expect(screen.getByRole('button',{name:'Détails'})).toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'Mettre à jour le logiciel'})).toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'Supprimer'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'Modifier'}));
+    const edit=screen.getByRole('dialog',{name:'Modifier la sonde'});
+    await waitFor(()=>expect(within(edit).getByLabelText('Serveur ou namespace')).toHaveValue('localhost'));
+    fireEvent.change(within(edit).getByLabelText('Nom de la sonde'),{target:{value:'lab-probe-updated'}});
+    fireEvent.click(within(edit).getByRole('button',{name:'+ Ajouter'}));
+    fireEvent.change(within(edit).getByLabelText('Interface 2'),{target:{value:'ens4'}});
+    fireEvent.change(within(edit).getByLabelText('Filtre BPF 2'),{target:{value:'udp port 2152'}});
+    fireEvent.click(within(edit).getByRole('button',{name:'Enregistrer'}));
+    await waitFor(()=>expect(screen.queryByRole('dialog',{name:'Modifier la sonde'})).not.toBeInTheDocument());
+    const update=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/probes/p1'&&options?.method==='PUT');
+    expect(JSON.parse(String(update?.[1]?.body))).toMatchObject({probe_id:'p1',name:'lab-probe-updated',host:'localhost',interfaces:[{interface:'ens3'},{interface:'ens4',bpf_filter:'udp port 2152'}]});
+
+    fireEvent.click(screen.getByRole('button',{name:'Actions lab-probe'}));
+    fireEvent.click(screen.getByRole('button',{name:'Mettre à jour le logiciel'}));
+    const software=screen.getByRole('dialog',{name:'Mettre à jour le logiciel'});
+    fireEvent.change(within(software).getByLabelText('Version cible'),{target:{value:'2.12.0'}});
+    fireEvent.change(within(software).getByLabelText('Tapez p1'),{target:{value:'p1'}});
+    fireEvent.click(within(software).getByRole('button',{name:'Mettre à jour'}));
+    await waitFor(()=>expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/probes/p1/software-update'&&options?.method==='POST')).toBe(true));
+
+    fireEvent.click(screen.getByRole('button',{name:'Actions lab-probe'}));
+    fireEvent.click(screen.getByRole('button',{name:'Supprimer'}));
+    const removal=screen.getByRole('dialog',{name:'Supprimer la sonde'});
+    fireEvent.change(within(removal).getByLabelText('Tapez p1'),{target:{value:'p1'}});
+    fireEvent.click(within(removal).getByRole('button',{name:'Supprimer'}));
+    await waitFor(()=>expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/probes/p1'&&options?.method==='DELETE')).toBe(true));
+    const deletion=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/probes/p1'&&options?.method==='DELETE');
+    expect(JSON.parse(String(deletion?.[1]?.body))).toEqual({confirmation:'p1',preserve_segments:true});
+  });
   it('keeps POLARIS connected when only probes fails and names the failing endpoint', async()=>{
     fetcher.mockImplementation(async (url: string) => {
       const path=url.replace('/api/v1','').split('?')[0] ?? '';
@@ -178,7 +213,7 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByText('Non disponible : backend à venir — Live (WebSocket)')).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getByText('0.14.0')).toBeInTheDocument(); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.11.6 · API 2.11.6 · UI 0.14.0')).toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getByText('0.15.0')).toBeInTheDocument(); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.11.6 · API 2.11.6 · UI 0.15.0')).toBeInTheDocument();
   });
   it('Dashboard library is marked local and has no simulated saved queries outside Demo',()=>{
     open('templates'); expect(screen.getByText('local à ce navigateur')).toBeInTheDocument(); expect(screen.getByText('Aucune requête.')).toBeInTheDocument();

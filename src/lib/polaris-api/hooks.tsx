@@ -60,6 +60,15 @@ export function useCreateProbe() {
   const client = useQueryClient();
   return useMutation({ mutationFn: (body: RecordData) => request<Probe>('/probes', { method: 'POST', body }), onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris', 'api', '/probes'] }); } });
 }
+export function useManageProbe() {
+  const client=useQueryClient();
+  return useMutation({ mutationFn: ({ action, id, body }: { action: 'edit' | 'delete' | 'software'; id: string; body: RecordData }) => {
+    const encoded=idPath(id);
+    const path=action==='software'?`/probes/${encoded}/software-update`:`/probes/${encoded}`;
+    const method=action==='edit'?'PUT':action==='delete'?'DELETE':'POST';
+    return request<Probe>(path,{method,body});
+  }, onSuccess:()=>{ client.invalidateQueries({queryKey:['polaris']}); } });
+}
 export const useProbe = (id?: string | number | null) => useResource<Probe>(`/probes/${idPath(id)}`, {}, id != null);
 export const useProbeInterfaces = (id?: string | number | null) => useResource<RecordData[]>(`/probes/${idPath(id)}/interfaces`, {}, id != null);
 export const useInterfaces = () => { const { demo } = usePolarisMode(); return useQuery({ ...resourceOptions<RecordData[]>('/interfaces', {}, demo), refetchInterval: 15_000, refetchIntervalInBackground: true }); };

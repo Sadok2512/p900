@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.15.0
+
+- Node Manager : la colonne « Détails » devient un menu `⋯` avec Détails, Modifier, Mettre à jour le logiciel et Supprimer.
+- Édition : formulaire complet de la sonde (type, nom, serveur/namespace, adresse de gestion, site) et gestion `+ / −` des interfaces, rôles et filtres BPF; sauvegarde via `PUT /probes/{id}`.
+- Suppression : confirmation tapée obligatoire et conservation explicite des segments, via `DELETE /probes/{id}`.
+- Mise à jour logicielle : version cible et confirmation tapée, via `POST /probes/{id}/software-update`, stratégie rolling et capture préservée.
+- Les actions échouent fermées sans permissions `probes.update`, `probes.delete` ou `probes.software_update`; aucun succès ni changement local n'est inventé quand le backend ne publie pas encore ces contrats.
+
 ## 0.14.0
 
 - Node Manager : ajout du dialogue « Register probe » réellement raccordé à `POST /api/v1/probes`; l'identifiant est normalisé automatiquement et le payload suit exactement le contrat OIRAN (casse, champs requis et rôles d'interface).
