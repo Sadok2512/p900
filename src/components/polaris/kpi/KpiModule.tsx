@@ -64,19 +64,19 @@ export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChar
   return (
     <div className="flex-1 overflow-auto scroll-thin bg-[#FAFAFA]">
       <div className="bg-white border-b border-[#EBEBEB]">
-        <div className="max-w-[1600px] mx-auto px-8 pt-6">
+        <div className="max-w-[1600px] mx-auto px-6 pt-4">
           <div className="flex flex-wrap items-end gap-4">
-            <div><div className="text-[12px] text-[#666666]">POLARIS KPI</div><h1 className="text-[24px] font-semibold tracking-tight text-[#171717] mt-1">{t('KPI & Anomalies')}</h1></div>
+            <div><div className="text-[11.5px] text-[#666666]">POLARIS KPI</div><h1 className="text-[20px] font-semibold tracking-tight text-[#171717] leading-tight">{t('KPI & Anomalies')}</h1></div>
             <div className="ml-auto flex items-center gap-3 pb-1">
               <span className="text-[12px] text-[#8F8F8F]">{t('Rôle')} <b className={role === 'operator' ? 'text-[#A15C07]' : 'text-[#171717]'}>{role}</b>{!canWrite && ' · ' + t('consultation uniquement')}</span>
               <button onClick={() => setDemo(!demo)} className={`h-7 px-2.5 rounded-full text-[11.5px] font-medium border flex items-center gap-1.5 ${demo ? 'bg-[#FFF7E6] border-[#FCE2B0] text-[#A15C00]' : 'border-[#EBEBEB] text-[#666666]'}`}><span className={`w-6 h-3.5 rounded-full relative ${demo ? 'bg-[#A15C00]' : 'bg-[#D4D4D4]'}`}><span className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all ${demo ? 'left-[12px]' : 'left-[2px]'}`} /></span>{t('Démo')}</button>
             </div>
           </div>
-          <div className="flex gap-6 mt-4">{TABS.map(([k, n]) => <button key={k} onClick={() => { setTab(k); setOpenDash(null); }} className={`h-10 text-[13px] border-b-2 ${tab === k ? 'border-[var(--app-accent)] font-semibold text-[#171717]' : 'border-transparent text-[#666666] hover:text-[#171717]'}`}>{t(n)}</button>)}</div>
+          <div className="flex gap-6 mt-3">{TABS.map(([k, n]) => <button key={k} onClick={() => { setTab(k); setOpenDash(null); }} className={`h-9 text-[13px] border-b-2 ${tab === k ? 'border-[var(--app-accent)] font-semibold text-[#171717]' : 'border-transparent text-[#666666] hover:text-[#171717]'}`}>{t(n)}</button>)}</div>
         </div>
       </div>
-      {!demo && <div className="max-w-[1600px] mx-auto px-8 pt-4"><div className="text-[12px] text-[#8F8F8F] flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]" />{t('Service OIRAN non connecté : aucune donnée en direct.')} {t('Activez « Démo » pour un aperçu.')}</div></div>}
-      <div className="max-w-[1600px] mx-auto px-8 py-5">
+      {!demo && <div className="max-w-[1600px] mx-auto px-6 pt-3"><div className="text-[12px] text-[#8F8F8F] flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-[#D4D4D4]" />{t('Service OIRAN non connecté : aucune donnée en direct.')} {t('Activez « Démo » pour un aperçu.')}</div></div>}
+      <div className="max-w-[1600px] mx-auto px-6 py-4">
         {tab === 'catalog' && <Catalog {...ctx} />}
         {tab === 'builder' && <Builder key={(editKpi?.id || 'new') + bk} {...ctx} initial={editKpi} onNew={() => { setEditKpi(null); setBk(b => b + 1); }} />}
         {tab === 'dash' && (openDash ? <DashEditor {...ctx} dash={openDash} /> : <DashLib {...ctx} />)}
@@ -112,26 +112,33 @@ function Catalog(p) {
   const [sel, setSel] = useStore('polaris-kpi-sel', 'kpi.5g.registration');
   const [q, setQ] = useState(''); const [tech, setTech] = useState('all'); const [owner, setOwner] = useState('all');
   const [treeW, setTreeW] = useStore('polaris-kpi-treew', 300); const [sheet, setSheet] = useStore('polaris-kpi-sheet', true);
-  const [gran, setGran] = useState('15 min'); const [drill, setDrill] = useState(0); const [addTo, setAddTo] = useState(false);
+  const [treeOpen, setTreeOpen] = useStore('polaris-kpi-treeopen', true); const [sheetW, setSheetW] = useStore('polaris-kpi-sheetw', 320);
+  const [gran, setGran] = useState('15 min'); const [drill, setDrill] = useState(0); const [addTo, setAddTo] = useState(false); const [qOpen, setQOpen] = useState(false);
   const k = byId(sel) || all[0];
   const series = demo && k ? mockSeries(k, gran) : null;
   const drag = (e) => { const x0 = e.clientX, w0 = treeW; const mv = (ev) => setTreeW(Math.max(220, Math.min(480, w0 + ev.clientX - x0))); const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); }; addEventListener('pointermove', mv); addEventListener('pointerup', up); };
+  const dragR = (e) => { const x0 = e.clientX, w0 = sheetW; const mv = (ev) => setSheetW(Math.max(260, Math.min(560, w0 - (ev.clientX - x0)))); const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); }; addEventListener('pointermove', mv); addEventListener('pointerup', up); };
   const dup = () => { const id = 'kpi.my.' + k.id.split('.').pop() + '.' + Date.now().toString(36).slice(-4); setCustom(c => [...c, { ...k, id, name: k.name + ' (copie)', lib: 'PRIVATE', owner: 'SD', ver: '0.1.0', status: 'draft', folder: 'My KPI' }]); log('KPI dupliqué ' + k.id + ' → ' + id); setSel(id); };
   const DR = ['KPI', 'Sessions', 'Messages', 'Preuves', 'PCAP'];
   return (
     <div className="flex gap-0 items-start">
-      <div className={card + ' overflow-hidden shrink-0'} style={{ width: treeW }}>
+      {!treeOpen ? <button onClick={() => setTreeOpen(true)} title={t('Afficher le panneau')} className={card + ' w-8 shrink-0 self-stretch text-[11px] text-[#666666] hover:text-[#171717] [writing-mode:vertical-rl] py-3'}>Catalogue</button> : <>
+      <div className={card + ' overflow-hidden shrink-0 flex flex-col'} style={{ width: treeW }}>
         <div className="p-3 border-b border-[#F2F2F2] space-y-2">
-          <input value={q} onChange={e => setQ(e.target.value)} placeholder={t('Rechercher un KPI…')} className={inp + ' h-8 text-[12.5px]'} />
+          <div className="flex items-center gap-2">
+            <input value={q} onChange={e => setQ(e.target.value)} placeholder={t('Rechercher un KPI…')} className={inp + ' h-8 text-[12.5px]'} />
+            <button onClick={() => setTreeOpen(false)} title={t('Masquer le panneau')} className="w-8 h-8 shrink-0 grid place-items-center rounded-md border border-[#EBEBEB] text-[#666666] hover:bg-[#FAFAFA] text-[13px]">⟨</button>
+          </div>
           <div className="flex gap-1.5">
             <select value={tech} onChange={e => setTech(e.target.value)} className="flex-1 h-7 rounded-md border border-[#EBEBEB] text-[11.5px] px-1.5 bg-white"><option value="all">{t('Techno')}: {t('toutes')}</option><option>5G</option><option>4G</option></select>
             <select value={owner} onChange={e => setOwner(e.target.value)} className="flex-1 h-7 rounded-md border border-[#EBEBEB] text-[11.5px] px-1.5 bg-white"><option value="all">{t('Propriétaire')}: {t('tous')}</option><option value="system">system</option><option value="me">{t('moi')}</option></select>
           </div>
         </div>
-        <div className="max-h-[640px] overflow-auto scroll-thin"><Tree t={t} all={all} favs={favs} sel={sel} setSel={setSel} q={q} tech={tech} owner={owner} /></div>
+        <div className="overflow-auto scroll-thin max-h-[calc(100vh-340px)]"><Tree t={t} all={all} favs={favs} sel={sel} setSel={setSel} q={q} tech={tech} owner={owner} /></div>
       </div>
       <div onPointerDown={drag} onDoubleClick={() => setTreeW(300)} className="w-3 self-stretch cursor-col-resize grid place-items-center group"><span className="w-1 h-10 rounded-full bg-[#E5E5E5] group-hover:bg-[var(--app-accent)]" /></div>
-      <div className="flex-1 min-w-0 space-y-4">
+      </>}
+      <div className="flex-1 min-w-0 overflow-auto scroll-thin max-h-[calc(100vh-220px)]">
         {k && <div className={card}>
           <div className="px-5 pt-4 pb-3 border-b border-[#F2F2F2] flex flex-wrap items-center gap-3">
             <div className="min-w-0"><div className="flex items-center gap-2"><h2 className="text-[16px] font-semibold text-[#171717] truncate">{t(k.name)}</h2><Tag c={LIBC[k.lib]}>{k.lib}</Tag>{k.status === 'draft' && <Tag c="#A15C07">{t('Brouillon')}</Tag>}</div><div className="font-mono text-[11px] text-[#8F8F8F] mt-0.5">{k.id} · v{k.ver} · {k.tech} · {k.unit}</div></div>
@@ -149,15 +156,17 @@ function Catalog(p) {
             {DR.map((d, i) => <button key={d} onClick={() => { setDrill(i); if (i > 0 && demo) setPage('sessions'); }} disabled={!demo && i > 0} className={`text-[11.5px] px-2 h-6 whitespace-nowrap rounded ${drill === i ? 'bg-[#F2F2F2] font-semibold' : 'text-[#666666]'} disabled:opacity-40`}>{t(d)}{i < 4 ? ' →' : ''}</button>)}
           </div>
           <div className="h-[320px] p-5">{series ? <div className="h-full flex flex-col"><div className="flex items-baseline gap-3"><span className="text-[26px] font-semibold tabular-nums text-[#171717]">{fmtV(series[series.length - 1], k.unit)}</span><span className="text-[12px] text-[#8F8F8F]">{t('moyenne')} {fmtV(series.reduce((a, b) => a + b, 0) / series.length, k.unit)}</span><Tag c="#A15C00">{t('Données de démo')}</Tag></div><div className="flex-1 min-h-0"><MockChart data={series} unit={k.unit} /></div></div> : <Empty title={t('Aucune donnée à afficher')} sub={t('Source OIRAN indisponible. Le KPI sera calculé via la requête ci-dessous dès connexion.')} />}</div>
-          <div className="border-t border-[#F2F2F2] px-5 py-3"><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mb-1.5">{t('Requête générée')} · v{k.ver}</div><pre className="font-mono text-[11.5px] text-[#4D4D4D] bg-[#FAFAFA] border border-[#F2F2F2] rounded-md p-3 whitespace-pre-wrap">{k.q}</pre></div>
+          <div className="border-t border-[#F2F2F2] px-5 py-2.5"><button onClick={() => setQOpen(!qOpen)} className="w-full flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] hover:text-[#171717]"><span className={`text-[9px] transition ${qOpen ? 'rotate-90' : ''}`}>▶</span>{t('Requête générée')} · v{k.ver}</button>{qOpen && <pre className="mt-2 font-mono text-[11.5px] text-[#4D4D4D] bg-[#FAFAFA] border border-[#F2F2F2] rounded-md p-3 whitespace-pre-wrap">{k.q}</pre>}</div>
         </div>}
       </div>
-      {sheet && k && <div className={card + ' w-[320px] shrink-0 ml-4 overflow-hidden'}>
-        <div className="h-11 px-4 flex items-center border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold">{t('Fiche KPI')}</h3><span className="ml-auto font-mono text-[11px] text-[#8F8F8F]">v{k.ver}</span></div>
-        <div className="p-4 space-y-3.5 text-[12.5px]">{[['Formule', `${k.num} / ${k.den}`], ['Événements sources', k.src], ['Dimensions', k.dims], ['Unité', k.unit], ['Règle de dédup', k.dedup], ['Invariant', k.inv], ['Propriétaire', k.owner], ['Bibliothèque', k.lib]].map(([n, v]) => <div key={n}><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mb-0.5">{t(n)}</div><div className="text-[#4D4D4D] leading-snug">{v}</div></div>)}
+      {sheet && k && <>
+      <div onPointerDown={dragR} onDoubleClick={() => setSheetW(320)} className="w-3 self-stretch cursor-col-resize grid place-items-center group"><span className="w-1 h-10 rounded-full bg-[#E5E5E5] group-hover:bg-[var(--app-accent)]" /></div>
+      <div className={card + ' shrink-0 overflow-hidden flex flex-col'} style={{ width: sheetW }}>
+        <div className="h-11 px-4 flex items-center border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold">{t('Fiche KPI')}</h3><span className="ml-auto font-mono text-[11px] text-[#8F8F8F]">v{k.ver}</span><button onClick={() => setSheet(false)} title={t('Masquer la fiche')} className="ml-2 w-6 h-6 grid place-items-center rounded text-[#8F8F8F] hover:bg-[#FAFAFA] hover:text-[#171717] text-[12px]">✕</button></div>
+        <div className="p-4 space-y-3.5 text-[12.5px] overflow-auto scroll-thin max-h-[calc(100vh-300px)]">{[['Formule', `${k.num} / ${k.den}`], ['Événements sources', k.src], ['Dimensions', k.dims], ['Unité', k.unit], ['Règle de dédup', k.dedup], ['Invariant', k.inv], ['Propriétaire', k.owner], ['Bibliothèque', k.lib]].map(([n, v]) => <div key={n}><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mb-0.5">{t(n)}</div><div className="text-[#4D4D4D] leading-snug">{v}</div></div>)}
           {k.changelog && <div><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mb-0.5">CHANGELOG</div>{k.changelog.map((c, i) => <div key={i} className="text-[11.5px] text-[#4D4D4D]"><span className="font-mono">v{c.v}</span> · {c.by} · {c.date} — {c.msg}</div>)}</div>}
           {k.lib === 'SYSTEM' && <div className="text-[11.5px] text-[#8F8F8F]">{t('KPI SYSTEM non modifiable — dupliquez-le en PRIVATE.')}</div>}
-        </div></div>}
+        </div></div></>}
     </div>
   );
 }
