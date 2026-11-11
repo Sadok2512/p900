@@ -92,3 +92,14 @@ export function fmtDuration(ms: number | null): string {
 export function fmtBytes(b: number | null): string { if (b == null) return 'N/A'; const u = ['o', 'Ko', 'Mo', 'Go']; let i = 0, v = b; while (v >= 1024 && i < 3) { v /= 1024; i++; } return `${v.toFixed(i ? 1 : 0)} ${u[i]}`; }
 export function fmtRate(b: number | null): string { if (b == null) return 'N/A'; return b >= 1e6 ? `${(b / 1e6).toFixed(1)} Mbit/s` : `${(b / 1e3).toFixed(0)} kbit/s`; }
 export function fmtUtc(ms: number | null): string { if (ms == null) return '—'; const d = new Date(ms); return Number.isNaN(d.getTime()) ? '—' : d.toISOString().slice(11, 23); }
+
+// Compact page list for pagination: always first/last, neighbours of current, '…' for gaps.
+export function pageItems(current: number, total: number): (number | '…')[] {
+  if (total <= 7) return Array.from({ length: total }, (_, i) => i + 1);
+  const set = [1, total, current - 1, current, current + 1].filter(p => p >= 1 && p <= total);
+  const pages = [...new Set(set)].sort((a, b) => a - b);
+  const out: (number | '…')[] = [];
+  pages.forEach((p, i) => { if (i && p - pages[i - 1]! > 1) out.push('…'); out.push(p); });
+  return out;
+}
+export const pageSlice = <T,>(rows: T[], page: number, size: number) => rows.slice((page - 1) * size, page * size);

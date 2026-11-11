@@ -3,7 +3,7 @@ import LiveModule from './live/LiveModule';
 import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useStorageSafety, useSessions, useSessionAnchors, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
-import { verdict, timeOf, toMs, fmtUtc, fmtDuration } from './analyzer/analysis';
+import { pageItems, pageSlice, verdict, timeOf, toMs, fmtUtc, fmtDuration } from './analyzer/analysis';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 /* Données fictives — PLMN de test 001/01. Tri canonique (capture_id, seq). */
@@ -208,6 +208,11 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
     if (sort) { const c=GRID_COLS.find(x=>x.k===sort[0]); const f=c.sort||c.v; out=[...out].sort((a,b)=>{const x=f(a),y=f(b); return (typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),undefined,{numeric:true}))*sort[1];}); }
     return out;
   },[rows,q,sort]);
+  const [size,setSize] = useState(25); const [page,setPage] = useState(1);
+  const condKey = JSON.stringify(conds);
+  useEffect(()=>{ setPage(1); },[q,condKey,size]);
+  const pages = Math.max(1,Math.ceil(shown.length/size)); const cur = Math.min(page,pages);
+  const pageRows = pageSlice(shown,cur,size);
   const ko = rows.filter(r=>verdict(r.res)==='FAILED').length;
   const cell = (c,r) => {
     const v = c.v(r);
@@ -250,7 +255,7 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
               <span onMouseDown={e=>resize(e,c)} onClick={e=>e.stopPropagation()} onDoubleClick={e=>{e.stopPropagation();setWidths(w=>{const n={...w};delete n[c.k];return n;});}} title="Redimensionner" className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-[var(--app-accent)]/40"/></th>)}</tr>
           </thead>
           <tbody>
-            {shown.map((r,rowIndex) => {
+            {pageRows.map((r,rowIndex) => {
               const on = sel===r.id;
               const clickable = r.id != null;
               return (
@@ -262,6 +267,16 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
             {shown.length===0 && <tr><td colSpan={GRID_COLS.length} className="px-3 py-8 text-left text-[#64748B]">{q ? 'Aucune session ne correspond à la recherche' : demo || sessions.data ? 'Aucune session' : 'POLARIS non connecté'}</td></tr>}
           </tbody>
         </table>
+      </div>
+      <div className="h-9 shrink-0 flex items-center gap-3 px-3 border-t border-[#E2E8F0] bg-white text-[12px] text-[#334155] whitespace-nowrap overflow-hidden">
+        <span className="tabular-nums">{shown.length ? `${(cur-1)*size+1}–${Math.min(cur*size,shown.length)}` : '0'} sur <b>{shown.length}</b> sessions</span>
+        <label className="ml-auto flex items-center gap-1.5 text-[#64748B]">Lignes par page
+          <select aria-label="Lignes par page" value={size} onChange={e=>setSize(Number(e.target.value))} className="h-6 px-1 rounded border border-[#E2E8F0] bg-white text-[#172033] outline-none">{[10,25,50,100].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
+        <nav aria-label="Pagination des sessions" className="flex items-center gap-0.5">
+          {[['|<',1,'Première page'],['<',cur-1,'Page précédente']].map(([l,p,a])=><button key={a} aria-label={a} disabled={cur<=1} onClick={()=>setPage(p)} className="h-6 min-w-6 px-1 rounded text-[#334155] hover:bg-[#F1F5F9] disabled:opacity-30 disabled:hover:bg-transparent">{l}</button>)}
+          {pages>1 && pageItems(cur,pages).map((p,i)=>p==='…'?<span key={'g'+i} className="px-1 text-[#94A3B8]">…</span>:<button key={p} aria-current={p===cur?'page':undefined} onClick={()=>setPage(p)} className={`h-6 min-w-6 px-1.5 rounded tabular-nums ${p===cur?'bg-[var(--app-accent)] text-white font-medium':'hover:bg-[#F1F5F9]'}`}>{p}</button>)}
+          {[['>',cur+1,'Page suivante'],['>|',pages,'Dernière page']].map(([l,p,a])=><button key={a} aria-label={a} disabled={cur>=pages} onClick={()=>setPage(p)} className="h-6 min-w-6 px-1 rounded text-[#334155] hover:bg-[#F1F5F9] disabled:opacity-30 disabled:hover:bg-transparent">{l}</button>)}
+        </nav>
       </div>
     </section>
   );

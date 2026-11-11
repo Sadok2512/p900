@@ -25,3 +25,15 @@ describe('session analysis', () => {
     expect(sessionKpis({ start_timestamp: '2026-01-01T00:00:00Z', end_timestamp: '2026-01-01T00:00:02Z' }, flow([], [])).durationMs).toBe(2000);
   });
 });
+import { pageItems, pageSlice } from './analysis';
+describe('sessions pagination', () => {
+  it('splits 142 rows into pages of 25 without loss or duplicates', () => {
+    const rows = Array.from({ length: 142 }, (_, i) => i);
+    const pages = Array.from({ length: 6 }, (_, p) => pageSlice(rows, p + 1, 25));
+    expect(pages[5]).toHaveLength(17); expect(pages.flat()).toEqual(rows);
+  });
+  it('shows first, last and neighbours with gaps', () => {
+    expect(pageItems(1, 6)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(pageItems(5, 10)).toEqual([1, '…', 4, 5, 6, '…', 10]);
+  });
+});
