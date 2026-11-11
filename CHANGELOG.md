@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.9.2
+- Accueil et pages de contenu élargis progressivement à 1400 px dès 1600 px de viewport, puis 1600 px dès 1920 px, sans modifier Analyzer, Live ni KPI.
+- Taille de texte racine fluide de 16 à 17 px pour conserver une lecture confortable sur les grands écrans.
+
 ## 0.9.1
 - Adaptateur sessions aligné sur les champs réels `session_id`, `ue_pseudonym`, `state`, `technology`, `procedure` et `decode_completeness`; aucun identifiant de remplacement n'est fabriqué.
 - Ladder alimenté par `message_name`, les participants, statuts, groupes de procédure, références paquet et arbre IE réels, dans l'ordre exact renvoyé par l'API.

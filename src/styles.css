@@ -146,6 +146,10 @@
 }
 
 @layer base {
+  html {
+    font-size: clamp(16px, calc(0.3125vw + 11px), 17px);
+  }
+
   * {
     border-color: var(--color-border);
   }
@@ -156,6 +160,24 @@
     letter-spacing: -0.005em;
     background-color: var(--color-background);
     color: var(--color-foreground);
+  }
+}
+
+.polaris-content-shell {
+  width: 100%;
+  max-width: 1120px;
+  margin-inline: auto;
+}
+
+@media (min-width: 1600px) {
+  .polaris-content-shell {
+    max-width: 1400px;
+  }
+}
+
+@media (min-width: 1920px) {
+  .polaris-content-shell {
+    max-width: 1600px;
   }
 }
 

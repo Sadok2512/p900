@@ -394,7 +394,7 @@ function Home({setPage,onNew}) {
   const go = t => t && setPage(t);
   return (
     <div className="flex-1 overflow-auto scroll-thin bg-white">
-      <div className="max-w-[1120px] mx-auto px-8 pt-14 pb-16">
+      <div className="polaris-content-shell px-8 pt-14 pb-16">
         <header className="flex flex-wrap items-end justify-between gap-6">
           <div className="min-w-0">
             <h1 className="text-[30px] leading-[1.15] font-semibold tracking-[-0.02em] text-[#171717]">{t("Bienvenue sur POLARIS")}</h1>
@@ -467,7 +467,7 @@ function Nodes() {
 
   return (
     <div className="flex-1 overflow-auto scroll-thin">
-      <div className="max-w-[1480px] mx-auto px-8 py-7 space-y-5">
+      <div className="polaris-content-shell px-8 py-7 space-y-5">
         <div className="flex items-end gap-6">
           <div><div className="text-[12px] text-[#666666]">POLARIS Nœuds</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">Gestion des nœuds</h1>
             <div className="text-[13px] text-[#666666] mt-1">{probes.isError ? probes.error.message : `${nodes.length} nœuds · POLARIS`}</div></div>
@@ -699,7 +699,7 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
         </svg>
         <button onClick={onClose} className="absolute top-5 left-8 h-9 px-3.5 rounded-lg bg-white/15 hover:bg-white/25 text-white text-[13.5px] font-medium backdrop-blur">{t("← Retour")}</button>
       </div>
-      <div className="relative z-10 max-w-[1080px] mx-auto px-8 -mt-12 pb-16">
+      <div className="polaris-content-shell relative z-10 px-8 -mt-12 pb-16">
         <div className="flex items-end gap-5 mb-10">
           <div style={{background:accent}} className="w-24 h-24 rounded-2xl ring-4 ring-white shadow-lg grid place-items-center text-[30px] font-bold text-white">SD</div>
           <div className="pb-1 pt-14"><h1 className="text-[30px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717]">{t("Paramètres")}</h1><p className="text-[14.5px] text-[#666666]">{t("Gérez votre compte et l'apparence de POLARIS")}</p></div>
@@ -764,7 +764,7 @@ function Traffic({setPage}){
   const mx=Math.max(...bars.map(b=>b[1]));
   return (
     <div className="flex-1 overflow-auto scroll-thin bg-[#FAFAFA]">
-      <div className="max-w-[1480px] mx-auto px-8 py-7 space-y-5">
+      <div className="polaris-content-shell px-8 py-7 space-y-5">
         <div className="flex flex-wrap items-end gap-6">
           <div><div className="text-[12px] text-[#666666]">POLARIS Traffic</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-[#171717] mt-1">Traffic</h1><div className="text-[13px] text-[#666666] mt-1">{t("Débit, santé TCP, applications, congestion")}</div></div>
           <div className="ml-auto flex items-center gap-3"><span className="text-[11px] font-medium text-[#A15C00] bg-[#FFF7E6] border border-[#FCE2B0] rounded px-1.5 py-[1px]">{t("Données de démo")}</span><span className="text-[12px] text-[#8F8F8F]">{t("Aucune charge utile, aucune URL complète stockée.")}</span></div>
@@ -929,7 +929,7 @@ function App() {
   const ui = {full,setFull,gridHidden,setGridHidden};
   useEffect(()=>{ setMsg(0); setLens(null); },[s?.id]);
   return (
-    <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-[13px]">
+    <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-[#FAFAFA] text-[#171717] text-base">
       <TopBar role={role} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')}/>
       <DataStatus t={t}/>
       {role==='operator' && <div className="h-7 shrink-0 bg-[#FDF6E7] border-b border-[#F1D9A8] text-[#7A4505] text-[12px] flex items-center px-4">Rôle operator actif · identités masquées · actions soumises au proxy</div>}
