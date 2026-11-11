@@ -4,7 +4,14 @@ type Rec = Record<string, unknown>;
 const GROUPS: Record<string, number[]> = { 'demo-sub-a1f0c93e7b22d4': [1, 3, 6], 'demo-sub-b7e21d0a94cc58': [2, 5, 9] };
 const sid = (id: unknown) => `demo-sess-${id}`;
 const rows = SESS as unknown as Rec[];
-for (const r of rows) r['session_id'] = sid(r['id']);
+for (const r of rows) {
+  r['session_id'] = sid(r['id']);
+  // Test PLMN 001-01 identities (demo only), one subscriber per group.
+  const g = Object.entries(GROUPS).findIndex(([, ids]) => ids.includes(Number(r['id'])));
+  const n = g >= 0 ? g + 1 : Number(r['id']) + 10;
+  const mt = (0xC0A80000 + n * 4097 + Number(r['id'])).toString(16).toUpperCase().padStart(8, '0');
+  Object.assign(r, { imsi: `00101${String(n).padStart(10, '0')}`, m_tmsi: mt, s_tmsi: `01${mt}`, msisdn: `3360000${String(n).padStart(4, '0')}` });
+}
 for (const [pseudo, ids] of Object.entries(GROUPS)) ids.forEach((id, i) => {
   const r = rows.find(x => x['id'] === id); if (!r) return;
   Object.assign(r, { subscriber_pseudonym: pseudo, subscriber_session_count: ids.length,
