@@ -56,6 +56,10 @@ export const useDatasetSessions = (id?: string | number | null) => useResource<S
 export const useLteSessions = (id?: string | number | null) => useResource<Session[]>(`/lte/evidence/${idPath(id)}/sessions`, {}, id != null);
 export const useAvailableCauses = () => useResource<unknown[]>('/sessions/available_causes');
 export const useProbes = () => { const { demo } = usePolarisMode(); return useQuery({ ...resourceOptions<Probe[]>('/probes', {}, demo), refetchInterval: 5_000, refetchIntervalInBackground: true }); };
+export function useCreateProbe() {
+  const client = useQueryClient();
+  return useMutation({ mutationFn: (body: RecordData) => request<Probe>('/probes', { method: 'POST', body }), onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris', 'api', '/probes'] }); } });
+}
 export const useProbe = (id?: string | number | null) => useResource<Probe>(`/probes/${idPath(id)}`, {}, id != null);
 export const useProbeInterfaces = (id?: string | number | null) => useResource<RecordData[]>(`/probes/${idPath(id)}/interfaces`, {}, id != null);
 export const useInterfaces = () => { const { demo } = usePolarisMode(); return useQuery({ ...resourceOptions<RecordData[]>('/interfaces', {}, demo), refetchInterval: 15_000, refetchIntervalInBackground: true }); };

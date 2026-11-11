@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.14.0
+
+- Node Manager : ajout du dialogue « Register probe » réellement raccordé à `POST /api/v1/probes`; l'identifiant est normalisé automatiquement et le payload suit exactement le contrat OIRAN (casse, champs requis et rôles d'interface).
+- Autorisation : l'envoi reste fermé tant que `/auth/me` ne confirme pas `operator` ou `administrator` avec la permission `probes.create`; une erreur HTTP est affichée sans faux succès.
+- Proxy : le jeton OIRAN reste côté serveur et la preuve `x-csrf-token` est dérivée côté proxy pour les mutations; tout en-tête d'autorisation ou de preuve fourni par le navigateur est remplacé.
+- Tests : génération/validation du payload, mutation UI et dérivation CSRF couvertes par Vitest.
+
 ## 0.13.0
 
 - Probe Manager : la page principale n'affiche plus que la liste des sondes enregistrées; un clic sur une sonde ouvre une fiche dédiée.

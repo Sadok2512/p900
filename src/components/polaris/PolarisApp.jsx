@@ -5,6 +5,7 @@ import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
 import Administration from './admin/Administration';
 import LiveCapture from './admin/LiveCapture';
+import ProbeRegistration from './admin/ProbeRegistration';
 import { loadHidden, saveHidden, toggleHidden, isVisible, sanitizeHidden } from './admin/modules';
 import SubscriberJourney, { OtherSessions } from './analyzer/SubscriberJourney';
 import { shortPseudo, groupBySubscriber } from './analyzer/subscriber';
@@ -756,6 +757,7 @@ function Nodes() {
   const { demo } = usePolarisMode(); const probes = useProbes(); const auth = useAuthMe();
   const metrics = useMetrics(); const safety = useStorageSafety(); const version = useVersion();
   const [open,setOpen] = useState(null);
+  const [registering,setRegistering] = useState(false);
   const raw = records(probes.data?.data, 'probes');
   const nodes = raw.map((n,i)=>({ ...(demo ? n : toLegacyProbe(n,i,metrics.data?.data,safety.data?.data,version.data?.data?.backend_api)), raw:n }));
   const current = open==null ? null : nodes.find(n=>n.n===open) ?? null;
@@ -766,6 +768,7 @@ function Nodes() {
       <div className="flex items-center gap-2">
         <div className="text-[13px] text-[#666666]">{failure(probes,'/probes') ?? `${nodes.length} sondes enregistrées · POLARIS`}</div>
         <div className="ml-auto text-[11.5px] text-[#666666]">Rôle {available(auth.data?.data?.role)} · gestion des interfaces réservée à operator</div>
+        <button type="button" onClick={()=>setRegistering(true)} className="h-8 px-3 rounded-md bg-[var(--app-accent)] text-white text-[12px] font-medium">Ajouter une sonde</button>
       </div>
       <Card title="Sondes">
         <table className="w-full text-[12.5px]">
@@ -788,6 +791,7 @@ function Nodes() {
           </tbody>
         </table>
       </Card>
+      {registering && <ProbeRegistration auth={auth.data?.data} backendVersion={version.data?.data?.backend_api} onClose={()=>setRegistering(false)}/>}
       <div className="text-[11.5px] text-[#8F8F8F]">{demo ? "Données de démo" : "POLARIS"}</div>
     </div>
   );

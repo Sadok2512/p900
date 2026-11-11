@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { forwardedHeaders, targetFor } from '../../ops/p900-proxy.mjs';
+import { csrfForToken, forwardedHeaders, targetFor } from '../../ops/p900-proxy.mjs';
 
 describe('p900 proxy request target validation', () => {
   it('rejects an invalid authority-form target instead of crashing the process', () => {
@@ -18,5 +18,13 @@ describe('p900 proxy request target validation', () => {
     expect(headers).not.toHaveProperty('accept-encoding');
     expect(headers).not.toHaveProperty('authorization');
     expect(headers['accept']).toBe('application/json');
+  });
+
+  it('replaces browser credentials and derives the OIRAN CSRF proof server-side', () => {
+    const target=targetFor('/api/v1/probes');
+    const headers=forwardedHeaders({authorization:'browser-secret','x-csrf-token':'browser-proof'},target!,'POST','server-token');
+    expect(headers.authorization).toBe('Bearer server-token');
+    expect(headers['x-csrf-token']).toBe(csrfForToken('server-token'));
+    expect(headers['x-csrf-token']).not.toBe('browser-proof');
   });
 });

@@ -1,6 +1,7 @@
 import http from 'node:http';
 import { readFileSync, readdirSync, statfsSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
+import { createHash } from 'node:crypto';
 
 const listenHost = process.env.P900_PROXY_HOST ?? '127.0.0.1';
 const listenPort = Number(process.env.P900_PROXY_PORT ?? 8091);
@@ -28,16 +29,20 @@ export function targetFor(rawUrl = '/') {
   return { host: '127.0.0.1', port: 8090, scope: 'ui', path: rawUrl };
 }
 
-export function forwardedHeaders(headers, target) {
+export function csrfForToken(token) { return createHash('sha256').update(`oiran-csrf-v1:${token}`).digest('hex'); }
+
+export function forwardedHeaders(headers, target, method = 'GET', tokenOverride) {
   const forwarded = { ...headers };
   delete forwarded.authorization;
+  delete forwarded['x-csrf-token'];
   // Transformed responses are buffered and parsed as JSON below. Asking the
   // upstream for gzip/br would make JSON.parse receive compressed bytes.
   delete forwarded['accept-encoding'];
   delete forwarded.host;
   forwarded.host = `${target.host}:${target.port}`;
-  const token = tokens[target.scope];
+  const token = tokenOverride ?? tokens[target.scope];
   if (token) forwarded.authorization = `Bearer ${token}`;
+  if (token && target.scope === 'oiran' && !['GET','HEAD','OPTIONS'].includes(String(method).toUpperCase())) forwarded['x-csrf-token'] = csrfForToken(token);
   return forwarded;
 }
 
@@ -99,7 +104,7 @@ function captureDisk() {
 function sendJson(response,status,payload) { response.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}); response.end(JSON.stringify(payload)); }
 
 function proxy(request,response,target) {
-  const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target)}, upstreamResponse=>{
+  const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target,request.method)}, upstreamResponse=>{
     const pathname=parsedUrl(request.url)?.pathname ?? '/';
     const transform=target.scope==='polaris'||pathname==='/api/v1/probes';
     if (!transform) { response.writeHead(upstreamResponse.statusCode??502,upstreamResponse.headers); upstreamResponse.pipe(response); return; }
@@ -128,7 +133,7 @@ export function createServer() {
   server.on('upgrade',(request,socket,head)=>{
     const target=targetFor(request.url);
     if(!target) { socket.end('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n'); return; }
-    const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target)});
+    const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target,request.method)});
     upstream.on('upgrade',(upstreamResponse,upstreamSocket,upstreamHead)=>{
       const status=upstreamResponse.statusCode??101;
       const lines=[`HTTP/${upstreamResponse.httpVersion} ${status} ${upstreamResponse.statusMessage}`];

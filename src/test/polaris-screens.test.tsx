@@ -7,7 +7,7 @@ import { PolarisDataProvider } from '@/lib/polaris-api';
 const session = { session_id: 's1', ue_pseudonym: 'ue-test', technology: '5G SA', state: 'ACTIVE', procedure:'Registration', decode_completeness:100, interfaces:['N2'], message_count:1, ue_ip:'198.51.100.10' };
 const event = { event_id:'e1', capture_id:'c1', interface:'N2', protocol:'NGAP', message_name:'Registration Accept', source_participant:'AMF', destination_participant:'UE', direction:'CORE_TO_RAN', decoding_status:'DECODED', semantic_status:'SUCCESS', procedure_group:'Registration', packet_references:[{packet_number:45}], decoded_ie_tree:{result:'accepted'}, errors:[] };
 const payloads: Record<string,unknown> = {
-  '/auth/me':{role:'operator'}, '/health':{status:'healthy',coordination_open:false}, '/version':{backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{ngap:'0.6.0'}},
+  '/auth/me':{role:'operator',permissions:['probes.create']}, '/health':{status:'healthy',coordination_open:false}, '/version':{backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{ngap:'0.6.0'}},
   '/metrics':{capture_state:'active',pending_segments:7,segments_ingested:18,ingestion_failures:0,open_segments:2,zero_event_segments:1,dumpcap_active:6,dumpcap_expected:12}, '/storage/safety':{filesystem:{usage_percent:75,available_bytes:268435456}},
   '/sessions':[session], '/sessions/filter':[session], '/sessions/s1':session, '/sessions/s1/events':[event], '/sessions/s1/callflow':{events:[event]}, '/sessions/s1/procedures':[], '/sessions/s1/correlations':{edges:[{edge_id:'edge-1',source_event_id:'e1',target_event_id:'e1',source_interface:'N2',target_interface:'N2',matching_identifiers:['ctx=test'],rule_id:'context-rule',rule_version:'1',matched_rules:['context-rule'],evidence_description:'same context',evidence_type:'EXACT_CONTEXT',confidence:'EXACT',scope:'session',limitations:[],packet_references:[]}]},
   '/events/e1':event, '/events/e1/provenance':{capture_id:'c1',event_id:'e1',packet_number:45}, '/packets':[{id:'p1'}],
@@ -106,11 +106,23 @@ describe('main screens with simulated REST responses',()=>{
   it('Nodes uses probes and server version; capture targets remain disabled', async()=>{
     open('nodes'); await screen.findByText('lab-probe'); expect(screen.getByText('probe-test')).toBeInTheDocument();
     expect(screen.getByText('POLARIS connecté')).toBeInTheDocument();
-    expect(screen.queryByRole('button',{name:'Ajouter un nœud'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'Ajouter une sonde'})).toBeInTheDocument();
     expect(screen.queryByRole('button',{name:'Déploiements'})).not.toBeInTheDocument();
     fireEvent.click(screen.getByText('lab-probe'));
     fireEvent.click(await screen.findByRole('tab',{name:'Actions'}));
     await screen.findByRole('textbox',{name:'Cible de capture'}); expect(screen.getByRole('textbox',{name:'Cible de capture'})).toBeDisabled();
+  });
+  it('registers a probe with the published OIRAN payload', async()=>{
+    open('nodes');
+    fireEvent.click(await screen.findByRole('button',{name:'Ajouter une sonde'}));
+    fireEvent.change(screen.getByLabelText('Probe name'),{target:{value:'Lab vProbe Site A'}});
+    fireEvent.change(screen.getByLabelText('Lab host'),{target:{value:'namespace.container.local'}});
+    fireEvent.change(screen.getByLabelText('Management address'),{target:{value:'10.77.0.1'}});
+    fireEvent.change(screen.getByLabelText('Site'),{target:{value:'Lab A'}});
+    fireEvent.click(screen.getByRole('button',{name:'Register'}));
+    await waitFor(()=>expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/probes' && options?.method==='POST')).toBe(true));
+    const request=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/probes' && options?.method==='POST');
+    expect(JSON.parse(String(request?.[1]?.body))).toMatchObject({probe_id:'vprobe-lab-vprobe-site-a',probe_type:'virtual',host:'namespace.container.local',mgmt_ip:'10.77.0.1',site:'Lab A'});
   });
   it('keeps POLARIS connected when only probes fails and names the failing endpoint', async()=>{
     fetcher.mockImplementation(async (url: string) => {
@@ -166,7 +178,7 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByText('Non disponible : backend à venir — Live (WebSocket)')).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getByText('0.13.0')).toBeInTheDocument(); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.11.6 · API 2.11.6 · UI 0.13.0')).toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getByText('0.14.0')).toBeInTheDocument(); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.11.6 · API 2.11.6 · UI 0.14.0')).toBeInTheDocument();
   });
   it('Dashboard library is marked local and has no simulated saved queries outside Demo',()=>{
     open('templates'); expect(screen.getByText('local à ce navigateur')).toBeInTheDocument(); expect(screen.getByText('Aucune requête.')).toBeInTheDocument();

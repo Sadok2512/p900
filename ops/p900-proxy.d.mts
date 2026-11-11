@@ -6,4 +6,5 @@ export interface ProxyTarget {
 }
 
 export function targetFor(rawUrl?: string): ProxyTarget | null;
-export function forwardedHeaders(headers: Record<string, string>, target: ProxyTarget): Record<string, string>;
+export function csrfForToken(token: string): string;
+export function forwardedHeaders(headers: Record<string, string>, target: ProxyTarget, method?: string, tokenOverride?: string): Record<string, string>;
