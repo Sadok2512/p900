@@ -657,10 +657,7 @@ function Nodes() {
       <div className="space-y-5">
         <div className="flex items-center gap-2">
           <div className="text-[13px] text-[#666666]">{probes.isError ? probes.error.message : `${nodes.length} nœuds · POLARIS`}</div>
-          <div className="ml-auto flex gap-2">
-            <button disabled title="Non disponible : backend à venir" className="h-8 px-3 rounded-md bg-[var(--app-accent)] text-white text-[12.5px] font-medium flex items-center gap-2 disabled:opacity-50"><I d={ic.plus} c="w-4 h-4"/>Ajouter un nœud</button>
-            <button disabled title="Non disponible : backend à venir" className="h-8 px-3 rounded-md border border-[#EBEBEB] bg-white text-[12.5px] text-[#4D4D4D] disabled:opacity-50">Déploiements</button>
-          </div>
+          <div className="ml-auto text-[11.5px] text-[#666666]">Rôle {available(auth.data?.data?.role)} · gestion des interfaces réservée à operator</div>
         </div>
         <div className="space-y-5">
             <Card title="Nœuds de la plateforme">
@@ -691,6 +688,7 @@ function Nodes() {
                       )}
                     </React.Fragment>
                   ))}
+                  {!nodes.length && <tr><td colSpan="9" className="px-4 py-8 text-center text-[#8F8F8F]">{probes.isPending ? 'Connexion au Node Manager…' : probes.isError ? 'GET /api/v1/probes indisponible · nouvelle tentative dans 5 s' : 'Aucun nœud renvoyé par /probes'}</td></tr>}
                 </tbody>
               </table>
             </Card>

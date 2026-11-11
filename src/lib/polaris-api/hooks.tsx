@@ -17,11 +17,11 @@ export function useResource<T>(path: string, params: QueryParams = {}, enabled =
   return useQuery({ ...resourceOptions<T>(path, params, allowDemo && demo), enabled });
 }
 export const useAuthMe = () => useResource<AuthMe>('/auth/me', {}, true, false);
-export const useHealth = () => useResource<Health>('/health');
-export const useVersion = () => useResource<Version>('/version', {}, true, false);
+export const useHealth = () => useQuery({ ...resourceOptions<Health>('/health', {}, false), refetchInterval: 5_000, refetchIntervalInBackground: true });
+export const useVersion = () => useQuery({ ...resourceOptions<Version>('/version', {}, false), refetchInterval: 30_000, refetchIntervalInBackground: true });
 export const useMetrics = () => useResource<Metrics>('/metrics');
 export const useLiveMetrics = () => useQuery({ ...resourceOptions<Metrics>('/metrics', {}, false), refetchInterval: 5_000, refetchIntervalInBackground: true });
-export const useStorageSafety = () => useResource<Safety>('/storage/safety');
+export const useStorageSafety = () => useQuery({ ...resourceOptions<Safety>('/storage/safety', {}, false), refetchInterval: 15_000, refetchIntervalInBackground: true });
 export const useSessions = (params: QueryParams = {}, enabled = true) => useResource<Session[]>('/sessions', params, enabled);
 const idPath = (id: string | number | null | undefined) => encodeURIComponent(String(id ?? ''));
 export const useSession = (id?: string | number | null) => useResource<Session>(`/sessions/${idPath(id)}`, {}, id != null);
@@ -55,10 +55,10 @@ export const useDatasets = () => useResource<RecordData[]>('/datasets');
 export const useDatasetSessions = (id?: string | number | null) => useResource<Session[]>(`/datasets/${idPath(id)}/sessions`, {}, id != null);
 export const useLteSessions = (id?: string | number | null) => useResource<Session[]>(`/lte/evidence/${idPath(id)}/sessions`, {}, id != null);
 export const useAvailableCauses = () => useResource<unknown[]>('/sessions/available_causes');
-export const useProbes = () => useResource<Probe[]>('/probes');
+export const useProbes = () => useQuery({ ...resourceOptions<Probe[]>('/probes', {}, false), refetchInterval: 5_000, refetchIntervalInBackground: true });
 export const useProbe = (id?: string | number | null) => useResource<Probe>(`/probes/${idPath(id)}`, {}, id != null);
 export const useProbeInterfaces = (id?: string | number | null) => useResource<RecordData[]>(`/probes/${idPath(id)}/interfaces`, {}, id != null);
-export const useInterfaces = () => useResource<RecordData[]>('/interfaces');
+export const useInterfaces = () => useQuery({ ...resourceOptions<RecordData[]>('/interfaces', {}, false), refetchInterval: 15_000, refetchIntervalInBackground: true });
 export const useInterfaceRuntime = () => useQuery({ ...resourceOptions<RecordData[]>('/interfaces/runtime', {}, false), refetchInterval: 5_000, refetchIntervalInBackground: true });
 export const useCaptures = () => useResource<RecordData[]>('/captures');
 export const useCaptureMetrics = (id?: string | number | null) => useResource<Metrics>(`/captures/${idPath(id)}/metrics`, {}, id != null);

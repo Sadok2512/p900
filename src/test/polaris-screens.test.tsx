@@ -105,6 +105,9 @@ describe('main screens with simulated REST responses',()=>{
   });
   it('Nodes uses probes and server version; capture targets remain disabled', async()=>{
     open('nodes'); await screen.findByText('lab-probe'); expect(screen.getByText('probe-test')).toBeInTheDocument();
+    expect(screen.getByText('POLARIS connecté')).toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:'Ajouter un nœud'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button',{name:'Déploiements'})).not.toBeInTheDocument();
     await screen.findByRole('textbox',{name:'Cible de capture'}); expect(screen.getByRole('textbox',{name:'Cible de capture'})).toBeDisabled();
   });
   it('adds then removes a fictive interface through the Administration contract', async()=>{
