@@ -3,7 +3,7 @@ import LiveModule from './live/LiveModule';
 import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useStorageSafety, useSessions, useSessionAnchors, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
-import { pageItems, pageSlice, verdict, timeOf, toMs, fmtUtc, fmtDuration } from './analyzer/analysis';
+import { visibleMessages, filterOptions, emptyFilter, filterActive, pageItems, pageSlice, verdict, timeOf, toMs, fmtUtc, fmtDuration } from './analyzer/analysis';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 /* Données fictives — PLMN de test 001/01. Tri canonique (capture_id, seq). */
@@ -289,12 +289,12 @@ function useWidth() {
   useEffect(()=>{ if(!ref.current) return; const ro = new ResizeObserver(e=>setW(Math.floor(e[0].contentRect.width))); ro.observe(ref.current); return ()=>ro.disconnect(); },[]);
   return [ref,w];
 }
-function Ladder({d,sel,setSel,lens,hidden,collapsed,width,zoom=1,timers=false}) {
+function Ladder({d,sel,setSel,lens,hidden,collapsed,width,zoom=1,timers=false,allowed}) {
   const W = Math.max(560, Math.round(width*zoom)), LG = 214, n = Math.max(2,d.nodes.length), ROW = 30, TOP = 46;
   const x = k => LG + 50 + k*((W-LG-(timers?130:100))/(n-1));
   const procedureKey = p => `${p[0]}:${p[3] ?? p[1]}`;
   const inCollapsed = k => d.procs.some(p=>collapsed.includes(procedureKey(p)) && k>=p[1] && k<=p[2]);
-  const vis = d.msgs.map((m,k)=>k).filter(k=>!hidden.includes(d.msgs[k][0]) && !inCollapsed(k));
+  const vis = d.msgs.map((m,k)=>k).filter(k=>!hidden.includes(d.msgs[k][0]) && !inCollapsed(k) && (!allowed || allowed.has(k)));
   const H = TOP + Math.max(1,vis.length)*ROW + 16;
   const lensCause = lens && d.msgs.some(m=>m[5]===lens && isCause(m));
   return (
@@ -331,6 +331,54 @@ function Ladder({d,sel,setSel,lens,hidden,collapsed,width,zoom=1,timers=false}) 
   );
 }
 
+function usePopover() {
+  const [open,setOpen] = useState(false); const ref = useRef(null);
+  useEffect(()=>{ if(!open) return; const down=e=>{ if(ref.current && !ref.current.contains(e.target)) setOpen(false); }; const key=e=>{ if(e.key==='Escape') setOpen(false); };
+    document.addEventListener('mousedown',down); document.addEventListener('keydown',key); return ()=>{ document.removeEventListener('mousedown',down); document.removeEventListener('keydown',key); }; },[open]);
+  return [open,setOpen,ref];
+}
+function LadderMore({children}) {
+  const [open,setOpen,ref] = usePopover();
+  return <div ref={ref} className="relative shrink-0">
+    <button onClick={()=>setOpen(o=>!o)} aria-label="Plus d'actions du Ladder" aria-expanded={open} className="h-7 w-7 rounded-md border border-[#E2E8F0] grid place-items-center text-[#334155] hover:bg-[#F8FAFC]">⋯</button>
+    {open && <div className="absolute right-0 top-8 z-40 bg-white border border-[#E2E8F0] rounded-lg shadow-lg p-1.5 flex flex-wrap gap-1 w-[260px] [&_button]:h-7">{children}</div>}
+  </div>;
+}
+function LadderFilter({flow,value,onApply}) {
+  const [open,setOpen,ref] = usePopover(); const [draft,setDraft] = useState(value); const [pq,setPq] = useState('');
+  useEffect(()=>{ if(open) setDraft(value); },[open]);
+  const opts = useMemo(()=>filterOptions(flow),[flow]);
+  const toggle = (key,v) => setDraft(d=>({...d,[key]:d[key].includes(v)?d[key].filter(x=>x!==v):[...d[key],v]}));
+  const active = filterActive(value);
+  const H = ({children}) => <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#64748B] mb-1">{children}</div>;
+  const sel = "h-7 w-full px-1.5 rounded border border-[#E2E8F0] bg-white text-[12px] outline-none focus:border-[var(--app-accent)]";
+  return <div ref={ref} className="relative shrink-0">
+    <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} className={`h-7 px-2 rounded-md border text-[12px] flex items-center gap-1.5 ${active?'border-[var(--app-accent)] text-[var(--app-accent)]':'border-[#E2E8F0] text-[#334155] hover:bg-[#F8FAFC]'}`}>
+      <I d="M3 5h18l-7 8v5l-4 2v-7z" c="w-3.5 h-3.5"/>Filter{active && <span aria-label="Filtres actifs" className="w-1.5 h-1.5 rounded-full bg-[var(--app-accent)]"/>}</button>
+    {open && <div role="dialog" aria-label="Filtres du Ladder" className="absolute right-0 top-8 z-40 w-[300px] bg-white border border-[#E2E8F0] rounded-lg shadow-lg flex flex-col max-h-[420px] text-[12px] text-[#172033]">
+      <div className="flex-1 overflow-auto scroll-thin p-3 space-y-3">
+        <section><H>Procédures</H>
+          <input aria-label="Rechercher une procédure" value={pq} onChange={e=>setPq(e.target.value)} placeholder="Rechercher…" className={sel+" mb-1.5"}/>
+          <div className="flex gap-3 mb-1 text-[11.5px]"><button onClick={()=>setDraft(d=>({...d,procs:[]}))} className="text-[var(--app-accent)]">Tout sélectionner</button><button onClick={()=>setDraft(d=>({...d,procs:opts.procs}))} className="text-[var(--app-accent)]">Tout désélectionner</button></div>
+          {opts.procs.filter(p=>p.toLowerCase().includes(pq.toLowerCase())).map(p=><label key={p} className="flex items-center gap-2 h-6 cursor-pointer"><input type="checkbox" checked={!draft.procs.includes(p)} onChange={()=>toggle('procs',p)}/><span className="truncate">{p}</span></label>)}
+          {opts.procs.length===0 && <div className="text-[#64748B]">Aucune procédure.</div>}
+        </section>
+        <section><H>Messages</H><div className="space-y-1.5">
+          <input aria-label="Nom de message" value={draft.text} onChange={e=>setDraft(d=>({...d,text:e.target.value}))} placeholder="Nom de message…" className={sel}/>
+          <select aria-label="Type de message" value={draft.type} onChange={e=>setDraft(d=>({...d,type:e.target.value}))} className={sel}><option value="">Tous les types</option>{opts.types.map(x=><option key={x}>{x}</option>)}</select>
+          {opts.dirs.length>0 && <select aria-label="Sens" value={draft.dir} onChange={e=>setDraft(d=>({...d,dir:e.target.value}))} className={sel}><option value="">UL et DL</option>{opts.dirs.map(x=><option key={x}>{x}</option>)}</select>}
+          <div className="text-[11px] text-[#64748B]">Interfaces : boutons N2 / N3 / N4 de la barre.</div>
+        </div></section>
+        {opts.results.length>0 && <section><H>Résultats</H>{opts.results.map(r=><label key={r} className="flex items-center gap-2 h-6 cursor-pointer"><input type="checkbox" checked={!draft.results.includes(r)} onChange={()=>toggle('results',r)}/><VerdictBadge v={r}/></label>)}</section>}
+      </div>
+      <div className="shrink-0 flex justify-end gap-2 p-2 border-t border-[#E2E8F0]">
+        <button onClick={()=>{const e=emptyFilter(); setDraft(e); onApply(e);}} className="h-7 px-2.5 rounded-md border border-[#E2E8F0] text-[#334155]">Réinitialiser</button>
+        <button onClick={()=>{onApply(draft); setOpen(false);}} className="h-7 px-3 rounded-md bg-[var(--app-accent)] text-white font-medium">Appliquer</button>
+      </div>
+    </div>}
+  </div>;
+}
+
 function Detail({s,sel,setSel,lens,ui}) {
   const { demo } = usePolarisMode(); const auth = useAuthMe();
   const [tab,setTab] = useState('Ladder');
@@ -338,9 +386,11 @@ function Detail({s,sel,setSel,lens,ui}) {
   const [collapsed,setCollapsed] = useState([]);
   const [ref,width] = useWidth();
   const [zoom,setZoom] = useState(1); const [timers,setTimers] = useState(false);
-  useEffect(()=>{ setHidden([]); setCollapsed([]); },[s.id]);
+  const [mf,setMf] = useState(emptyFilter);
+  useEffect(()=>{ setHidden([]); setCollapsed([]); setMf(emptyFilter()); },[s.id]);
   const ifs = [...new Set(s.d.msgs.map(m=>m[0]))];
-  const step = dir => { const n=s.d.msgs.length; let k=sel; for(let i=0;i<n;i++){ k=(k+dir+n)%n; if(!hidden.includes(s.d.msgs[k][0])) break; } setSel(k); };
+  const shownIdx = useMemo(()=>visibleMessages(s.d,hidden,mf),[s.d,hidden,mf]); const shownSet = useMemo(()=>new Set(shownIdx),[shownIdx]);
+  const step = dir => { const n=s.d.msgs.length; let k=sel; for(let i=0;i<n;i++){ k=(k+dir+n)%n; if(shownSet.has(k)) break; } setSel(k); };
   useEffect(()=>{ const f=e=>{ if(/INPUT|SELECT|TEXTAREA/.test(document.activeElement?.tagName)) return; if(e.key==='ArrowDown'||e.key==='j'){e.preventDefault();step(1);} if(e.key==='ArrowUp'||e.key==='k'){e.preventDefault();step(-1);} if(e.key==='f'&&tab==='Ladder') ui.setFull(v=>!v); if(e.key==='Escape') ui.setFull(false); }; window.addEventListener('keydown',f); return ()=>window.removeEventListener('keydown',f); });
   const tb = "h-7 px-2 rounded-md text-[12px] flex items-center gap-1.5 border transition";
   const d = s.d, ex = d.links.filter(l=>l[5]==='EXACT').length;
@@ -348,18 +398,13 @@ function Detail({s,sel,setSel,lens,ui}) {
     <section className="flex-1 min-h-0 flex flex-col bg-white rounded-xl border border-[#EBEBEB] overflow-hidden">
       <div className="px-3 border-b border-[#E2E8F0]">
         {s.detailErrors?.map(error => <div key={error.endpoint} role="alert" className="pt-1.5 text-[12px] text-[#B42318]">Détail indisponible · {error.endpoint} · HTTP {error.status}</div>)}
-        <div className="flex items-center gap-5">
-          {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-9 text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#171717] font-medium':'border-transparent text-[#666666] hover:text-[#171717]'}`}>{t}</button>)}
-          <span className="ml-auto whitespace-nowrap text-[12px] text-[#64748B]"><b className="text-[#172033] tabular-nums">{d.msgs.length}</b> {d.msgs.length>1?'messages':'message'}</span>
-        </div>
-      </div>
-      {tab==='Ladder' && <div className="h-9 shrink-0 px-3 flex items-center gap-1.5 border-b border-[#F2F2F2] overflow-x-auto scroll-thin">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mr-1">Interfaces</span>
-        {ifs.map(i=>{const off=hidden.includes(i); return <button key={i} onClick={()=>setHidden(off?hidden.filter(x=>x!==i):[...hidden,i])} title={off?'Afficher':'Masquer'} className={`h-6 px-1 rounded-md border transition ${off?'opacity-35 border-transparent':'border-[#EBEBEB] bg-white'}`}><Tag i={i}/></button>;})}
-        <span className="w-px h-4 bg-[#EBEBEB] mx-2"/>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mr-1">Procédures</span>
-        {d.procs.map(([p,a,b,firstEventId])=>{const key=`${p}:${firstEventId ?? a}`, c=collapsed.includes(key); return <button key={key} onClick={()=>setCollapsed(c?collapsed.filter(x=>x!==key):[...collapsed,key])} className={`${tb} whitespace-nowrap shrink-0 ${c?'border-[#EBEBEB] bg-[#FAFAFA] text-[#8F8F8F]':'border-[#EBEBEB] bg-white text-[#171717]'}`}><span className="text-[10px]">{c?'▸':'▾'}</span>{p}<span className="text-[#A3A3A3] tabular-nums">{b-a+1}</span></button>;})}
-        <div className="ml-auto flex items-center gap-1 shrink-0"><button disabled={demo} onClick={()=>{window.location.href=apiPath(`/exports/callflow/${encodeURIComponent(s.id)}`);}} className={tb+" border-[#EBEBEB]"}>Exporter</button>{auth.data?.data?.role==='operator' && <button disabled={demo || s.cap==='—'} onClick={()=>{if(window.confirm('Télécharger cet extrait pcap ?')) window.location.href=apiPath(`/captures/${encodeURIComponent(s.cap)}/download`);}} className={tb+" border-[#EBEBEB]"}>PCAP</button>}
+        <div className="h-[42px] flex items-center gap-4 min-w-0">
+          {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-[42px] shrink-0 whitespace-nowrap text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#172033] font-medium':'border-transparent text-[#64748B] hover:text-[#172033]'}`}>{t}</button>)}
+          <div className="ml-auto flex items-center gap-1 shrink-0">
+            {ifs.map(i=>{const off=hidden.includes(i); return <button key={i} aria-pressed={!off} onClick={()=>setHidden(off?hidden.filter(x=>x!==i):[...hidden,i])} title={off?`Afficher ${i}`:`Masquer ${i}`} className={`h-6 px-0.5 rounded-md border transition ${off?'opacity-35 border-transparent':'border-[#E2E8F0] bg-white'}`}><Tag i={i}/></button>;})}
+          </div>
+          <LadderFilter flow={d} value={mf} onApply={setMf}/>
+          <LadderMore><button disabled={demo} onClick={()=>{window.location.href=apiPath(`/exports/callflow/${encodeURIComponent(s.id)}`);}} className={tb+" border-[#EBEBEB]"}>Exporter</button>{auth.data?.data?.role==='operator' && <button disabled={demo || s.cap==='—'} onClick={()=>{if(window.confirm('Télécharger cet extrait pcap ?')) window.location.href=apiPath(`/captures/${encodeURIComponent(s.cap)}/download`);}} className={tb+" border-[#EBEBEB]"}>PCAP</button>}
           <button onClick={()=>setZoom(z=>Math.max(0.6,+(z-0.2).toFixed(1)))} title="Zoom arrière" className={`${tb} border-[#E2E8F0] text-[#334155]`}>−</button>
           <button onClick={()=>setZoom(1)} title="Ajuster à la largeur" className={`${tb} border-[#E2E8F0] text-[#334155] tabular-nums`}>{zoom===1?'Ajusté':`${Math.round(zoom*100)} %`}</button>
           <button onClick={()=>setZoom(z=>Math.min(3,+(z+0.2).toFixed(1)))} title="Zoom avant" className={`${tb} border-[#E2E8F0] text-[#334155]`}>+</button>
@@ -368,11 +413,13 @@ function Detail({s,sel,setSel,lens,ui}) {
           <button onClick={()=>step(1)} title="Message suivant (↓)" className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>↓</button>
           {!ui.full && <button onClick={()=>ui.setGridHidden(v=>!v)} className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>{ui.gridHidden?'Afficher le tableau':'Masquer le tableau'}</button>}
           <button onClick={()=>ui.setFull(v=>!v)} title="Plein écran (F)" className={`${tb} ${ui.full?'border-transparent bg-[var(--app-accent)] text-white':'border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]'}`}><I d={ui.full?'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5':'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'} c="w-3.5 h-3.5"/>{ui.full?'Quitter':'Plein écran'}</button>
+</LadderMore>
+          <span title={`${shownIdx.length} messages affichés sur ${d.msgs.length}`} className="shrink-0 whitespace-nowrap text-[12px] text-[#64748B]"><b className="text-[#172033] tabular-nums">{shownIdx.length}</b> {shownIdx.length>1?'messages':'message'}</span>
         </div>
-      </div>}
+      </div>
       <div ref={ref} className="flex-1 overflow-auto scroll-thin">
-        {tab==='Ladder' && <Ladder d={d} sel={sel} setSel={setSel} lens={lens} hidden={hidden} collapsed={collapsed} width={width} zoom={zoom} timers={timers}/>}
-        {tab==='Messages' && <table className="w-full text-[12.5px]"><tbody>{d.msgs.map((m,k)=>(
+        {tab==='Ladder' && <Ladder d={d} sel={sel} setSel={setSel} lens={lens} hidden={hidden} collapsed={collapsed} width={width} zoom={zoom} timers={timers} allowed={shownSet}/>}
+        {tab==='Messages' && <table className="w-full text-[12.5px]"><tbody>{d.msgs.map((m,k)=>[m,k]).filter(([,k])=>shownSet.has(k)).map(([m,k])=>(
           <tr key={k} onClick={()=>setSel(k)} className={`cursor-pointer ${sel===k?'bg-[color-mix(in_oklab,var(--app-accent)_9%,white)]':'hover:bg-[#FAFAFA]'}`}>
             <td className="h-7 px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#8F8F8F] w-12">{available(d.evidence?.[k]?.seq ?? (demoMessageNumber(d,k)))}</td><td className="px-2 border-b border-[#F2F2F2] w-20"><Tag i={m[0]}/></td>
             <td className="px-2 border-b border-[#F2F2F2]">{m[1]}{m[3]&&<span className="text-[#666666]"> · {m[3]}</span>}</td><td className="px-2 border-b border-[#F2F2F2] text-[#666666]">{m[2]}</td>

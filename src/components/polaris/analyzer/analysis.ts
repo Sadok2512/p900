@@ -103,3 +103,47 @@ export function pageItems(current: number, total: number): (number | '…')[] {
   return out;
 }
 export const pageSlice = <T,>(rows: T[], page: number, size: number) => rows.slice((page - 1) * size, page * size);
+
+// Ladder message filters (frontend only; never alters session data).
+export const OTHER_EVENTS = 'Autres événements';
+export type MsgFilter = { procs: string[]; text: string; type: string; dir: string; results: Verdict[] };
+export const emptyFilter = (): MsgFilter => ({ procs: [], text: '', type: '', dir: '', results: [] });
+export const filterActive = (f: MsgFilter) => !!(f.procs.length || f.text.trim() || f.type || f.dir || f.results.length);
+export function procOf(flow: Flow, k: number): string {
+  const g = flow.evidence?.[k]?.['procedure_group'];
+  const p = flow.procs.find(([, a, b]) => a >= 0 && k >= a && k <= b)?.[0] ?? (typeof g === 'string' ? g : undefined);
+  return !p || p === '—' || /background|lifecycle/i.test(p) ? OTHER_EVENTS : p;
+}
+export function dirOf(e?: Rec): string {
+  const d = String(e?.['direction'] ?? '').toUpperCase();
+  if (/UL|UPLINK|UE_TO|RAN_TO_CORE/.test(d)) return 'UL';
+  if (/DL|DOWNLINK|TO_UE|CORE_TO_RAN/.test(d)) return 'DL';
+  return '';
+}
+export function msgResult(flow: Flow, k: number): Verdict {
+  const m = flow.msgs[k]!, e = flow.evidence?.[k];
+  return isFailedMessage(m, e) ? 'FAILED' : verdict(e?.['semantic_status'] ?? (DONE_MSG.test(m[1] ?? '') ? 'success' : ''));
+}
+export function filterOptions(flow: Flow) {
+  const ks = flow.msgs.map((_, k) => k);
+  const uniq = (xs: string[]) => [...new Set(xs.filter(x => x && x !== '—'))];
+  return {
+    procs: uniq(ks.map(k => procOf(flow, k))).sort((a, b) => a === OTHER_EVENTS ? 1 : b === OTHER_EVENTS ? -1 : 0),
+    types: uniq(ks.map(k => String(flow.evidence?.[k]?.['protocol'] ?? ''))),
+    dirs: uniq(ks.map(k => dirOf(flow.evidence?.[k]))),
+    results: uniq(ks.map(k => msgResult(flow, k))) as Verdict[],
+  };
+}
+export function visibleMessages(flow: Flow, hiddenIfc: string[], f: MsgFilter): number[] {
+  const q = f.text.trim().toLowerCase();
+  return flow.msgs.map((_, k) => k).filter(k => {
+    const m = flow.msgs[k]!, e = flow.evidence?.[k];
+    if (hiddenIfc.includes(m[0])) return false;
+    if (f.procs.includes(procOf(flow, k))) return false;
+    if (q && !`${m[1]} ${m[3] ?? ''}`.toLowerCase().includes(q)) return false;
+    if (f.type && String(e?.['protocol'] ?? '') !== f.type) return false;
+    if (f.dir && dirOf(e) !== f.dir) return false;
+    if (f.results.includes(msgResult(flow, k))) return false;
+    return true;
+  });
+}

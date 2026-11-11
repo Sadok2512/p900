@@ -37,3 +37,18 @@ describe('sessions pagination', () => {
     expect(pageItems(5, 10)).toEqual([1, '…', 4, 5, 6, '…', 10]);
   });
 });
+import { visibleMessages, filterOptions, emptyFilter, OTHER_EVENTS } from './analysis';
+describe('ladder message filter', () => {
+  const f: Flow = { msgs: [['N2', 'Initial UE Message', 'gNB → AMF', null, null, null], ['N4', 'PFCP Session Establishment Request', 'SMF → UPF', null, null, null], ['N3', 'G-PDU', 'gNB → UPF', null, null, null]],
+    procs: [['Background / Lifecycle', 0, 0], ['PFCP Session', 1, 1]], evidence: [{ protocol: 'NGAP', direction: 'RAN_TO_CORE' }, { protocol: 'PFCP' }, { protocol: 'GTP-U' }] };
+  it('groups Background / Lifecycle and unassigned messages under Autres événements', () => {
+    expect(filterOptions(f).procs).toEqual(['PFCP Session', OTHER_EVENTS]);
+  });
+  it('hides an excluded procedure but keeps the other messages', () => {
+    expect(visibleMessages(f, [], { ...emptyFilter(), procs: [OTHER_EVENTS] })).toEqual([1]);
+  });
+  it('combines interface toggles with name search', () => {
+    expect(visibleMessages(f, ['N3'], { ...emptyFilter(), text: 'pfcp' })).toEqual([1]);
+    expect(visibleMessages(f, [], { ...emptyFilter(), dir: 'UL' })).toEqual([0]);
+  });
+});
