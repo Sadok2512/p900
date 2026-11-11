@@ -171,33 +171,46 @@ function QueryPanel({conds,setConds}) {
 }
 
 const durOf = r => { const a=toMs(r.start_timestamp), b=toMs(r.end_timestamp); return a!=null&&b!=null ? b-a : null; };
+const GRID_GROUPS = [
+  {k:'session',l:'Tous protocoles'},
+  {k:'nas',l:'NAS — 5GS / EPS'},
+  {k:'ran',l:'NGAP / S1AP'},
+  {k:'correlation',l:'Corrélation multi-protocole'},
+];
 const GRID_COLS = [
-  {k:'num',l:'Numéro',w:112,v:r=>r.id!=null?`c${r.cap} · ${r.seq}`:'identifiant absent',mono:true},
-  {k:'start',l:'Début UTC',w:118,v:r=>fmtUtc(toMs(r.start_timestamp)),mono:true},
-  {k:'imsi',l:'IMSI',w:78,v:()=>'masqué',lock:true},
-  {k:'sid',l:'Session ID',w:120,v:r=>r.session_id??'—',mono:true},
-  {k:'res',l:'Résultat',w:96,v:r=>verdict(r.res)},
-  {k:'cause',l:'Cause',w:120,v:r=>r.cause||'—'},
-  {k:'ifc',l:'Interfaces',w:132,v:r=>[...new Set(r.interfaces??[])].join(' ')},
-  {k:'pdu',l:'PDU Session',w:88,v:r=>r.pdu_session_id??'—',mono:true},
-  {k:'dur',l:'Durée',w:76,v:r=>{const d=durOf(r);return d==null?(r.dur??'—'):fmtDuration(d);},sort:r=>durOf(r)??-1},
-  {k:'cell',l:'Cellule',w:84,v:r=>r.cell??'—'},
-  {k:'core',l:'AMF/MME',w:90,v:r=>r.serving_node??'—'},
-  {k:'ran',l:'gNB/eNB',w:90,v:r=>r.ran_node??r.gnb??r.enb??'—'},
-  {k:'ue',l:'UE',w:96,v:r=>r.ue,mono:true},
-  {k:'rat',l:'RAT',w:64,v:r=>r.rat},
-  {k:'proc',l:'Procédure',w:130,v:r=>r.proc},
-  {k:'ex',l:'Liens EXACT',w:90,v:r=>r.ex,mono:true},
-  {k:'comp',l:'Compl.',w:68,v:r=>r.comp==='—'?'—':`${r.comp} %`,sort:r=>Number(r.comp)||-1},
+  {k:'num',l:'Numéro',g:'session',w:112,v:r=>r.id!=null?`c${r.cap} · ${r.seq}`:'identifiant absent',mono:true,required:true},
+  {k:'start',l:'Début UTC',g:'session',w:118,v:r=>fmtUtc(toMs(r.start_timestamp)),mono:true},
+  {k:'sid',l:'Session ID',g:'session',w:120,v:r=>r.session_id??'—',mono:true},
+  {k:'res',l:'Résultat',g:'session',w:96,v:r=>verdict(r.res)},
+  {k:'dur',l:'Durée',g:'session',w:76,v:r=>{const d=durOf(r);return d==null?(r.dur??'—'):fmtDuration(d);},sort:r=>durOf(r)??-1},
+  {k:'ue',l:'UE',g:'session',w:96,v:r=>r.ue,mono:true},
+  {k:'rat',l:'RAT',g:'session',w:64,v:r=>r.rat},
+  {k:'proc',l:'Procédure',g:'session',w:130,v:r=>r.proc},
+  {k:'imsi',l:'IMSI',g:'nas',w:78,v:()=>'masqué',lock:true},
+  {k:'cause',l:'Cause',g:'nas',w:120,v:r=>r.cause||'—'},
+  {k:'pdu',l:'PDU Session',g:'nas',w:88,v:r=>r.pdu_session_id??'—',mono:true},
+  {k:'cell',l:'Cellule',g:'ran',w:84,v:r=>r.cell??'—'},
+  {k:'core',l:'AMF/MME',g:'ran',w:90,v:r=>r.serving_node??'—'},
+  {k:'ran',l:'gNB/eNB',g:'ran',w:90,v:r=>r.ran_node??r.gnb??r.enb??'—'},
+  {k:'ifc',l:'Interfaces',g:'correlation',w:132,v:r=>[...new Set(r.interfaces??[])].join(' ')},
+  {k:'ex',l:'Liens EXACT',g:'correlation',w:90,v:r=>r.ex,mono:true},
+  {k:'comp',l:'Compl.',g:'correlation',w:68,v:r=>r.comp==='—'?'—':`${r.comp} %`,sort:r=>Number(r.comp)||-1},
 ];
 function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
   const { demo } = usePolarisMode(); const sessions = useSessions({ page:1, page_size:100, sort:'capture_id', order:'asc' },false);
   const [more,setMore] = useState(false);
+  const [manageCols,setManageCols] = useState(false);
   const [txt,setTxt] = useState('');
   const [sort,setSort] = useState(null);
   const [widths,setWidths] = useState(()=>{ try { return JSON.parse(localStorage.getItem('polaris-grid-cols'))||{}; } catch(e) { return {}; } });
+  const [hiddenCols,setHiddenCols] = useState(()=>{ try { const value=JSON.parse(localStorage.getItem('polaris-grid-hidden-cols'))||[]; return Array.isArray(value)?value.filter(k=>GRID_COLS.some(c=>c.k===k&&!c.required)):[]; } catch(e) { return []; } });
   useEffect(()=>{ try { localStorage.setItem('polaris-grid-cols',JSON.stringify(widths)); } catch(e) {} },[widths]);
+  useEffect(()=>{ try { localStorage.setItem('polaris-grid-hidden-cols',JSON.stringify(hiddenCols)); } catch(e) {} },[hiddenCols]);
+  const visibleCols = useMemo(()=>GRID_COLS.filter(c=>!hiddenCols.includes(c.k)),[hiddenCols]);
   const W = c => widths[c.k] ?? c.w;
+  const closeMore = () => { setMore(false); setManageCols(false); };
+  const resetCols = () => { setWidths({}); setHiddenCols([]); setSort(null); closeMore(); };
+  const toggleCol = c => { if(c.required) return; setHiddenCols(value=>value.includes(c.k)?value.filter(k=>k!==c.k):[...value,c.k]); if(sort?.[0]===c.k) setSort(null); };
   const resize = (e,c) => { e.preventDefault(); e.stopPropagation(); const x0=e.clientX, w0=W(c);
     const mv = ev => setWidths(w=>({...w,[c.k]:Math.max(48,w0+ev.clientX-x0)}));
     const up = () => { window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up); document.body.style.cursor=''; };
@@ -239,18 +252,25 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
         </div>
         <button onClick={onEdit} className="h-7 px-2.5 rounded-md border border-[#E2E8F0] text-[12px] flex items-center gap-1.5 text-[#334155] hover:bg-[#F8FAFC]"><I d={ic.search} c="w-3.5 h-3.5"/>Modifier la requête</button>
         <div className="relative">
-          <button onClick={()=>setMore(m=>!m)} title="Plus d'actions" className="h-7 w-7 rounded-md border border-[#E2E8F0] grid place-items-center text-[#334155] hover:bg-[#F8FAFC]">⋯</button>
-          {more && <><div className="fixed inset-0 z-30" onClick={()=>setMore(false)}/><div className="absolute right-0 top-8 z-40 w-48 bg-white border border-[#E2E8F0] rounded-lg shadow-lg py-1 text-[12.5px]">
-            <button onClick={()=>{setWidths({});setMore(false);}} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.cols} c="w-3.5 h-3.5 text-[#64748B]"/>Réinitialiser les colonnes</button>
-            <button onClick={()=>setMore(false)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.dl} c="w-3.5 h-3.5 text-[#64748B]"/>Exporter</button>
-          </div></>}
+          <button onClick={()=>{setMore(m=>!m);setManageCols(false);}} title="Plus d'actions" aria-expanded={more} className="h-7 w-7 rounded-md border border-[#E2E8F0] grid place-items-center text-[#334155] hover:bg-[#F8FAFC]">⋯</button>
+          {more && <><div className="fixed inset-0 z-30" onClick={closeMore}/>{manageCols ? <div role="dialog" aria-label="Gérer les colonnes" className="absolute right-0 top-8 z-40 w-72 bg-white border border-[#E2E8F0] rounded-lg shadow-lg text-[12.5px] overflow-hidden">
+            <div className="h-9 px-3 flex items-center border-b border-[#E2E8F0]"><button onClick={()=>setManageCols(false)} aria-label="Retour aux actions" className="mr-2 text-[#64748B] hover:text-[#172033]">←</button><span className="font-semibold text-[#172033]">Gérer les colonnes</span><button onClick={()=>setHiddenCols([])} className="ml-auto text-[11.5px] text-[var(--app-accent)]">Tout afficher</button></div>
+            <div className="max-h-[420px] overflow-auto scroll-thin p-2.5 space-y-3">
+              {GRID_GROUPS.map(group=><section key={group.k} aria-label={group.l}><div className="px-1 mb-1 text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#64748B]">{group.l}</div>{GRID_COLS.filter(c=>c.g===group.k).map(c=><label key={c.k} className={`h-7 px-1 flex items-center gap-2 rounded hover:bg-[#F8FAFC] ${c.required?'cursor-not-allowed':'cursor-pointer'}`}><input type="checkbox" aria-label={c.l} checked={!hiddenCols.includes(c.k)} disabled={c.required} onChange={()=>toggleCol(c)}/><span>{c.l}</span>{c.required&&<span className="ml-auto text-[10.5px] text-[#94A3B8]">obligatoire</span>}</label>)}</section>)}
+            </div>
+            <div className="p-2 border-t border-[#E2E8F0] text-[11px] text-[#64748B]">Les choix sont enregistrés dans ce navigateur.</div>
+          </div> : <div className="absolute right-0 top-8 z-40 w-52 bg-white border border-[#E2E8F0] rounded-lg shadow-lg py-1 text-[12.5px]">
+            <button onClick={()=>setManageCols(true)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.cols} c="w-3.5 h-3.5 text-[#64748B]"/>Gérer les colonnes</button>
+            <button onClick={resetCols} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.cols} c="w-3.5 h-3.5 text-[#64748B]"/>Réinitialiser les colonnes</button>
+            <button onClick={closeMore} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-[#F8FAFC]"><I d={ic.dl} c="w-3.5 h-3.5 text-[#64748B]"/>Exporter</button>
+          </div>}</>}
         </div>
       </div>
       <div className="flex-1 overflow-auto scroll-thin">
-        <table className="text-[12px] whitespace-nowrap border-separate border-spacing-0 table-fixed" style={{width:GRID_COLS.reduce((a,c)=>a+W(c),0)}}>
-          <colgroup>{GRID_COLS.map(c=><col key={c.k} style={{width:W(c)}}/>)}</colgroup>
+        <table className="text-[12px] whitespace-nowrap border-separate border-spacing-0 table-fixed" style={{width:visibleCols.reduce((a,c)=>a+W(c),0)}}>
+          <colgroup>{visibleCols.map(c=><col key={c.k} style={{width:W(c)}}/>)}</colgroup>
           <thead className="sticky top-0 z-20">
-            <tr>{GRID_COLS.map((c,k) => <th key={c.k} aria-sort={sort?.[0]===c.k?(sort[1]>0?'ascending':'descending'):'none'} onClick={()=>setSort(s=>s?.[0]===c.k?(s[1]>0?[c.k,-1]:null):[c.k,1])} className={`relative h-7 px-2 text-left font-medium text-[#64748B] bg-[#F8FAFC] border-b border-[#E2E8F0] cursor-pointer select-none hover:text-[#172033] ${k===0?'sticky left-0 z-30 border-r':''}`}>
+            <tr>{visibleCols.map((c,k) => <th key={c.k} aria-sort={sort?.[0]===c.k?(sort[1]>0?'ascending':'descending'):'none'} onClick={()=>setSort(s=>s?.[0]===c.k?(s[1]>0?[c.k,-1]:null):[c.k,1])} className={`relative h-7 px-2 text-left font-medium text-[#64748B] bg-[#F8FAFC] border-b border-[#E2E8F0] cursor-pointer select-none hover:text-[#172033] ${k===0?'sticky left-0 z-30 border-r':''}`}>
               <span className="inline-flex items-center gap-1 truncate max-w-full">{c.lock && <I d={ic.lock} c="w-3 h-3"/>}{c.l}{sort?.[0]===c.k && <span className="text-[#172033]">{sort[1]>0?'↑':'↓'}</span>}</span>
               <span onMouseDown={e=>resize(e,c)} onClick={e=>e.stopPropagation()} onDoubleClick={e=>{e.stopPropagation();setWidths(w=>{const n={...w};delete n[c.k];return n;});}} title="Redimensionner" className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-[var(--app-accent)]/40"/></th>)}</tr>
           </thead>
@@ -260,11 +280,11 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
               const clickable = r.id != null;
               return (
                 <tr key={r.id ?? `missing-session-${rowIndex}`} onClick={()=>{if(clickable)setSel(r.id);}} aria-selected={on} aria-disabled={!clickable} className={`group ${clickable?'cursor-pointer':'cursor-default opacity-70'}`}>
-                  {GRID_COLS.map((c,k)=>{ const v=c.v(r); return <td key={c.k} title={String(v)} className={`h-7 px-2 border-b border-[#F1F5F9] overflow-hidden text-ellipsis ${c.mono?'font-mono text-[11.5px]':''} ${k===0?'sticky left-0 z-10 border-r border-r-[#E2E8F0] text-[#64748B]':'text-[#172033]'} ${on?'bg-[color-mix(in_oklab,var(--app-accent)_8%,white)]':'bg-white group-hover:bg-[#F8FAFC]'} ${on&&k===0?'shadow-[inset_3px_0_0_var(--app-accent)]':''}`}>{cell(c,r)}</td>; })}
+                  {visibleCols.map((c,k)=>{ const v=c.v(r); return <td key={c.k} title={String(v)} className={`h-7 px-2 border-b border-[#F1F5F9] overflow-hidden text-ellipsis ${c.mono?'font-mono text-[11.5px]':''} ${k===0?'sticky left-0 z-10 border-r border-r-[#E2E8F0] text-[#64748B]':'text-[#172033]'} ${on?'bg-[color-mix(in_oklab,var(--app-accent)_8%,white)]':'bg-white group-hover:bg-[#F8FAFC]'} ${on&&k===0?'shadow-[inset_3px_0_0_var(--app-accent)]':''}`}>{cell(c,r)}</td>; })}
                 </tr>
               );
             })}
-            {shown.length===0 && <tr><td colSpan={GRID_COLS.length} className="px-3 py-8 text-left text-[#64748B]">{q ? 'Aucune session ne correspond à la recherche' : demo || sessions.data ? 'Aucune session' : 'POLARIS non connecté'}</td></tr>}
+            {shown.length===0 && <tr><td colSpan={visibleCols.length} className="px-3 py-8 text-left text-[#64748B]">{q ? 'Aucune session ne correspond à la recherche' : demo || sessions.data ? 'Aucune session' : 'POLARIS non connecté'}</td></tr>}
           </tbody>
         </table>
       </div>

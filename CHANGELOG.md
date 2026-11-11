@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- Analyzer : le menu `⋯` des sessions permet de gérer les colonnes avec des cases persistantes regroupées par protocole, de tout réafficher et de réinitialiser largeur et visibilité.
+
 ## 0.10.0 — Analyzer refactor
 - Sessions table: 12 key columns (Numéro, Début UTC, IMSI masqué, Session ID, Résultat, Cause, Interfaces, PDU Session, Durée, Cellule, AMF/MME, gNB/eNB) plus existing ones; resizable, sortable, frozen first column, search, tooltips; SUCCESS/FAILED/PARTIAL/UNKNOWN badges.
 - Four-panel layout: Sessions (25 %), Ladder, Décodage, new Analyse sessions; all resizable, double-click restores, Décodage/Analyse hideable.

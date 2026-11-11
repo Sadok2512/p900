@@ -52,6 +52,22 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getAllByText('Toutes les sessions').length).toBeGreaterThan(0);
     expect(screen.getByRole('checkbox',{name:'Démo'})).not.toBeChecked();
   });
+  it('manages session columns from the actions menu and restores defaults', async()=>{
+    open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Afficher toutes les sessions'}));
+    await screen.findAllByText('ue-test');
+    fireEvent.click(screen.getByTitle("Plus d'actions"));
+    fireEvent.click(screen.getByRole('button',{name:'Gérer les colonnes'}));
+    const manager=screen.getByRole('dialog',{name:'Gérer les colonnes'});
+    expect(manager).toHaveTextContent('NAS — 5GS / EPS');
+    expect(manager).toHaveTextContent('NGAP / S1AP');
+    expect(manager).toHaveTextContent('Corrélation multi-protocole');
+    expect(screen.getByRole('checkbox',{name:'Numéro'})).toBeDisabled();
+    fireEvent.click(screen.getByRole('checkbox',{name:'Cause'}));
+    expect(screen.queryByRole('columnheader',{name:'Cause'})).not.toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Retour aux actions'));
+    fireEvent.click(screen.getByRole('button',{name:'Réinitialiser les colonnes'}));
+    expect(screen.getByRole('columnheader',{name:'Cause'})).toBeInTheDocument();
+  });
   it('keeps a session without session_id non-clickable and never requests a fallback id', async()=>{
     const previousSessions=payloads['/sessions']; const previousFilter=payloads['/sessions/filter'];
     payloads['/sessions']=[{...session,session_id:undefined}]; payloads['/sessions/filter']=[{...session,session_id:undefined}];
