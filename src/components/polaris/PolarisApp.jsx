@@ -424,7 +424,7 @@ function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
       <div className="px-3 border-b border-[#E2E8F0]">
         {s.detailErrors?.map(error => <div key={error.endpoint} role="alert" className="pt-1.5 text-[12px] text-[#B42318]">Détail indisponible · {error.endpoint} · HTTP {error.status}</div>)}
         <div className="min-h-[42px] flex flex-wrap items-center gap-x-4 gap-y-1 min-w-0">
-          {['Ladder','Messages','Corrélation','Parcours abonné','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-[42px] shrink-0 whitespace-nowrap text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#172033] font-medium':'border-transparent text-[#64748B] hover:text-[#172033]'}`}>{t}</button>)}
+          {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-[42px] shrink-0 whitespace-nowrap text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#172033] font-medium':'border-transparent text-[#64748B] hover:text-[#172033]'}`}>{t}</button>)}
           <div className="ml-auto flex items-center gap-1 shrink-0">
             {ifs.map(i=>{const off=hidden.includes(i); return <button key={i} aria-pressed={!off} onClick={()=>setHidden(off?hidden.filter(x=>x!==i):[...hidden,i])} title={off?`Afficher ${i}`:`Masquer ${i}`} className={`h-6 px-0.5 rounded-md border transition ${off?'opacity-35 border-transparent':'border-[#E2E8F0] bg-white'}`}><Tag i={i}/></button>;})}
           </div>
@@ -451,7 +451,6 @@ function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
             <td className="px-4 border-b border-[#F2F2F2] font-mono text-[11.5px] text-[#666666]">{m[4]?`${m[4]} ${m[5]}`:''}</td></tr>))}</tbody></table>}
         {tab==='Corrélation' && <table className="w-full text-[12.5px]"><thead><tr>{['De','Vers','Clé','Messages','Statut'].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-[#666666] bg-[#FAFAFA] border-b border-[#EBEBEB]">{h}</th>)}</tr></thead><tbody>{d.links.map((l,k)=>(
           <tr key={k}><td className="h-8 px-4 border-b border-[#F2F2F2]"><Tag i={l[2]}/></td><td className="px-4 border-b border-[#F2F2F2]"><Tag i={l[3]}/></td><td className="px-4 border-b border-[#F2F2F2] font-mono text-[12px]">{l[4]}</td><td className="px-4 border-b border-[#F2F2F2] font-mono text-[12px] text-[#666666]">{l[0]===null?'—':l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun'}</td><td className="px-4 border-b border-[#F2F2F2]"><Stat s={l[5]}/></td></tr>))}</tbody></table>}
-        {tab==='Parcours abonné' && <SubscriberJourney s={s} role={auth.data?.data?.role} onOpen={id=>{ if(id){ onOpenSession?.(id); setTab('Ladder'); } }}/>}
         {(tab==='Plan usager'||tab==='Comparer') && <div className="p-8 text-[13px] text-[#666666]">{tab==='Plan usager' ? 'Volumes UL / DL par TEID, comparés aux règles N4 et aux rapports d’usage PFCP.' : 'Choisis une session réussie de même procédure pour aligner les deux flux et voir le point de bifurcation.'}</div>}
       </div>
     </section>
@@ -1115,22 +1114,25 @@ function App() {
   const [msg,setMsg] = useState(0);
   const [lens,setLens] = useState(null);
   const L0 = (()=>{ try { return JSON.parse(localStorage.getItem('polaris-layout-v2'))||{}; } catch(e) { return {}; } })();
-  const DEF = {gridPct:25,insPct:22,anaPct:21};
+  const DEF = {gridPct:25,insPct:22,anaPct:21,jouPct:24};
   const [gridPct,setGridPct] = useState(L0.gridPct ?? DEF.gridPct);
   const [gridHidden,setGridHidden] = useState(L0.gridHidden ?? false);
   const [insPct,setInsPct] = useState(L0.insPct ?? DEF.insPct);
   const [anaPct,setAnaPct] = useState(L0.anaPct ?? DEF.anaPct);
   const [insHidden,setInsHidden] = useState(L0.insHidden ?? false);
   const [anaHidden,setAnaHidden] = useState(L0.anaHidden ?? false);
+  const [jouPct,setJouPct] = useState(L0.jouPct ?? DEF.jouPct);
+  const [jouHidden,setJouHidden] = useState(L0.jouHidden ?? true);
   const [full,setFull] = useState(false);
-  useEffect(()=>{ try { localStorage.setItem('polaris-layout-v2',JSON.stringify({gridPct,gridHidden,insPct,anaPct,insHidden,anaHidden})); } catch(e) {} },[gridPct,gridHidden,insPct,anaPct,insHidden,anaHidden]);
+  useEffect(()=>{ try { localStorage.setItem('polaris-layout-v2',JSON.stringify({gridPct,gridHidden,insPct,anaPct,insHidden,anaHidden,jouPct,jouHidden})); } catch(e) {} },[gridPct,gridHidden,insPct,anaPct,insHidden,anaHidden,jouPct,jouHidden]);
   const mainRef = useRef(null), lowRef = useRef(null), rowRef = useRef(null);
-  const resetLayout = () => { setGridPct(DEF.gridPct); setInsPct(DEF.insPct); setAnaPct(DEF.anaPct); };
+  const resetLayout = () => { setGridPct(DEF.gridPct); setInsPct(DEF.insPct); setAnaPct(DEF.anaPct); setJouPct(DEF.jouPct); };
   const drag = (e,kind) => { e.preventDefault(); const r = (kind==='h'?mainRef:rowRef).current.getBoundingClientRect();
     const mv = ev => {
       if(kind==='h') return setGridPct(Math.min(70,Math.max(12,(ev.clientY-r.top)/r.height*100)));
       const fromRight = (r.right-ev.clientX)/r.width*100;
       if(kind==='ana') setAnaPct(Math.min(40,Math.max(14,fromRight)));
+      else if(kind==='jou') setJouPct(Math.min(45,Math.max(16,fromRight-(anaHidden?0:anaPct)-(insHidden?0:insPct))));
       else setInsPct(Math.min(45,Math.max(14,fromRight-(anaHidden?0:anaPct))));
     };
     const up = () => { window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up); document.body.style.cursor=''; };
@@ -1154,6 +1156,7 @@ function App() {
             <div className="flex-1 min-w-[280px] flex flex-col">{selected ? <Detail s={selected} sel={msg} setSel={setMsg} lens={lens} ui={ui} onOpenSession={id=>setSel(id)}/> : <div className="p-8 text-[#64748B] bg-white rounded-xl border border-[#E2E8F0] flex-1">{sessionsQuery.isError ? sessionsQuery.error.message : sessionsQuery.isPending ? "Connexion POLARIS…" : "Aucune session"}</div>}</div>
           </div>
         </main>
+        {selected && !full && (jouHidden ? <button onClick={()=>setJouHidden(false)} title="Afficher Parcours abonné" className="ml-2 w-8 shrink-0 self-stretch bg-white rounded-xl border border-[#E2E8F0] flex flex-col items-center pt-3 gap-3 text-[#64748B] hover:text-[#172033]"><I d="M9 4v16M4 4h16v16H4z" c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[12px]">Parcours abonné</span></button> : <><div onMouseDown={e=>drag(e,'jou')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-[#E2E8F0] group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><aside style={{width:`${jouPct}%`}} aria-label="Parcours abonné" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-[#E2E8F0] overflow-hidden"><div className="h-[42px] shrink-0 px-4 flex items-center border-b border-[#E2E8F0]"><span className="text-[13px] font-semibold text-[#172033]">Parcours abonné</span><button onClick={()=>setJouHidden(true)} title="Masquer Parcours abonné" className="ml-auto w-7 h-7 rounded-md grid place-items-center text-[#64748B] hover:bg-[#F1F5F9]">×</button></div><div className="flex-1 overflow-auto scroll-thin"><SubscriberJourney s={selected} role={role} onOpen={id=>{ if(id) setSel(id); }}/></div></aside></>)}
         {selected && !full && (insHidden ? <button onClick={()=>setInsHidden(false)} title="Afficher Décodage" className="ml-2 w-8 shrink-0 self-stretch bg-white rounded-xl border border-[#E2E8F0] flex flex-col items-center pt-3 gap-3 text-[#64748B] hover:text-[#172033]"><I d="M9 4v16M4 4h16v16H4z" c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[12px]">Décodage</span></button> : <><div onMouseDown={e=>drag(e,'ins')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-[#E2E8F0] group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><Inspector key={selected.id} s={selected} sel={msg} role={role} lens={lens} setLens={setLens} width={`${insPct}%`} onHide={()=>setInsHidden(true)}/></>)}
         {selected && !full && (anaHidden ? <button onClick={()=>setAnaHidden(false)} title="Afficher Analyse sessions" className="ml-2 w-8 shrink-0 self-stretch bg-white rounded-xl border border-[#E2E8F0] flex flex-col items-center pt-3 gap-3 text-[#64748B] hover:text-[#172033]"><I d="M9 4v16M4 4h16v16H4z" c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[12px]">Analyse sessions</span></button> : <><div onMouseDown={e=>drag(e,'ana')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-[#E2E8F0] group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><SessionAnalysis onOpenSession={id=>setSel(id)} s={selected} width={`${anaPct}%`} loading={bundle.callflow.isFetching || bundle.events.isFetching} onPick={k=>setMsg(Math.max(0,k))} onHide={()=>setAnaHidden(true)}/></>)}
       </div>}</>}
