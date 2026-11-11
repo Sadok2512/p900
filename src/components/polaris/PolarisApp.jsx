@@ -65,26 +65,26 @@ function TopBarLive({metrics,demo,onOpen}) {
 function TopBarVersion({version}) {
   const data=version.data?.data;
   const title=`backend_api: ${available(data?.backend_api)}\nsession_engine: ${available(data?.session_engine)}\ncorrelation_engine: ${available(data?.correlation_engine)}\nevent_schema: ${available(data?.event_schema)}\ndecoders: ${decoderVersions(data?.decoders)}`;
-  return <div title={title} className="flex items-baseline gap-1.5 whitespace-nowrap"><span className="text-[14px] font-semibold tracking-tight text-[#171717]">POLARIS</span><span className="text-[11.5px] text-[#666666] font-mono">{available(data?.platform_core)} · UI {UI_VERSION}</span></div>;
+  return <div title={title} className="flex items-baseline gap-1.5 whitespace-nowrap"><span className="text-[14px] font-semibold tracking-tight text-[#171717]">POLARIS</span><span className="hidden xl:inline text-[11.5px] text-[#666666] font-mono">{available(data?.platform_core)} · UI {UI_VERSION}</span></div>;
 }
 
 function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,demo}) {
   const [menu,setMenu] = useState(false);
   return (
-    <header className="h-12 shrink-0 bg-white border-b border-[#EBEBEB] flex items-center px-4 gap-6">
+    <header className="h-12 shrink-0 bg-white border-b border-[#EBEBEB] flex items-center px-3 lg:px-4 gap-3 lg:gap-6 min-w-0">
       <div className="flex items-center gap-2">
         <div style={{background:accent}} className="w-6 h-6 rounded-[5px] grid place-items-center"><svg viewBox="0 0 24 24" className="w-3.5 h-3.5"><path d="M12 2 13.6 10.4 22 12 13.6 13.6 12 22 10.4 13.6 2 12 10.4 10.4Z" fill="#fff"/></svg></div>
         <TopBarVersion version={version}/>
       </div>
-      <nav className="flex h-full">
+      <nav className="flex h-full min-w-0 overflow-x-auto scroll-thin">
         {[['home','Accueil'],['templates','Dashboard'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],...(TRAFFIC_ENABLED ? [['trafic','Traffic']] : [])].map(([k,n]) => {
           const on = page===k, ok = ['home','sessions','nodes','templates','kpi','live','trafic'].includes(k);
-          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
+          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative shrink-0 px-2 lg:px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
         })}
       </nav>
-      <div className="ml-auto flex items-center gap-4 text-[12.5px]">
+      <div className="ml-auto shrink-0 flex items-center gap-2 lg:gap-4 text-[12.5px]">
         <TopBarLive metrics={metrics} demo={demo} onOpen={()=>setPage('live')}/>
-        <span className="text-[#666666]" aria-label="Rôle">{role || '—'}</span>
+        <span className="hidden lg:inline text-[#666666]" aria-label="Rôle">{role || '—'}</span>
         <button type="button" title={t("Notifications")} className="w-8 h-8 rounded-md grid place-items-center text-[#666666] hover:bg-[#F5F5F5] hover:text-[#171717]"><I d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" c="w-4 h-4"/></button>
         <div className="relative">
           <button type="button" onClick={()=>setMenu(m=>!m)} title={t("Compte")} style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white hover:opacity-90">SD</button>

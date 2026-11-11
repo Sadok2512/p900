@@ -122,7 +122,7 @@ function Catalog(p) {
   return (
     <div className="flex gap-0 items-start">
       {!treeOpen ? <button onClick={() => setTreeOpen(true)} title={t('Afficher le panneau')} className={card + ' w-8 shrink-0 self-stretch text-[11px] text-[#666666] hover:text-[#171717] [writing-mode:vertical-rl] py-3'}>Catalogue</button> : <>
-      <div className={card + ' overflow-hidden shrink-0 flex flex-col'} style={{ width: treeW }}>
+      <div className={card + ' overflow-hidden shrink-0 flex flex-col'} style={{ width: `min(${treeW}px, 26vw)`, minWidth: 200 }}>
         <div className="p-3 border-b border-[#F2F2F2] space-y-2">
           <div className="flex items-center gap-2">
             <input value={q} onChange={e => setQ(e.target.value)} placeholder={t('Rechercher un KPI…')} className={inp + ' h-8 text-[12.5px]'} />
@@ -149,7 +149,7 @@ function Catalog(p) {
               <Btn onClick={() => setSheet(!sheet)}>{sheet ? t('Masquer la fiche') : t('Fiche KPI')}</Btn>
             </div>
           </div>
-          <div className="px-5 py-2.5 flex items-center gap-2 border-b border-[#F2F2F2]">
+          <div className="px-5 py-2.5 flex flex-wrap items-center gap-2 border-b border-[#F2F2F2]">
             <div className="flex rounded-md border border-[#EBEBEB] overflow-hidden">{['1 min', '15 min', '1 h', '1 j'].map(g => <button key={g} onClick={() => setGran(g)} className={`h-7 px-2.5 whitespace-nowrap text-[12px] ${gran === g ? 'bg-[var(--app-accent)] text-white' : 'text-[#4D4D4D] hover:bg-[#FAFAFA]'}`}>{g}</button>)}</div>
             <span className="ml-auto whitespace-nowrap text-[11.5px] text-[#8F8F8F]">{t("Drill-down")}:</span>
             {DR.map((d, i) => <button key={d} onClick={() => { setDrill(i); if (i > 0 && demo) setPage('sessions'); }} disabled={!demo && i > 0} className={`text-[11.5px] px-2 h-6 whitespace-nowrap rounded ${drill === i ? 'bg-[#F2F2F2] font-semibold' : 'text-[#666666]'} disabled:opacity-40`}>{t(d)}{i < 4 ? ' →' : ''}</button>)}
@@ -160,7 +160,7 @@ function Catalog(p) {
       </div>
       {sheet && k && <>
       <div onPointerDown={dragR} onDoubleClick={() => setSheetW(320)} className="w-3 self-stretch cursor-col-resize grid place-items-center group"><span className="w-1 h-10 rounded-full bg-[#E5E5E5] group-hover:bg-[var(--app-accent)]" /></div>
-      <div className={card + ' shrink-0 overflow-hidden flex flex-col'} style={{ width: sheetW }}>
+      <div className={card + ' shrink-0 overflow-hidden flex flex-col'} style={{ width: `min(${sheetW}px, 28vw)`, minWidth: 220 }}>
         <div className="h-11 px-4 flex items-center border-b border-[#F2F2F2]"><h3 className="text-[13px] font-semibold">{t('Fiche KPI')}</h3><span className="ml-auto font-mono text-[11px] text-[#8F8F8F]">v{k.ver}</span><button onClick={() => setSheet(false)} title={t('Masquer la fiche')} className="ml-2 w-6 h-6 grid place-items-center rounded text-[#8F8F8F] hover:bg-[#FAFAFA] hover:text-[#171717] text-[12px]">✕</button></div>
         <div className="p-4 space-y-3.5 text-[12.5px] overflow-auto scroll-thin max-h-[calc(100vh-300px)]">{[['Formule', `${k.num} / ${k.den}`], ['Événements sources', k.src], ['Dimensions', k.dims], ['Unité', k.unit], ['Règle de dédup', k.dedup], ['Invariant', k.inv], ['Propriétaire', k.owner], ['Bibliothèque', k.lib]].map(([n, v]) => <div key={n}><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mb-0.5">{t(n)}</div><div className="text-[#4D4D4D] leading-snug">{v}</div></div>)}
           {k.changelog && <div><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mb-0.5">CHANGELOG</div>{k.changelog.map((c, i) => <div key={i} className="text-[11.5px] text-[#4D4D4D]"><span className="font-mono">v{c.v}</span> · {c.by} · {c.date} — {c.msg}</div>)}</div>}
