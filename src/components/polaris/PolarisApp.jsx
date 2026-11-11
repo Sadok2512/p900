@@ -131,7 +131,7 @@ function TopBar({role,setRole,page,setPage,onAnalyzer,accent,onSettings}) {
         <span className="text-[14px] font-semibold tracking-tight text-[#171717]">POLARIS</span>
       </div>
       <nav className="flex h-full">
-        {[['home','Accueil'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],['trafic','Traffic'],['templates','Templates']].map(([k,n]) => {
+        {[['home','Accueil'],['templates','Dashboard'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],['trafic','Traffic']].map(([k,n]) => {
           const on = page===k, ok = ['home','sessions','nodes','templates','kpi','live','trafic'].includes(k);
           return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-[#171717] font-semibold':'text-[#666666] hover:text-[#171717]'}`}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
         })}
