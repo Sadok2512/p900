@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { useSubscriberJourney, useSubscriberTmsi, useSessionIdentities, useIdentityLookup, apiPath, available } from '@/lib/polaris-api';
-import { toJourney, toTmsiList, shortPseudo, refLabel } from './subscriber';
+import { useSubscriberJourney, useSessionIdentities, useIdentityLookup, apiPath, available } from '@/lib/polaris-api';
+import { toJourney, shortPseudo, refLabel } from './subscriber';
 
 // Procedure colours (light mode only).
 export const KIND = { attach:['#0062A1','Attach / Registration'], pdu:['#0F5B56','PDU / PDN'], release:['#64748B','Idle / Release'], service:['#7C3AED','Service Request'], tau:['#D97706','TAU'], handover:['#DB2777','Handover'], detach:['#DC2626','Detach'], other:['#94A3B8','Autre'] };
@@ -30,12 +30,9 @@ export default function SubscriberJourney({s, role, onOpen}) {
   const looked = lookup.data?.data?.subscriber_pseudonym;
   const pseudo = looked ?? s.subscriber_pseudonym ?? null;
   const operator = role === 'operator' || role === 'administrator';
-  const journeyQ = useSubscriberJourney(pseudo), tmsiQ = useSubscriberTmsi(pseudo), idQ = useSessionIdentities(s.session_id, operator);
+  const journeyQ = useSubscriberJourney(pseudo), idQ = useSessionIdentities(s.session_id, operator);
   const j = useMemo(()=>toJourney(journeyQ.data?.data),[journeyQ.data]);
-  const tmsi = useMemo(()=>toTmsiList(tmsiQ.data?.data, operator),[tmsiQ.data,operator]);
   const ids = idQ.data?.data ?? {};
-  const pos = Object.fromEntries(j.sessions.map((x,i)=>[x.session_id,i]));
-  const COL = 168;
   return <div className="p-4 space-y-4 text-[12.5px]">
     <form onSubmit={e=>{e.preventDefault(); setSubmitted(query.trim());}} className="flex gap-2">
       <input aria-label="Rechercher un abonné" value={query} onChange={e=>setQuery(e.target.value)} placeholder="IMSI, TMSI, IMEI ou MSISDN" className="flex-1 h-8 rounded-md border border-[#E2E8F0] px-2 outline-none focus:border-[var(--app-accent)]"/>
@@ -56,30 +53,15 @@ export default function SubscriberJourney({s, role, onOpen}) {
       <section><H>Parcours (ordre capture_id, seq)</H>
         <Fail q={journeyQ} path={`/subscribers/${pseudo}/journey`}/>
         {journeyQ.isPending && <div className="text-[#64748B]">Chargement du parcours…</div>}
-        {journeyQ.data && (j.sessions.length===0 ? <div className="text-[#64748B]">Aucune session.</div> : <div className="overflow-x-auto scroll-thin">
-          <svg width={j.sessions.length*COL} height={150} role="img" aria-label="Frise des sessions">
-            {j.links.map((l,i)=>{ const b=pos[l.to]; if(b==null) return null; const a=l.from!=null?pos[l.from]:null; const x2=b*COL+12, x1=a!=null?a*COL+COL-20:x2-40;
-              return <g key={i}><path d={`M${x1} 22 C ${(x1+x2)/2} 2, ${(x1+x2)/2} 2, ${x2} 22`} fill="none" stroke={l.status==='EXACT'?'#16A34A':'#D97706'} strokeWidth="1.5" strokeDasharray={l.status==='EXACT'?undefined:'4 3'}/>
-                <title>{l.status}{l.rule?` · ${l.rule}`:''}{l.proof?` · ${l.proof}`:''}{l.reason?` · ${l.reason}`:''}</title></g>; })}
-            {j.sessions.map((x,i)=><g key={x.session_id} transform={`translate(${i*COL},28)`} onClick={()=>onOpen?.(x.session_id)} className="cursor-pointer">
-              <rect width={COL-20} height={112} rx="8" fill={x.session_id===s.session_id?'#EFF6FF':'#FFFFFF'} stroke={x.session_id===s.session_id?'var(--app-accent)':'#E2E8F0'}/>
-              <text x="8" y="16" fontSize="10.5" fontFamily="Geist Mono" fill="#172033">{shortPseudo(x.session_id)}</text>
-              <text x="8" y="30" fontSize="10" fontFamily="Geist Mono" fill="#64748B">{`(${shortPseudo(x.capture_id)}, ${x.seq ?? '—'})`}</text>
-              {x.procedures.slice(0,5).map((p,k)=><g key={k} transform={`translate(8,${40+k*14})`}><rect width="8" height="8" y="1" rx="2" fill={KIND[p.kind][0]}/><text x="13" y="9" fontSize="10.5" fill="#334155">{p.name.slice(0,22)}</text></g>)}
-            </g>)}
-          </svg>
-          <div className="mt-1 flex flex-wrap gap-3 text-[11px] text-[#64748B]">{Object.values(KIND).map(([c,l])=><span key={l} className="inline-flex items-center gap-1"><span className="w-2 h-2 rounded-sm" style={{background:c}}/>{l}</span>)}<span>— EXACT</span><span>┄ OUVERT</span></div>
-          {j.links.filter(l=>l.status==='OUVERT').map((l,i)=><div key={i} className="text-[11.5px] text-[#D97706]">Maillon ouvert → {shortPseudo(l.to)} : {l.reason}</div>)}
-        </div>)}
-      </section>
-      <section><H>Liste TMSI</H>
-        <Fail q={tmsiQ} path={`/subscribers/${pseudo}/tmsi`}/>
-        {tmsiQ.data && (tmsi.length===0 ? <div className="text-[#64748B]">Aucun TMSI observé.</div> : <table className="w-full text-[12px]"><thead><tr>{['TMSI','Attribué','Présenté','Statut'].map(h=><th key={h} className="h-7 px-2 text-left font-medium text-[#64748B] bg-[#F8FAFC] border-b border-[#E2E8F0]">{h}</th>)}</tr></thead>
-          <tbody>{tmsi.map((t,i)=><tr key={i} className="align-top">
-            <td className="px-2 py-1 border-b border-[#F1F5F9] font-mono">{t.label}</td>
-            <td className="px-2 py-1 border-b border-[#F1F5F9]">{t.assigned ? <button onClick={()=>onOpen?.(t.assigned.session_id)} className="text-left hover:underline">{t.assigned.message ?? '—'} <span className="font-mono text-[#64748B]">{refLabel(t.assigned)}</span></button> : '—'}</td>
-            <td className="px-2 py-1 border-b border-[#F1F5F9]">{t.presented.length ? t.presented.map((r,k)=><button key={k} onClick={()=>onOpen?.(r.session_id)} className="block text-left hover:underline">{r.message ?? '—'} <span className="font-mono text-[#64748B]">{shortPseudo(r.session_id)} {refLabel(r)}</span></button>) : '—'}</td>
-            <td className={`px-2 py-1 border-b border-[#F1F5F9] ${t.status==='actif'?'text-[#16A34A]':t.status==='remplacé'?'text-[#64748B]':'text-[#D97706]'}`}>{t.status}</td></tr>)}</tbody></table>)}
+        {journeyQ.data && (j.sessions.length===0 ? <div className="text-[#64748B]">Aucune session.</div> : <ol aria-label="Sessions de l'abonné" className="flex flex-col">
+          {j.sessions.map((x,i)=>{ const l=j.links.find(k=>k.to===x.session_id); const cur=x.session_id===s.session_id;
+            return <li key={x.session_id} className="flex flex-col items-stretch">
+              {i>0 && <div className="h-5 ml-5 border-l-2" title={l?`${l.status}${l.rule?` · ${l.rule}`:''}${l.proof?` · ${l.proof}`:''}${l.reason?` · ${l.reason}`:''}`:undefined} style={{borderColor:l?.status==='EXACT'?'#16A34A':l?'#D97706':'#E2E8F0',borderStyle:l&&l.status!=='EXACT'?'dashed':'solid'}}/>}
+              <button type="button" onClick={()=>onOpen?.(x.session_id)} className={`text-left rounded-lg border px-3 py-2 transition ${cur?'border-[var(--app-accent)] bg-[#EFF6FF]':'border-[#E2E8F0] bg-white hover:bg-[#F8FAFC]'}`}>
+                <div className="flex items-baseline justify-between gap-2"><span className="font-mono text-[12px] text-[#172033]">{shortPseudo(x.session_id)}</span><span className="font-mono text-[11px] text-[#64748B]">({shortPseudo(x.capture_id)}, {x.seq ?? '—'})</span></div>
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">{x.procedures.map((p,k)=><span key={k} className="inline-flex items-center gap-1 text-[11.5px] text-[#334155]"><span className="w-2 h-2 rounded-sm" style={{background:KIND[p.kind][0]}}/>{p.name}</span>)}</div>
+              </button></li>; })}
+        </ol>)}
       </section>
     </>}
   </div>;
