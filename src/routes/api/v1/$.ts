@@ -14,7 +14,7 @@ async function relay({ request, params }: { request: Request; params: { _splat?:
     const res = await fetch(url, {
       method: request.method,
       headers,
-      body: ['GET', 'HEAD'].includes(request.method) ? undefined : await request.arrayBuffer(),
+      body: ['GET', 'HEAD'].includes(request.method) ? null : await request.arrayBuffer(),
       redirect: 'manual',
       signal: AbortSignal.timeout(10000),
     })
