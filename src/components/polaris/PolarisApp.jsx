@@ -331,18 +331,11 @@ function Detail({s,sel,setSel,lens,ui}) {
   const d = s.d, ex = d.links.filter(l=>l[5]==='EXACT').length;
   return (
     <section className="flex-1 min-h-0 flex flex-col bg-white rounded-xl border border-[#EBEBEB] overflow-hidden">
-      <div className="px-3 pt-2 pb-1.5 border-b border-[#E2E8F0]">
-        <div className="flex items-center gap-3 min-w-0 whitespace-nowrap">
-          <span title={`c${s.cap} · ${s.seq}`} className="font-mono text-[11.5px] text-[#64748B] truncate max-w-[160px]">c{s.cap} · {s.seq}</span>
-          <span title={s.proc} className="text-[13px] font-semibold text-[#172033] truncate min-w-0">{s.proc}</span>
-          <span className="font-mono text-[12px] text-[#334155] truncate max-w-[140px] shrink-0">{s.ue}</span>
-          <VerdictBadge v={verdict(s.res)}/>
-          <span className="ml-auto shrink-0 whitespace-nowrap flex items-center gap-4 text-[12px] text-[#64748B]"><span><b className="text-[#171717] tabular-nums">{demo || d.msgs.length ? d.msgs.length : '—'}</b> messages</span><span><b className="text-[#171717] tabular-nums">{demo || d.links.length ? `${ex}/${d.links.length}` : '—'}</b> liens EXACT</span><span><b className="text-[#171717] tabular-nums">{s.comp==='—'?'—':`${s.comp} %`}</b> complétude</span></span>
-        </div>
-        <div className="mt-1 text-[12px] text-[#64748B] truncate">{d.summary}{d.diverge && <span className="ml-2 text-[#B42318]">{d.diverge}</span>}</div>
-        {s.detailErrors?.map(error => <div key={error.endpoint} role="alert" className="mt-1.5 text-[12px] text-[#B42318]">Détail indisponible · {error.endpoint} · HTTP {error.status}</div>)}
-        <div className="flex gap-5 mt-2 -mb-2">
-          {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-8 text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#171717] font-medium':'border-transparent text-[#666666] hover:text-[#171717]'}`}>{t}</button>)}
+      <div className="px-3 border-b border-[#E2E8F0]">
+        {s.detailErrors?.map(error => <div key={error.endpoint} role="alert" className="pt-1.5 text-[12px] text-[#B42318]">Détail indisponible · {error.endpoint} · HTTP {error.status}</div>)}
+        <div className="flex items-center gap-5">
+          {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-9 text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-[#171717] font-medium':'border-transparent text-[#666666] hover:text-[#171717]'}`}>{t}</button>)}
+          <span className="ml-auto whitespace-nowrap text-[12px] text-[#64748B]"><b className="text-[#172033] tabular-nums">{d.msgs.length}</b> {d.msgs.length>1?'messages':'message'}</span>
         </div>
       </div>
       {tab==='Ladder' && <div className="h-9 shrink-0 px-3 flex items-center gap-1.5 border-b border-[#F2F2F2] overflow-x-auto scroll-thin">
