@@ -17,6 +17,6 @@ describe('p900 proxy request target validation', () => {
     const headers=forwardedHeaders({'accept-encoding':'gzip, br',authorization:'browser-secret',accept:'application/json'},target!);
     expect(headers).not.toHaveProperty('accept-encoding');
     expect(headers).not.toHaveProperty('authorization');
-    expect(headers.accept).toBe('application/json');
+    expect(headers['accept']).toBe('application/json');
   });
 });
