@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.8.1
+- Analyzer : « Annuler » sur une nouvelle requête (onglet vierge ou ouvert depuis un modèle) ferme cet onglet et ramène à la page Requêtes ; les autres onglets restent ouverts.
+- « Annuler » sur une requête déjà exécutée revient aux résultats de l'onglet, sans le fermer.
+
 ## 0.8.0
 - Analyzer : « + Nouvelle requête » ouvre un vrai onglet de travail (Gabarit, Portée, Conditions ET/OU/≠, Regrouper par, Actions) ; la page Requêtes devient un espace de consultation (recherche, filtres Toutes/Favoris/Partagées, modèles, requêtes enregistrées).
 - Modèles et requêtes enregistrées s'ouvrent dans un nouvel onglet ; indicateur de modifications non enregistrées et confirmation avant fermeture.

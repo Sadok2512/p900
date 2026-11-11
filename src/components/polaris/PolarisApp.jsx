@@ -1257,7 +1257,14 @@ function App() {
   const saveQuery = () => { const d=active.draft; const n=d.name||nameOf(d.conds);
     setSaved(sv=>[{n,g:d.tpl,p:d.scope,c:d.conds,last:"à l'instant",r:SESS.filter(x=>matchQ(x,d.conds,d.join)).length,fav:false},...sv.filter(x=>x.n!==n)]);
     patch(active.id,{dirty:false,n,draft:{...d,name:n}}); };
-  const cancelEdit = () => { if (active.ran || active.conds.length) patch(active.id,{mode:'results'}); else closeTab(active.id); };
+  const cancelEdit = () => {
+    if (active.ran || active.conds.length) { patch(active.id,{mode:'results'}); return; }
+    const i = tabs.findIndex(x=>x.id===active.id);
+    const nx = tabs.filter(x=>x.id!==active.id);
+    setTabs(nx);
+    setTabId(nx.length ? nx[Math.max(0,i-1)].id : null);
+    setAview('queries');
+  };
   const pickTab = id => { setTabId(id); setAview('tab'); };
   const closeTab = id => {
     const tb = tabs.find(x=>x.id===id);
@@ -1307,7 +1314,7 @@ function App() {
       </div>}</>}
       <footer className="h-7 shrink-0 bg-white border-t border-[#EBEBEB] flex items-center gap-5 px-4 text-[11.5px] text-[#666666]">
         <span className="flex items-center gap-1.5"><span className="w-[6px] h-[6px] rounded-full bg-[#15803D]"/>12/12 dumpcap</span><span>Import à jour</span><span>Segments ignorés : 0</span>
-        <span>{rows.length} sessions · requête 0,8 s</span><span className="ml-auto font-mono">OIRAN 2.10.2 · Analyzer 0.8.0 · données fictives</span>
+        <span>{rows.length} sessions · requête 0,8 s</span><span className="ml-auto font-mono">OIRAN 2.10.2 · Analyzer 0.8.1 · données fictives</span>
       </footer>
     </div>
   );
