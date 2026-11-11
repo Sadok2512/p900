@@ -87,6 +87,8 @@ export default function LiveModule({ t, role, setPage }) {
   const [full, setFull] = useState(null); // 'sig' | 'thr'
   const [thr, setThr] = useState([]); // {ts, dl, ul}
   const seq = useRef(0);
+  const sigBox = useRef(null); const atEnd = useRef(true);
+  const onSigScroll = (e) => { const b = e.currentTarget; atEnd.current = b.scrollTop + b.clientHeight >= b.scrollHeight - 40; };
   const ue = res?.ue && DIR[res.ue];
   const tech = ue?.tech || '5G';
   const tracking = demo && ue && (res.st === 'Trouvé' || res.st === 'À prouver');
@@ -117,6 +119,7 @@ export default function LiveModule({ t, role, setPage }) {
 
   const shown = useMemo(() => msgs.filter(m => !hide.includes(m.ifc) && (!fq || (m.name+' '+m.proc+' '+m.cause+' '+m.proto).toLowerCase().includes(fq.toLowerCase()))), [msgs, hide, fq]);
   const ifcs = tech==='LTE' ? ['S1-MME','S6a','S11','S5'] : ['N2','SBI','N4'];
+  useEffect(() => { const b = sigBox.current; if (b && mode === 'table' && atEnd.current) b.scrollTop = b.scrollHeight; }, [shown.length, mode]);
   const selM = msgs.find(m => m.seq === sel);
   const drag = (e, kind) => { e.preventDefault(); const x0=e.clientX, y0=e.clientY, w0=rightW, h0=ladH; const mv=(ev)=>{ if(kind==='w') setRightW(Math.max(280, Math.min(560, w0 - (ev.clientX-x0)))); else setLadH(Math.max(200, Math.min(800, h0 + ev.clientY-y0))); }; const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);}; addEventListener('pointermove',mv); addEventListener('pointerup',up); };
   const ST_C = { 'Trouvé':'#15803D', 'À prouver':'#A15C07', 'Non trouvé':'#666666', 'Invalide':'#B42318', 'Refusé':'#B42318', 'Indisponible':'#A15C07' };
@@ -131,8 +134,8 @@ export default function LiveModule({ t, role, setPage }) {
       {mode==='table' && <Btn disabled={!op||!shown.length} onClick={exportCsv} title={!op?t('Rôle operator requis'):''}>CSV</Btn>}
       <Btn onClick={()=>setFull(full==='sig'?null:'sig')}>{full==='sig'?t('Quitter'):'⤢'}</Btn>
     </div>
-    <div className="overflow-auto scroll-thin flex-1" style={full==='sig'?{}:{height:ladH}}>
-      {!tracking ? <Empty t={t} demo={demo} res={res}/> : mode==='ladder' ? <Ladder t={t} msgs={shown} nodes={NODES[tech]} sel={sel} setSel={setSel} marks={marks}/> :
+    <div ref={sigBox} onScroll={onSigScroll} className="overflow-auto scroll-thin flex-1" style={full==='sig'?{}:{height:ladH}}>
+      {!tracking ? <Empty t={t} demo={demo} res={res}/> : mode==='ladder' ? <Ladder t={t} msgs={shown} nodes={NODES[tech]} sel={sel} setSel={setSel} marks={marks} atEnd={atEnd}/> :
         <table className="w-full text-[12px]"><thead className="sticky top-0 bg-white"><tr className="text-left text-[11px] text-[#8F8F8F]">{['Capture','Seq','t (s)','Interface','Protocole','Message','Source','Destination','Procédure','Résultat','Cause',''].map(h=><th key={h} className="px-2.5 py-2 font-medium border-b border-[#F2F2F2] whitespace-nowrap">{t(h)}</th>)}</tr></thead>
           <tbody>{shown.map(m=><tr key={m.seq} onClick={()=>setSel(m.seq)} className={`cursor-pointer whitespace-nowrap ${sel===m.seq?'bg-[#FAFAFA] shadow-[inset_2px_0_0_var(--app-accent)]':'hover:bg-[#FAFAFA]'} ${marks.includes(m.seq)?'bg-[#FFFBEB]':''}`}>
             <td className="px-2.5 py-1.5 font-mono text-[#8F8F8F]">{m.cap}</td><td className="px-2.5 font-mono">{m.seq}</td><td className="px-2.5 font-mono text-[#8F8F8F]">{m.rel}</td><td className="px-2.5"><span className="font-medium" style={{color:IFC_C[m.ifc]}}>{m.ifc}</span></td><td className="px-2.5 text-[#666666]">{m.proto}</td><td className="px-2.5 text-[#171717]">{m.name}</td><td className="px-2.5">{m.from}</td><td className="px-2.5">{m.to}</td><td className="px-2.5 text-[#666666]">{m.proc}</td><td className="px-2.5" style={{color:RES_C(m.res)}}>{m.res}</td><td className="px-2.5 text-[#B42318]">{m.cause}</td>
@@ -205,9 +208,9 @@ function Empty({ t, demo, res }) {
     <div className="mt-1 text-[12.5px] text-[#666666]">{!demo?t('Aucune donnée simulée n’est affichée. Activez « Démo » pour un aperçu.'):t('Exemples : ue-7f3a (5G, EXACT) · ue-21c0 (LTE, À prouver) · cellule 0A1F · run 482')}</div></div></div>;
 }
 
-function Ladder({ t, msgs, nodes, sel, setSel, marks }) {
+function Ladder({ t, msgs, nodes, sel, setSel, marks, atEnd }) {
   const W = 900, col = W / nodes.length, cx = (n) => col * nodes.indexOf(n) + col / 2, RH = 34;
-  const box = useRef(null); const atEnd = useRef(true);
+  const box = useRef(null);
   useEffect(() => { const b = box.current?.parentElement; if (b && atEnd.current) b.scrollTop = b.scrollHeight; }, [msgs.length]);
   return <div ref={box}>
     <div className="sticky top-0 z-10 bg-white grid border-b border-[#F2F2F2]" style={{ gridTemplateColumns: `repeat(${nodes.length},1fr)` }}>{nodes.map(n => <div key={n} className="text-center text-[11.5px] font-semibold text-[#4D4D4D] py-2">{n}</div>)}</div>
