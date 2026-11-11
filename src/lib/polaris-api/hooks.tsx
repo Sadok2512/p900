@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { queryOptions, useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { request, PolarisApiError } from './client';
 import { demoResponse } from './demo';
 import { ALL_KPIS, mockSeries, seedRand, SAVED } from './demo/catalogue';
@@ -29,6 +29,15 @@ export const useEvents = (id?: string | number | null) => useResource<Event[]>(`
 export const useProcedures = (id?: string | number | null) => useResource<RecordData[]>(`/sessions/${idPath(id)}/procedures`, {}, id != null);
 export const useCallflow = (id?: string | number | null) => useResource<RecordData | Event[]>(`/sessions/${idPath(id)}/callflow`, {}, id != null);
 export const useCorrelations = (id?: string | number | null) => useResource<Correlation[] | { edges: Correlation[] }>(`/sessions/${idPath(id)}/correlations`, {}, id != null);
+export function useSessionAnchors(sessions: Session[], enabled = true): Record<string, Event | undefined> {
+  const rows = sessions.filter(session => session.session_id);
+  const queries = useQueries({ queries: rows.map(session => ({ ...resourceOptions<RecordData | Event[]>(`/sessions/${idPath(session.session_id)}/callflow`, {}, false), enabled })) });
+  return Object.fromEntries(rows.map((session, index) => {
+    const value = queries[index]?.data?.data;
+    const body = value && typeof value === 'object' && !Array.isArray(value) ? value as RecordData : {};
+    return [String(session.session_id), records<Event>(Array.isArray(value) ? value : body['events'] ?? body['messages'])[0]];
+  }));
+}
 export const useEvent = (id?: string | number | null) => useResource<Event>(`/events/${idPath(id)}`, {}, id != null);
 export const useProvenance = (id?: string | number | null) => useResource<RecordData>(`/events/${idPath(id)}/provenance`, {}, id != null);
 export const usePackets = (params: QueryParams = {}, enabled = true) => useResource<RecordData[]>('/packets', params, enabled);

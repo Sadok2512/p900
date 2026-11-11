@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.9.3
+- `capture · seq` utilise `anchor_capture_id` et `first_packet_number` lorsqu'ils sont fournis, sinon le premier événement du callflow dans l'ordre API (`capture_id`, `packet_references[0].packet_number`).
+- Les groupes de procédure du ladder utilisent une clé React unique composée de `procedure_group` et du premier `event_id`.
+- Tests de contrat ajoutés pour le repli d'ancre et les groupes de procédure répétés.
+
 ## 0.9.2
 - Accueil et pages de contenu élargis progressivement à 1400 px dès 1600 px de viewport, puis 1600 px dès 1920 px, sans modifier Analyzer, Live ni KPI.
 - Taille de texte racine fluide de 16 à 17 px pour conserver une lecture confortable sur les grands écrans.

@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import PolarisApp from '@/components/polaris/PolarisApp';
 import { PolarisDataProvider } from '@/lib/polaris-api';
 
-const session = { session_id: 's1', anchor_capture_id: 'c1', first_packet_number: 45, ue_pseudonym: 'ue-test', technology: '5G SA', state: 'ACTIVE', procedure:'Registration', decode_completeness:100, interfaces:['N2'], message_count:1, ue_ip:'198.51.100.10' };
+const session = { session_id: 's1', ue_pseudonym: 'ue-test', technology: '5G SA', state: 'ACTIVE', procedure:'Registration', decode_completeness:100, interfaces:['N2'], message_count:1, ue_ip:'198.51.100.10' };
 const event = { event_id:'e1', capture_id:'c1', interface:'N2', protocol:'NGAP', message_name:'Registration Accept', source_participant:'AMF', destination_participant:'UE', direction:'CORE_TO_RAN', decoding_status:'DECODED', semantic_status:'SUCCESS', procedure_group:'Registration', packet_references:[{packet_number:45}], decoded_ie_tree:{result:'accepted'}, errors:[] };
 const payloads: Record<string,unknown> = {
   '/auth/me':{role:'operator'}, '/health':{status:'healthy',coordination_open:false}, '/version':{backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{ngap:'0.6.0'}},
@@ -37,6 +37,7 @@ describe('main screens with simulated REST responses',()=>{
     fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
     await screen.findAllByText('ue-test');
     await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url).endsWith('/sessions/s1/callflow'))).toBe(true));
+    await screen.findAllByText('cc1 · 45');
     await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url).endsWith('/events/e1/provenance'))).toBe(true));
     expect(document.body.textContent).not.toContain('private');
     expect(document.body.textContent).not.toContain('198.51.100.10');
@@ -60,6 +61,20 @@ describe('main screens with simulated REST responses',()=>{
     open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'})); fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
     expect(await screen.findByRole('alert')).toHaveTextContent('Détail indisponible · /sessions/s1 · HTTP 404');
   });
+  it('renders repeated procedure group names without duplicate React keys', async()=>{
+    const previous=payloads['/sessions/s1/callflow'];
+    payloads['/sessions/s1/callflow']={events:[
+      {...event,event_id:'pfcp-a',procedure_group:'PFCP Session'},
+      {...event,event_id:'registration',procedure_group:'UE Registration and Context'},
+      {...event,event_id:'pfcp-b',procedure_group:'PFCP Session'},
+    ]};
+    const consoleError=vi.spyOn(console,'error').mockImplementation(()=>{});
+    try {
+      open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'})); fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
+      expect(await screen.findAllByRole('button',{name:/PFCP Session/})).toHaveLength(2);
+      expect(consoleError.mock.calls.flat().join(' ')).not.toContain('same key');
+    } finally { payloads['/sessions/s1/callflow']=previous; consoleError.mockRestore(); }
+  });
   it('Nodes uses probes and server version; capture targets remain disabled', async()=>{
     open('nodes'); await screen.findByText('lab-probe'); expect(screen.getByText('probe-test')).toBeInTheDocument();
     await screen.findByRole('textbox',{name:'Cible de capture'}); expect(screen.getByRole('textbox',{name:'Cible de capture'})).toBeDisabled();
@@ -73,7 +88,7 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByText('Non disponible : backend à venir — Live (WebSocket)')).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getByText('0.9.2')).toBeInTheDocument(); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.11.6 · API 2.11.6 · UI 0.9.2')).toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getByText('0.9.3')).toBeInTheDocument(); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.11.6 · API 2.11.6 · UI 0.9.3')).toBeInTheDocument();
   });
   it('Dashboard library is marked local and has no simulated saved queries outside Demo',()=>{
     open('templates'); expect(screen.getByText('local à ce navigateur')).toBeInTheDocument(); expect(screen.getByText('Aucune requête.')).toBeInTheDocument();

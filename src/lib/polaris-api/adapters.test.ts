@@ -20,12 +20,36 @@ describe('POLARIS data rules', () => {
     expect(missing.id).toBeUndefined();
     expect(missing.missingSessionId).toBe(true);
   });
+  it('falls back to the first API-ordered callflow event when session anchors are absent', () => {
+    const row = toLegacySession(
+      {session_id:'session-without-anchor'},
+      {event_id:'first-event',capture_id:'capture-first',packet_references:[{packet_number:73}]}
+    );
+    expect(row).toMatchObject({cap:'capture-first',seq:73});
+    const explicit = toLegacySession(
+      {session_id:'session-with-anchor',anchor_capture_id:'capture-session',first_packet_number:19},
+      {event_id:'first-event',capture_id:'capture-first',packet_references:[{packet_number:73}]}
+    );
+    expect(explicit).toMatchObject({cap:'capture-session',seq:19});
+  });
   it('never reorders returned events by timestamp', () => {
     const d = toLegacyCallflow([{event_id:'b',message_name:'second capture',source_participant:'MME',destination_participant:'eNB',procedure_group:'Attach',packet_references:[{packet_number:22}],decoding_status:'DECODED'}, {event_id:'a',message_name:'first timestamp but second API row',source_participant:'eNB',destination_participant:'MME',procedure_group:'Attach',packet_references:[{packet_number:11}],decoding_status:'PARTIAL'}], [], []);
     expect(d.msgs.map(m => m[1])).toEqual(['second capture', 'first timestamp but second API row']);
     expect(d.evidence.map(e=>e.event_id)).toEqual(['b','a']);
     expect(d.evidence.map(e=>e.packet_number)).toEqual([22,11]);
     expect(d.nodes).toEqual(['MME','eNB']);
+  });
+  it('keys repeated procedure groups by their first event id', () => {
+    const d = toLegacyCallflow([
+      {event_id:'pfcp-a',procedure_group:'PFCP Session'},
+      {event_id:'registration',procedure_group:'UE Registration and Context'},
+      {event_id:'pfcp-b',procedure_group:'PFCP Session'},
+    ], [], []);
+    expect(d.procs).toEqual([
+      ['PFCP Session',0,0,'pfcp-a'],
+      ['UE Registration and Context',1,1,'registration'],
+      ['PFCP Session',2,2,'pfcp-b'],
+    ]);
   });
   it('maps observed correlation edges to EXACT/OUVERT with rules', () => {
     const d = toLegacyCallflow([], [], {edges:[

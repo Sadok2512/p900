@@ -1,6 +1,6 @@
 import KpiModule from './kpi/KpiModule';
 import LiveModule from './live/LiveModule';
-import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
+import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useStorageSafety, useSessions, useSessionAnchors, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
@@ -240,7 +240,8 @@ function useWidth() {
 function Ladder({d,sel,setSel,lens,hidden,collapsed,width}) {
   const W = Math.max(720, width), LG = 170, n = Math.max(2,d.nodes.length), ROW = 30, TOP = 46;
   const x = k => LG + 50 + k*((W-LG-110)/(n-1));
-  const inCollapsed = k => d.procs.some(p=>collapsed.includes(p[0]) && k>=p[1] && k<=p[2]);
+  const procedureKey = p => `${p[0]}:${p[3] ?? p[1]}`;
+  const inCollapsed = k => d.procs.some(p=>collapsed.includes(procedureKey(p)) && k>=p[1] && k<=p[2]);
   const vis = d.msgs.map((m,k)=>k).filter(k=>!hidden.includes(d.msgs[k][0]) && !inCollapsed(k));
   const H = TOP + Math.max(1,vis.length)*ROW + 16;
   const lensCause = lens && d.msgs.some(m=>m[5]===lens && isCause(m));
@@ -308,7 +309,7 @@ function Detail({s,sel,setSel,lens,ui}) {
         {ifs.map(i=>{const off=hidden.includes(i); return <button key={i} onClick={()=>setHidden(off?hidden.filter(x=>x!==i):[...hidden,i])} title={off?'Afficher':'Masquer'} className={`h-6 px-1 rounded-md border transition ${off?'opacity-35 border-transparent':'border-[#EBEBEB] bg-white'}`}><Tag i={i}/></button>;})}
         <span className="w-px h-4 bg-[#EBEBEB] mx-2"/>
         <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-[#8F8F8F] mr-1">Procédures</span>
-        {d.procs.map(([p,a,b])=>{const c=collapsed.includes(p); return <button key={p} onClick={()=>setCollapsed(c?collapsed.filter(x=>x!==p):[...collapsed,p])} className={`${tb} ${c?'border-[#EBEBEB] bg-[#FAFAFA] text-[#8F8F8F]':'border-[#EBEBEB] bg-white text-[#171717]'}`}><span className="text-[10px]">{c?'▸':'▾'}</span>{p}<span className="text-[#A3A3A3] tabular-nums">{b-a+1}</span></button>;})}
+        {d.procs.map(([p,a,b,firstEventId])=>{const key=`${p}:${firstEventId ?? a}`, c=collapsed.includes(key); return <button key={key} onClick={()=>setCollapsed(c?collapsed.filter(x=>x!==key):[...collapsed,key])} className={`${tb} ${c?'border-[#EBEBEB] bg-[#FAFAFA] text-[#8F8F8F]':'border-[#EBEBEB] bg-white text-[#171717]'}`}><span className="text-[10px]">{c?'▸':'▾'}</span>{p}<span className="text-[#A3A3A3] tabular-nums">{b-a+1}</span></button>;})}
         <div className="ml-auto flex items-center gap-1 shrink-0"><button disabled={demo} onClick={()=>{window.location.href=apiPath(`/exports/callflow/${encodeURIComponent(s.id)}`);}} className={tb+" border-[#EBEBEB]"}>Exporter</button>{auth.data?.data?.role==='operator' && <button disabled={demo || s.cap==='—'} onClick={()=>{if(window.confirm('Télécharger cet extrait pcap ?')) window.location.href=apiPath(`/captures/${encodeURIComponent(s.cap)}/download`);}} className={tb+" border-[#EBEBEB]"}>PCAP</button>}
           <button onClick={()=>step(-1)} title="Message précédent (↑)" className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>↑</button>
           <button onClick={()=>step(1)} title="Message suivant (↓)" className={`${tb} border-[#EBEBEB] text-[#4D4D4D] hover:bg-[#FAFAFA]`}>↓</button>
@@ -889,13 +890,17 @@ function App() {
   const conds = active ? active.conds : [];
   const setConds = c => active && setTabs(ts=>ts.map(x=>x.id===active.id?{...x,conds:c.map(y=>y.length>2?y:[y[0],y[1],'='])}:x));
   const sessionsQuery = useSessions({ page:1, page_size:100, sort:'capture_id', order:'asc' }, page==='sessions');
-  const sourceRows = records(sessionsQuery.data?.data, 'sessions').map((x,i)=>demo ? x : toLegacySession(x,i));
+  const listedSessions = records(sessionsQuery.data?.data, 'sessions');
+  const anchorCandidates = demo ? [] : (active?.apiRows || listedSessions);
+  const sessionAnchors = useSessionAnchors(anchorCandidates, page==='sessions' && view==='results' && !demo);
+  const adaptSession = x => toLegacySession(x, sessionAnchors[String(x.session_id)]);
+  const sourceRows = listedSessions.map(x=>demo ? x : adaptSession(x));
   const rows = useMemo(()=>{
     if (!active) return [];
     const ue = active.ue;
-    const data = demo ? sourceRows : (active.apiRows || sourceRows);
+    const data = demo ? sourceRows : (active.apiRows ? active.apiRows.map(adaptSession) : sourceRows);
     return demo ? data.filter(s=>(!ue || (Array.isArray(ue)?ue.includes(s.ue):s.ue===ue)) && matchQ(s,active.conds,active.join)) : data;
-  },[active,demo,sessionsQuery.data]);
+  },[active,demo,sessionsQuery.data,sessionAnchors]);
   const [sel,setSel] = useState(3);
   const s = rows.find(r=>r.id===sel) || rows.find(r=>r.id!=null);
   const bundle = useSessionBundle(page==='sessions' && view==='results' ? s?.id : null);
@@ -911,7 +916,7 @@ function App() {
   const editActive = () => { if (!active) return; patch(active.id,{mode:'edit',draft:active.draft||mkDraft({conds:active.conds,name:active.n,join:active.join||'ET'})}); };
   const setDraft = d => patch(active.id,{draft:d,dirty:true,n:d.name||'Nouvelle requête'});
   const runQuery = () => { const d=active.draft; const id=active.id;
-    sessionFilter.mutate(d,{onSuccess:response=>patch(id,{conds:d.conds,join:d.join,n:d.name||nameOf(d.conds),mode:'results',ran:true,apiRows:demo?undefined:records(response.data,'sessions').map(toLegacySession)}),onError:e=>window.alert(e.message)});
+    sessionFilter.mutate(d,{onSuccess:response=>patch(id,{conds:d.conds,join:d.join,n:d.name||nameOf(d.conds),mode:'results',ran:true,apiRows:demo?undefined:records(response.data,'sessions')}),onError:e=>window.alert(e.message)});
   };
   const saveQuery = () => { const d=active.draft; const n=d.name||nameOf(d.conds);
     setSaved(sv=>[{n,g:d.tpl,p:d.scope,c:d.conds,last:"à l'instant",r:demo ? sourceRows.filter(x=>matchQ(x,d.conds,d.join)).length : '—',fav:false},...sv.filter(x=>x.n!==n)]);

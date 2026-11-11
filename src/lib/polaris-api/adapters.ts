@@ -2,8 +2,8 @@ import type { RecordData, Session, Event, Correlation, Probe, Metrics, Safety } 
 export const available = (value: unknown): string | number => value == null || value === '' ? '—' : typeof value === 'string' || typeof value === 'number' ? value : '—';
 export const records = <T extends RecordData>(value: unknown, key?: string): T[] => Array.isArray(value) ? value.filter(v => v && typeof v === 'object') : key && value && typeof value === 'object' ? records((value as RecordData)[key]) : [];
 const str = (v: unknown) => String(available(v));
-export function toLegacySession(s: Session) {
-  return { ...s, id: s.session_id, session_id: s.session_id, missingSessionId: !s.session_id, cap: available(s.anchor_capture_id), seq: available(s.first_packet_number), ue: str(s.ue_pseudonym), rat: str(s.technology), proc: str(s.procedure), res: str(s.state), cause: str(s['cause']), cell: str(s['cell']), ex: available(s.correlation_status), comp: available(s.decode_completeness), dur: '—', interfaces: Array.isArray(s.interfaces) ? s.interfaces : [], d: { nodes: [], procs: [], msgs: [], links: [], evidence: [], summary: 'Non disponible' } };
+export function toLegacySession(s: Session, firstEvent?: Event) {
+  return { ...s, id: s.session_id, session_id: s.session_id, missingSessionId: !s.session_id, cap: available(s.anchor_capture_id ?? firstEvent?.capture_id), seq: available(s.first_packet_number ?? firstEvent?.packet_references?.[0]?.packet_number), ue: str(s.ue_pseudonym), rat: str(s.technology), proc: str(s.procedure), res: str(s.state), cause: str(s['cause']), cell: str(s['cell']), ex: available(s.correlation_status), comp: available(s.decode_completeness), dur: '—', interfaces: Array.isArray(s.interfaces) ? s.interfaces : [], d: { nodes: [], procs: [], msgs: [], links: [], evidence: [], summary: 'Non disponible' } };
 }
 export function toLegacyCallflow(value: unknown, procedures: unknown, correlations: unknown) {
   const body = value && typeof value === 'object' && !Array.isArray(value) ? value as RecordData : {};
@@ -19,7 +19,10 @@ export function toLegacyCallflow(value: unknown, procedures: unknown, correlatio
     return [(() => { const n = events.findIndex(e => e.event_id === c.source_event_id); return n < 0 ? null : n; })(), (() => { const n = events.findIndex(e => e.event_id === c.target_event_id); return n < 0 ? null : n; })(), str(c.source_interface), str(c.target_interface), `${rule} · ${identifiers} · matched_rules: ${matched.length ? matched.join(', ') : '—'}`, confidence, matched, c];
   }).filter(link => link[5] === 'EXACT' || link[5] === 'OUVERT');
   const evidence = events.map(e => ({ ...e, packet_number: e.packet_number ?? e.packet_references?.[0]?.packet_number }));
-  const suppliedProcedures = records(procedures, 'procedures').map(p => [str(p['name'] ?? p['procedure']), events.findIndex(e => e.event_id === p['start_event_id']), events.findIndex(e => e.event_id === p['end_event_id'])]);
+  const suppliedProcedures = records(procedures, 'procedures').map(p => {
+    const start = events.findIndex(e => e.event_id === p['start_event_id']);
+    return [str(p['name'] ?? p['procedure']), start, events.findIndex(e => e.event_id === p['end_event_id']), start < 0 ? undefined : events[start]?.event_id];
+  });
   const procs = suppliedProcedures.length ? suppliedProcedures : procedureGroups(events);
   return { nodes, msgs: events.map(e => [str(e.interface), str(e.message_name), `${str(e.source_participant)} → ${str(e.destination_participant)}`, null, e.semantic_status ? 'semantic_status' : null, e.semantic_status ? str(e.semantic_status) : null]), evidence, procs, links, summary: str(body['summary']) };
 }
@@ -35,12 +38,12 @@ function correlationConfidence(c: Correlation): 'EXACT' | 'OUVERT' | null {
 }
 
 function procedureGroups(events: Event[]) {
-  const groups: Array<[string, number, number]> = [];
+  const groups: Array<[string, number, number, string | number | undefined]> = [];
   events.forEach((event, index) => {
     const name = str(event.procedure_group);
     const last = groups.at(-1);
     if (last && last[0] === name) last[2] = index;
-    else groups.push([name, index, index]);
+    else groups.push([name, index, index, event.event_id]);
   });
   return groups.filter(([name]) => name !== '—');
 }
