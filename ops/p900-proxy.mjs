@@ -15,8 +15,14 @@ const tokens = { oiran: secretFromFile('OIRAN_OPERATOR_TOKEN_FILE'), polaris: se
 const cpuSample = { at: 0, usage: 0, percent: null };
 const byteSamples = new Map();
 
+function parsedUrl(rawUrl) {
+  try { return new URL(rawUrl || '/', 'http://localhost'); } catch { return null; }
+}
+
 export function targetFor(rawUrl = '/') {
-  const pathname = new URL(rawUrl, 'http://localhost').pathname;
+  const parsed = parsedUrl(rawUrl);
+  if (!parsed) return null;
+  const pathname = parsed.pathname;
   if (pathname === '/api/v1' || pathname.startsWith('/api/v1/')) return { host: '127.0.0.1', port: 49152, scope: 'oiran', path: rawUrl };
   if (pathname === '/polaris-api/v1' || pathname.startsWith('/polaris-api/v1/')) return { host: '127.0.0.1', port: 49153, scope: 'polaris', path: rawUrl.replace('/polaris-api/v1', '/api/v1') };
   return { host: '127.0.0.1', port: 8090, scope: 'ui', path: rawUrl };
@@ -91,7 +97,7 @@ function sendJson(response,status,payload) { response.writeHead(status,{'content
 
 function proxy(request,response,target) {
   const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target)}, upstreamResponse=>{
-    const pathname=new URL(request.url??'/','http://localhost').pathname;
+    const pathname=parsedUrl(request.url)?.pathname ?? '/';
     const transform=target.scope==='polaris'||pathname==='/api/v1/probes';
     if (!transform) { response.writeHead(upstreamResponse.statusCode??502,upstreamResponse.headers); upstreamResponse.pipe(response); return; }
     const chunks=[]; upstreamResponse.on('data',chunk=>chunks.push(chunk)); upstreamResponse.on('end',()=>{
@@ -107,7 +113,9 @@ function proxy(request,response,target) {
 
 export function createServer() {
   const server=http.createServer((request,response)=>{
-    const pathname=new URL(request.url??'/','http://localhost').pathname;
+    const parsed=parsedUrl(request.url);
+    if(!parsed) return sendJson(response,400,{error:{code:'INVALID_URL',message:'Invalid request target'}});
+    const pathname=parsed.pathname;
     if (pathname==='/api/v1/interfaces/runtime') {
       if (request.method!=='GET') return sendJson(response,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required'}});
       return sendJson(response,200,{data:dumpcapRuntime(),meta:{observed_at:new Date().toISOString()}});
@@ -116,6 +124,7 @@ export function createServer() {
   });
   server.on('upgrade',(request,socket,head)=>{
     const target=targetFor(request.url);
+    if(!target) { socket.end('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n'); return; }
     const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target)});
     upstream.on('upgrade',(upstreamResponse,upstreamSocket,upstreamHead)=>{
       const status=upstreamResponse.statusCode??101;
