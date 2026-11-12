@@ -94,9 +94,9 @@ function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,
         <TopBarVersion version={version}/>
       </div>
       <nav className="flex h-full min-w-0 overflow-x-auto scroll-thin gap-1 lg:gap-2">
-        {[['home','Accueil'],['templates','Dashboard'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],...(TRAFFIC_ENABLED ? [['trafic','Traffic']] : [])].filter(([k])=>isVisible(hidden,k)).map(([k,n]) => {
-          const on = page===k, ok = ['home','sessions','nodes','templates','kpi','live','trafic'].includes(k);
-          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative shrink-0 px-3 h-full flex items-center text-[14px] outline-none focus-visible:bg-muted rounded-sm transition-colors ${ok?'cursor-pointer':'cursor-default'} ${on?'text-foreground font-semibold':'text-muted-foreground font-medium hover:text-foreground'}`} aria-current={on?'page':undefined}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-sm"/>}</button>;
+        {[['home','Accueil'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],...(TRAFFIC_ENABLED ? [['trafic','Traffic']] : [])].filter(([k])=>isVisible(hidden,k)).map(([k,n]) => {
+          const on = page===k, ok = ['home','sessions','nodes','kpi','live','trafic'].includes(k);
+          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if(k==='sessions' && onAnalyzer) onAnalyzer(); } }} className={`relative shrink-0 px-3 h-full flex items-center text-[14px] outline-none focus-visible:bg-muted rounded-sm transition-colors ${ok?'cursor-pointer':'cursor-default'} ${on?'text-foreground font-semibold':'text-muted-foreground font-medium hover:text-foreground'}`} aria-current={on?'page':undefined}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-sm"/>}</button>;
         })}
       </nav>
       <div className="ml-auto shrink-0 flex items-center gap-2 lg:gap-4 text-[13px]">
@@ -569,7 +569,7 @@ const Card = ({title,action,children,className=''}) => (
 );
 
 const HOME_ACTIONS = [
-  ['tpl','Ouvrir un template','M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z','templates'],
+  ['tpl','Ouvrir un template','M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z','kpi-dash'],
   ['run','Explorer un run','M4 6h16M4 12h16M4 18h10','sessions'],
   ['live','Trace live','M3 12h4l3-8 4 16 3-8h4','live'],
 ];
@@ -600,10 +600,10 @@ function Home({setPage,onNew,hidden=[]}) {
   const { demo } = usePolarisMode();
   const health = useHealth(), metrics = useMetrics(), safety = useStorageSafety();
   const m = metrics.data?.data, h = health.data?.data;
-  const go = tg => tg && setPage(tg);
+  const go = tg => { if(!tg) return; if(tg==='kpi-dash'){ try { localStorage.setItem('polaris-kpi-tab', JSON.stringify('dash')); } catch(e) {} setPage('kpi'); return; } setPage(tg); };
   const mods = MODULES.filter(x=>(x[3]!=='trafic'||TRAFFIC_ENABLED) && isVisible(hidden,x[3]));
   const cols = mods.length <= 2 ? 'lg:grid-cols-2' : mods.length === 4 ? 'lg:grid-cols-4' : mods.length % 3 === 0 || mods.length === 5 ? 'lg:grid-cols-3' : 'lg:grid-cols-4';
-  const activity = demo ? [['Analyse','Run 5G #482 · Registration','il y a 3 min','sessions'],['KPI','Succès PDU Session · 15 min','il y a 12 min','kpi'],['Template','Échecs Attach par cellule','il y a 40 min','templates'],['Analyse','Run 4G #219 · E-RAB Setup','il y a 2 h','sessions']] : [];
+  const activity = demo ? [['Analyse','Run 5G #482 · Registration','il y a 3 min','sessions'],['KPI','Succès PDU Session · 15 min','il y a 12 min','kpi'],['Template','Échecs Attach par cellule','il y a 40 min','kpi-dash'],['Analyse','Run 4G #219 · E-RAB Setup','il y a 2 h','sessions']] : [];
   const status = [['capture','Capture','État de capture',m?.capture_state ?? h?.capture_state],['pending','Segments en attente','À importer',m?.pending_segments],['failures','Échecs ingestion','Import',m?.ingestion_failures],['ingested','Segments ingérés','Importés',m?.segments_ingested],['open','Segments ouverts','Capture en cours',m?.open_segments],['zero','Segments sans événement','Décodage',m?.zero_event_segments],['disk','Disque disponible','Stockage',safety.data?.data?.free_percent]];
   const conn = demo ? ['warn','Données de démo'] : health.isError ? ['fail',health.error.message] : health.isPending ? ['unknown','Connexion POLARIS…'] : ['ok','POLARIS connecté'];
   const sectionHead = (title, action) => <div className="h-11 px-4 flex items-center border-b border-border-subtle"><h2 className="text-[14px] font-semibold text-foreground">{t(title)}</h2><div className="ml-auto">{action}</div></div>;
@@ -1153,7 +1153,7 @@ function App() {
   const accountHidden = sanitizeHidden(auth.data?.data?.hidden_modules); const navHidden = [...new Set([...hiddenMods,...accountHidden])];
   const toggleMod = k => setHiddenMods(h=>{ const n=toggleHidden(h,k); saveHidden(n); return n; });
   const accent = accentOf(theme);
-    const readP = () => { const h=(location.hash||'').replace('#',''); return (h!=='trafic'||TRAFFIC_ENABLED) && ['sessions','nodes','settings','templates','kpi','live','trafic'].includes(h) ? h : 'home'; };
+    const readP = () => { const h=(location.hash||'').replace('#',''); if(h==='templates') return 'kpi'; return (h!=='trafic'||TRAFFIC_ENABLED) && ['sessions','nodes','settings','kpi','live','trafic'].includes(h) ? h : 'home'; };
   const [page,setPageS] = useState(readP);
   const setPage = p => { if(p==='trafic'&&!TRAFFIC_ENABLED) p='home'; try { location.hash = p; } catch(e) {} setPageS(p); };
   useEffect(()=>{ const f=()=>setPageS(readP()); window.addEventListener('hashchange',f); return ()=>window.removeEventListener('hashchange',f); },[]);
@@ -1269,12 +1269,13 @@ function App() {
     document.body.style.cursor = kind==='h'?'row-resize':'col-resize'; window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up); };
   const ui = {full,setFull,gridHidden,setGridHidden};
   useEffect(()=>{ setMsg(0); setLens(null); },[s?.id]);
+  const dashboardView = <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/>;
   return (
     <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-surface-2 text-foreground text-base">
       <TopBar role={role} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')} metrics={metrics} version={version} demo={demo} hidden={navHidden}/>
       <DataStatus t={t}/>
       {role==='operator' && <div className="h-7 shrink-0 bg-warning-soft border-b border-warning-line text-warning text-[12px] flex items-center px-4">Rôle operator actif · identités masquées · actions soumises au proxy</div>}
-      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={navHidden} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : page==='templates' ? <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
+      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={navHidden} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV} DashboardView={dashboardView}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : <>
       {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
       {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">
         <main ref={mainRef} className={`flex-1 min-w-0 flex-col ${geoMax && selected && !geoHidden && !full ? 'hidden' : 'flex'}`}>

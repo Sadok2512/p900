@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.0
+
+- La page Dashboard quitte le menu du haut : elle devient l'onglet « Dashboard » du module KPI, où elle remplace la bibliothèque de dashboards de démonstration.
+- L'ancienne adresse `#templates` ouvre KPI ; le menu du haut et la liste des modules affichés dans Administration ne proposent plus Dashboard.
+- Depuis l'accueil, « Ouvrir un template » et l'entrée « Template » de l'activité récente mènent directement à KPI → Dashboard.
+
 ## 0.18.0
 
 - Harmonisation des interfaces : chaque famille d'interface a une couleur unique (N2/S1-MME bleu, N3/S1-U vert, N4/S11/S5-C/S5 ambre, SBI/S6a/Sxab violet, IMS rose, N6 turquoise, autre gris) et apparaît en badge compact dans la liste des sondes, la fiche sonde, l'onglet Live Capture et les formulaires d'enregistrement / d'édition.

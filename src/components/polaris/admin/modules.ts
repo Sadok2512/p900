@@ -2,7 +2,6 @@
 export type NavModule = { key: string; label: string; locked?: boolean };
 export const NAV_MODULES: NavModule[] = [
   { key: 'home', label: 'Accueil', locked: true },
-  { key: 'templates', label: 'Dashboard' },
   { key: 'sessions', label: 'Analyzer' },
   { key: 'kpi', label: 'KPI' },
   { key: 'live', label: 'Live' },
