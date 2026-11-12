@@ -28,7 +28,7 @@ describe('probe registration contract', () => {
   });
   it('shows the server protocol without sending it in the payload',()=>{
     const draft=probeDraftFromRecord({probe_type:'virtual',name:'Local',host:'localhost',mgmt_ip:'127.0.0.1',site:'lab'},[{interface:'br-n2',role:'N2',bpf_filter:'sctp port 38412',protocol:'NGAP'}]);
-    expect(draft.interfaces[0].protocol).toBe('NGAP');
+    expect(draft.interfaces[0]?.protocol).toBe('NGAP');
     expect(JSON.stringify(probePayload(draft))).not.toContain('NGAP');
   });
   it('marks the affected control instead of one generic message',()=>{

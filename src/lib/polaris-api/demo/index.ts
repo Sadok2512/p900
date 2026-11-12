@@ -5,12 +5,14 @@ import type { Envelope } from '../types';
 
 // Démo : fiche d'une sonde et ses interfaces, pour que le formulaire d'édition
 // soit explorable hors connexion. Valeurs de test uniquement, jamais des mesures.
+const segment = (path: string, index: number) => decodeURIComponent(path.split('/')[index] ?? '');
+
 const demoProbe = (id: string) => {
-  const node = NODES.find(n => n.n === id);
-  const index = Math.max(0, NODES.findIndex(n => n.n === id));
+  const node = NODES.find(n => n['n'] === id);
+  const index = Math.max(0, NODES.findIndex(n => n['n'] === id));
   return {
     id, probe_id: id, name: id, host: `${id}.lab.local`, mgmt_ip: `10.77.0.${index + 1}`,
-    site: 'Lab A · démo', probe_type: 'virtual', role: node?.role ?? 'Capture', status: 'healthy', version: node?.ver ?? '—',
+    site: 'Lab A · démo', probe_type: 'virtual', role: node?.['role'] ?? 'Capture', status: 'healthy', version: node?.['ver'] ?? '—',
   };
 };
 const demoProbeInterfaces = (id: string) => [
@@ -25,8 +27,8 @@ export function demoResponse<T>(path: string, params: Record<string, unknown> = 
   let data: unknown;
   if (path === '/sessions' || path === '/sessions/filter' || /^\/datasets\/[^/]+\/sessions$/.test(path) || /^\/ues\/[^/]+\/sessions$/.test(path)) data = SESS;
   else if (path === '/probes') data = NODES;
-  else if (/^\/probes\/[^/]+$/.test(path)) data = demoProbe(decodeURIComponent(path.split('/')[2]));
-  else if (/^\/probes\/[^/]+\/interfaces$/.test(path)) data = demoProbeInterfaces(decodeURIComponent(path.split('/')[2]));
+  else if (/^\/probes\/[^/]+$/.test(path)) data = demoProbe(segment(path, 2));
+  else if (/^\/probes\/[^/]+\/interfaces$/.test(path)) data = demoProbeInterfaces(segment(path, 2));
   else if (path === '/health') data = { status: 'demo', capture_state: 'demo' };
   else if (path === '/metrics') data = { capture_state: 'demo', dumpcap_active: 12, dumpcap_expected: 12, pending_segments: 12, segments_ingested: 436, ingestion_failures: 0, open_segments: 2, zero_event_segments: 0, import_lag_seconds: 4 };
   else if (path === '/storage/safety') data = { free_percent: 24 };

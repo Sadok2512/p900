@@ -44,7 +44,7 @@ export function probeDraftFromRecord(record: Record<string, unknown> = {}, inter
       interface: String(item['interface'] ?? item['name'] ?? item['device'] ?? ''),
       role: String(item['role'] ?? ''),
       bpf_filter: String(item['bpf_filter'] ?? item['filter'] ?? ''),
-      protocol: item['protocol'] == null ? undefined : String(item['protocol']),
+      ...(item['protocol'] == null ? {} : { protocol: String(item['protocol']) }),
     })),
   };
 }
@@ -87,21 +87,21 @@ const IP = /^(?:\d{1,3}\.){3}\d{1,3}$|^[0-9a-f:]+$/i;
 // pushing every problem to the bottom of the form.
 export function probeFieldErrors(draft: ProbeRegistrationDraft): Record<string, string> {
   const errors: Record<string, string> = {};
-  if (!draft.name.trim()) errors.name = 'Le nom de la sonde est obligatoire.';
-  if (!draft.host.trim()) errors.host = 'Le serveur / namespace est obligatoire.';
-  if (!draft.site.trim()) errors.site = 'Le site est exigé par OIRAN.';
-  if (!draft.mgmt_ip.trim()) errors.mgmt_ip = "L'adresse de gestion est exigée par OIRAN.";
-  else if (!IP.test(draft.mgmt_ip.trim())) errors.mgmt_ip = "L'adresse de gestion doit être une adresse IP.";
-  if (!draft.interfaces.length) errors.interfaces = 'Au moins une interface est requise.';
+  if (!draft.name.trim()) errors['name'] = 'Le nom de la sonde est obligatoire.';
+  if (!draft.host.trim()) errors['host'] = 'Le serveur / namespace est obligatoire.';
+  if (!draft.site.trim()) errors['site'] = 'Le site est exigé par OIRAN.';
+  if (!draft.mgmt_ip.trim()) errors['mgmt_ip'] = "L'adresse de gestion est exigée par OIRAN.";
+  else if (!IP.test(draft.mgmt_ip.trim())) errors['mgmt_ip'] = "L'adresse de gestion doit être une adresse IP.";
+  if (!draft.interfaces.length) errors['interfaces'] = 'Au moins une interface est requise.';
   return errors;
 }
 
 export function probeInterfaceErrors(draft: ProbeRegistrationDraft): Array<Record<string, string>> {
   return draft.interfaces.map(item => {
     const errors: Record<string, string> = {};
-    if (!item.interface.trim()) errors.interface = 'Nom de l’interface requis.';
-    if (!item.role.trim()) errors.role = 'Rôle de capture requis.';
-    if (!item.bpf_filter.trim()) errors.bpf_filter = 'Filtre BPF requis.';
+    if (!item.interface.trim()) errors['interface'] = 'Nom de l’interface requis.';
+    if (!item.role.trim()) errors['role'] = 'Rôle de capture requis.';
+    if (!item.bpf_filter.trim()) errors['bpf_filter'] = 'Filtre BPF requis.';
     return errors;
   });
 }

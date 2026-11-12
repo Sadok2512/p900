@@ -73,7 +73,7 @@ export function PayloadPreview({ payload, endpoint }) {
       <span className="ml-auto font-mono text-[11.5px] text-code-fg opacity-70">{endpoint}</span>
       <button type="button" onClick={copy} className="h-7 rounded-md border border-code-border px-2.5 text-[12px] text-code-fg hover:bg-white/10">{copied ? 'Copié' : 'Copier JSON'}</button>
     </header>
-    <pre className="min-h-[220px] max-h-[350px] overflow-auto scroll-thin px-4 py-3 font-mono text-[12.5px] leading-[1.55] text-code-fg">{highlightJson(text)}</pre>
+    <pre className="min-h-[120px] max-h-[280px] overflow-auto scroll-thin px-4 py-3 font-mono text-[12.5px] leading-[1.55] text-code-fg">{highlightJson(text)}</pre>
   </section>;
 }
 
@@ -113,9 +113,12 @@ export function InterfaceTable({ interfaces, onPatch, onRemove, protocols = {}, 
   </table>;
 }
 
-export function ProbeDialog({ label, title, subtitle, identifier, onClose, onSubmit, footer, children }) {
+export function ProbeDialog({ label, title, subtitle, identifier, onClose, onSubmit, footer, children, preview, height = 'h-[min(880px,90vh)]' }) {
+  // Fixed height, not max-height: the header and footer must not move while the
+  // dialog is open (font swaps and async rows otherwise shift the layout under
+  // the pointer between mousedown and mouseup).
   return <div className="fixed inset-0 z-[80] grid place-items-center bg-black/20 p-4" role="dialog" aria-modal="true" aria-label={label}>
-    <form onSubmit={onSubmit} className="flex max-h-[90vh] w-[min(1040px,95vw)] flex-col overflow-hidden rounded-xl border border-border bg-white shadow-2xl">
+    <form onSubmit={onSubmit} className={`flex ${height} w-[min(1040px,95vw)] flex-col overflow-hidden rounded-xl border border-border bg-white shadow-2xl`}>
       <header className="flex shrink-0 items-start gap-4 border-b border-border px-6 py-4">
         <div className="min-w-0">
           <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-foreground">{title}</h2>
@@ -125,6 +128,9 @@ export function ProbeDialog({ label, title, subtitle, identifier, onClose, onSub
         <button type="button" onClick={onClose} aria-label="Fermer" className="ml-auto h-8 w-8 shrink-0 rounded-md border border-border text-[16px] leading-none text-muted-foreground hover:bg-surface-2">×</button>
       </header>
       <div className="min-h-0 flex-1 space-y-5 overflow-y-auto scroll-thin px-6 py-5">{children}</div>
+      {/* The payload preview is pinned above the footer: it must stay on screen
+          whether the form scrolls or not. */}
+      {preview && <div className="shrink-0 px-6 pb-4">{preview}</div>}
       <footer className="flex shrink-0 flex-wrap items-center gap-3 border-t border-border px-6 py-4">{footer}</footer>
     </form>
   </div>;
@@ -155,6 +161,7 @@ export default function ProbeForm({
   const engaged = submitted || Object.keys(touched).length > 0;
 
   return <ProbeDialog label={dialogLabel} title={title} subtitle={subtitle} identifier={probeId} onClose={onClose} onSubmit={submit}
+    preview={<PayloadPreview payload={payload} endpoint={endpoint}/>}
     footer={<>
       <span className="text-[12px] text-subtle">{footerNote}</span>
       {blocking && <span className="text-[12px] text-warning">{blocking}</span>}
@@ -195,8 +202,6 @@ export default function ProbeForm({
       {engaged && fieldErrors.interfaces && <p className="mt-3 text-[12px] text-danger">{fieldErrors.interfaces}</p>}
       <p className="mt-3 text-[11.5px] text-subtle">Le protocole reste affiché à titre indicatif : il provient de /interfaces et ne fait pas partie de la charge utile envoyée au registre.</p>
     </Section>
-
-    <PayloadPreview payload={payload} endpoint={endpoint}/>
 
     {(engaged || serverError || permissionNote) && <div className="space-y-1.5" aria-live="polite">
       {engaged && errors.length > 1 && <div className="rounded-lg border border-warning-line bg-warning-soft px-3 py-2 text-[12px] text-warning">

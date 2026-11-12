@@ -51,6 +51,8 @@ export default function ProbeManagement({ mode, node, auth, onClose }) {
     onClose={onClose} onSubmit={submit} footerNote="Toute réussite vient du serveur et rafraîchit `/probes`."/>;
 
   return <ProbeDialog label={mode === 'delete' ? 'Supprimer la sonde' : 'Mettre à jour le logiciel'}
+    height={mode === 'software' ? 'h-[min(720px,90vh)]' : 'h-[min(560px,90vh)]'}
+    preview={<PayloadPreview payload={body} endpoint={endpoint}/>}
     title={mode === 'delete' ? 'Supprimer la sonde' : 'Mettre à jour le logiciel'}
     subtitle={mode === 'delete' ? 'Retrait du registre OIRAN · les segments déjà capturés sont conservés' : 'Stratégie rolling · la capture est préservée pendant la mise à jour'}
     identifier={id} onClose={onClose} onSubmit={submit}
@@ -69,7 +71,7 @@ export default function ProbeManagement({ mode, node, auth, onClose }) {
     <Field label="Confirmation" required help={`Tapez ${id} pour autoriser l'appel.`}>
       <input aria-label={`Tapez ${id}`} value={confirmation} onChange={event => setConfirmation(event.target.value)} className="h-10 w-full rounded-md border border-border bg-white px-3 font-mono text-[13px] outline-none focus:border-[var(--app-accent)]"/>
     </Field>
-    <PayloadPreview payload={body} endpoint={endpoint}/>
+
     {permissionNote && <div className="rounded-lg border border-warning-line bg-warning-soft px-3 py-2 text-[12px] text-warning">{permissionNote}</div>}
     {serverError && <div role="alert" className="rounded-lg border border-danger-line bg-danger-soft px-3 py-2 text-[12px] text-danger">{serverError}</div>}
   </ProbeDialog>;
