@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.0
+
+- Version applicative POLARIS unifiée à `2.2.0` dans les métadonnées du paquet, l'écran À propos et le pied de page.
+- Synchronisation avec la branche `main` courante, en conservant le câblage operator des identités et Live Trace.
+
 ## 0.18.0
 
 - Live Trace raccordé aux traces OIRAN 2.14.0 et au flux SSE reprenable : recherche armée, messages, débit, informations UE, pause avec tampon client et marqueurs.
