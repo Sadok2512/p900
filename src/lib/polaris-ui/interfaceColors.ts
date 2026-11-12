@@ -81,13 +81,13 @@ export const CAPTURE_TONE: Record<CaptureState, string> = {
 };
 
 export function captureStateOf(row: Record<string, unknown> = {}): CaptureState {
-  const raw = text(row.state ?? row.status ?? row.capture_state).toUpperCase();
+  const raw = text(row['state'] ?? row['status'] ?? row['capture_state']).toUpperCase();
   if (raw.includes('START')) return 'starting';
   if (raw.includes('STOP')) return 'stopping';
   if (raw.includes('CAPTUR') || raw.includes('RUNNING') || raw === 'ACTIVE') return 'active';
   if (raw.includes('INACTIVE') || raw.includes('IDLE') || raw.includes('STOPPED')) return 'inactive';
-  if (row.active === true) return 'active';
-  if (row.active === false) return 'inactive';
+  if (row['active'] === true) return 'active';
+  if (row['active'] === false) return 'inactive';
   return 'unknown';
 }
 

@@ -36,7 +36,8 @@ const TONE_DOT: Record<string, string> = {
 const toneText = (tone: string) => TONE_CLASS[tone]?.split(' ')[0] ?? 'text-subtle';
 
 /* Compact family badge: light tint, thin border, no gradient, fixed size. */
-export function InterfaceBadge({ name, title, className = '' }) {
+type BadgeProps = { name: unknown; title?: string; className?: string };
+export function InterfaceBadge({ name, title, className = '' }: BadgeProps) {
   const label = String(name ?? '').trim() || '—';
   return <span
     title={title ?? label}
@@ -45,7 +46,8 @@ export function InterfaceBadge({ name, title, className = '' }) {
 }
 
 /* Availability of an interface — its own colours, never the family colour. */
-export function AvailabilityStatus({ active, state }) {
+type AvailabilityProps = { active?: unknown; state?: unknown };
+export function AvailabilityStatus({ active, state }: AvailabilityProps) {
   const kind = availabilityOf(active, state);
   const tone = AVAILABILITY_TONE[kind];
   return <span className={`inline-flex items-center gap-1.5 rounded-[3px] border px-1.5 py-[2px] text-[11.5px] font-medium ${TONE_CLASS[tone]}`}>
@@ -55,7 +57,8 @@ export function AvailabilityStatus({ active, state }) {
 }
 
 /* dumpcap process state: a process, not a traffic proof. */
-export function CaptureStatus({ row = {}, active, className = '' }) {
+type CaptureProps = { row?: Record<string, unknown>; active?: unknown; className?: string };
+export function CaptureStatus({ row = {}, active, className = '' }: CaptureProps) {
   const kind = captureStateOf({ ...row, ...(active == null ? {} : { active }) });
   const tone = CAPTURE_TONE[kind];
   return <span className={`inline-flex items-center gap-1.5 text-[11.5px] ${className}`}>
@@ -65,7 +68,8 @@ export function CaptureStatus({ row = {}, active, className = '' }) {
 }
 
 /* Traffic seen on the interface, shown apart from the process state. */
-export function TrafficStatus({ packetRate, bytesPerSecond }) {
+type TrafficProps = { packetRate?: unknown; bytesPerSecond?: unknown };
+export function TrafficStatus({ packetRate, bytesPerSecond }: TrafficProps) {
   const kind = trafficOf(packetRate, bytesPerSecond);
   const tone = kind === 'observed' ? 'success' : kind === 'silent' ? 'warning' : 'subtle';
   return <span className={`inline-flex items-center gap-1.5 text-[11px] ${toneText(tone)}`}>
@@ -75,19 +79,22 @@ export function TrafficStatus({ packetRate, bytesPerSecond }) {
 }
 
 /* Monospace technical value: never clipped without the full value at hand. */
-export function TechnicalValue({ value, className = '', width = 'max-w-[180px]' }) {
+type TechnicalProps = { value?: unknown; className?: string; width?: string };
+export function TechnicalValue({ value, className = '', width = 'max-w-[180px]' }: TechnicalProps) {
   const full = value == null || value === '' ? '—' : String(value);
   return <span title={full} className={`block truncate font-mono text-[11.5px] text-ink-2 ${width} ${className}`}>{full}</span>;
 }
 
 /* BPF filter: monospace on a light technical chip, full text in the tooltip. */
-export function BpfFilterDisplay({ filter, className = '', width = 'max-w-[200px]' }) {
+type BpfProps = { filter?: unknown; className?: string; width?: string };
+export function BpfFilterDisplay({ filter, className = '', width = 'max-w-[200px]' }: BpfProps) {
   const full = filter == null || filter === '' ? '—' : String(filter);
   return <span title={full} className={`inline-block max-w-full truncate rounded-[3px] border border-border-subtle bg-surface-2 px-1.5 py-[2px] font-mono text-[11.5px] text-ink-2 ${width} ${className}`}>{full}</span>;
 }
 
 /* Numeric measure: tabular figures, missing stays a dash — never a zero. */
-export function MetricValue({ value, suffix = '', className = '' }) {
+type MetricProps = { value?: unknown; suffix?: string; className?: string };
+export function MetricValue({ value, suffix = '', className = '' }: MetricProps) {
   const known = value != null && value !== '' && Number.isFinite(Number(value));
   return <span className={`whitespace-nowrap font-mono text-[11.5px] tabular-nums ${known ? 'text-foreground' : 'text-faint'} ${className}`}>
     {known ? `${Number(value).toLocaleString('fr-FR')}${suffix}` : `—${suffix}`}
@@ -98,7 +105,8 @@ export function MetricValue({ value, suffix = '', className = '' }) {
  * 15-minute activity: thin line, fixed box, no gradient, no invented samples.
  * The baseline only appears when a real zero-valued sample exists.
  */
-export function ActivitySparkline({ values = [], width = 150, height = 34 }) {
+type SparkProps = { values?: readonly unknown[]; width?: number; height?: number };
+export function ActivitySparkline({ values = [], width = 150, height = 34 }: SparkProps) {
   const samples = values.filter(v => v != null && Number.isFinite(Number(v))).map(Number);
   if (samples.length < 2) return <span className="inline-flex h-[34px] w-[150px] items-center rounded-[3px] border border-dashed border-border-subtle px-2 text-[11px] text-subtle">aucun échantillon</span>;
   const max = Math.max(...samples, 1);

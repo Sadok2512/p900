@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.18.0
+
+- Harmonisation des interfaces : chaque famille d'interface a une couleur unique (N2/S1-MME bleu, N3/S1-U vert, N4/S11/S5-C/S5 ambre, SBI/S6a/Sxab violet, IMS rose, N6 turquoise, autre gris) et apparaît en badge compact dans la liste des sondes, la fiche sonde, l'onglet Live Capture et les formulaires d'enregistrement / d'édition.
+- La disponibilité (verte, rouge, grise ou orange) et l'état du processus dumpcap (actif, inactif, démarrage, arrêt, inconnu) restent indépendants de la couleur de l'interface ; le trafic réellement vu est affiché à part de l'état du processus.
+- Les valeurs techniques (source de capture, filtre BPF, PID, débit, segment) passent en monospace avec infobulle ; une mesure manquante reste « — » et n'est jamais remplacée par zéro, la courbe 15 min n'affiche que des échantillons réellement mesurés.
+- Règles et couleurs centralisées dans `src/lib/polaris-ui/interfaceColors.ts` et `src/components/polaris/ui/InterfaceBadge.tsx` ; le ladder de l'Analyzer et la démo live utilisent la même table.
+
 ## 0.17.1
 
 - Retour arrière du thème bleu nuit : l'application retrouve son thème clair tel qu'il était avant la 0.17.0 (fond, cartes, tableaux, ladder, panneau JSON, pages d'erreur).
