@@ -112,9 +112,11 @@ export const useAdminUsers = () => useResource<RecordData[]>('/users', {}, true,
 export const useAdminRoles = () => useResource<RecordData[]>('/roles', {}, true, false);
 export const useAuditLog = () => useResource<RecordData[]>('/audit', {}, true, false);
 const polarisOptions = <T,>(path: string) => queryOptions({ queryKey: ['polaris-control', path], queryFn: ({ signal }) => requestFrom<T>('/polaris-api/v1', path, { signal }), staleTime: 5_000, retry: false, refetchOnWindowFocus: false });
-export const usePolarisLab = () => useQuery({ ...polarisOptions<RecordData>('/lab'), refetchInterval: 5_000 });
-export const usePolarisNodes = () => useQuery({ ...polarisOptions<RecordData>('/nodes'), refetchInterval: 5_000 });
-export const usePolarisUes = () => useQuery({ ...polarisOptions<RecordData>('/ues'), refetchInterval: 5_000 });
+// Unreachable simulator: back off to 60 s so the topology stops flickering every 5 s.
+const simulatorPoll = (q: { state: { status: string } }) => (q.state.status === 'error' ? 60_000 : 15_000);
+export const usePolarisLab = () => useQuery({ ...polarisOptions<RecordData>('/lab'), refetchInterval: simulatorPoll });
+export const usePolarisNodes = () => useQuery({ ...polarisOptions<RecordData>('/nodes'), refetchInterval: simulatorPoll });
+export const usePolarisUes = () => useQuery({ ...polarisOptions<RecordData>('/ues'), refetchInterval: simulatorPoll });
 export function useInterfaceMutation() {
   const client = useQueryClient();
   return useMutation({ mutationFn: ({ action, name, body }: { action: 'add' | 'update' | 'delete' | 'rollback'; name?: string; body?: RecordData }) => {
