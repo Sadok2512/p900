@@ -82,7 +82,7 @@ function TopBarLive({metrics,demo,onOpen}) {
 function TopBarVersion({version}) {
   const data=version.data?.data;
   const title=`backend_api: ${available(data?.backend_api)}\nsession_engine: ${available(data?.session_engine)}\ncorrelation_engine: ${available(data?.correlation_engine)}\nevent_schema: ${available(data?.event_schema)}\ndecoders: ${decoderVersions(data?.decoders)}`;
-  return <div title={title} className="flex flex-col justify-center leading-none whitespace-nowrap"><span className="text-[17px] font-semibold tracking-tight text-foreground leading-[20px]">POLARIS</span><span className="text-[10.5px] text-muted-foreground font-mono leading-[14px] mt-0.5">{available(data?.platform_core)} · UI {UI_VERSION}</span></div>;
+  return <div title={title} className="flex flex-col justify-center leading-none whitespace-nowrap"><span className="text-[17px] font-semibold tracking-tight text-foreground leading-[20px]">POLARIS</span><span className="text-[10.5px] text-muted-foreground font-mono leading-[14px] mt-0.5">{UI_VERSION}</span></div>;
 }
 
 function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,demo,hidden=[]}) {
@@ -1307,7 +1307,7 @@ function App() {
       </div>}</>}
       <footer className="h-7 shrink-0 bg-white border-t border-border flex items-center gap-5 px-4 text-[11.5px] text-muted-foreground">
         <span>Capture : {available(metrics.data?.data?.capture_state)}</span><span>Segments ingérés : {available(metrics.data?.data?.segments_ingested)}</span>
-        <span className="ml-auto font-mono">POLARIS {available(version.data?.data?.platform_core)} · API {available(version.data?.data?.backend_api)} · UI {UI_VERSION}{demo ? ' · Données de démo' : ''}</span>
+        <span className="ml-auto font-mono">POLARIS {UI_VERSION}{demo ? ' · Données de démo' : ''}</span>
       </footer>
     </div>
   );
