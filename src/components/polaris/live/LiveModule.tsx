@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useLiveDemo, usePolarisMode } from '@/lib/polaris-api';
+import { useLiveDemo, usePacketDissection, usePolarisMode } from '@/lib/polaris-api';
 import { apiPath, request } from '@/lib/polaris-api/client';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
@@ -78,6 +78,7 @@ export default function LiveModule({ t, role, setPage }) {
   const ifcs = tech==='LTE' ? ['S1-MME','S6a','S11','S5'] : ['N2','SBI','N4'];
   useEffect(() => { const b = sigBox.current; if (b && mode === 'table' && atEnd.current) b.scrollTop = b.scrollHeight; }, [shown.length, mode]);
   const selM = msgs.find(m => m.seq === sel);
+  const dissection = usePacketDissection(selM?.cap, selM?.seq, !demo && !!selM);
   const drag = (e, kind) => { e.preventDefault(); const x0=e.clientX, y0=e.clientY, w0=rightW, h0=ladH; const mv=(ev)=>{ if(kind==='w') setRightW(Math.max(280, Math.min(560, w0 - (ev.clientX-x0)))); else setLadH(Math.max(200, Math.min(800, h0 + ev.clientY-y0))); }; const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);}; addEventListener('pointermove',mv); addEventListener('pointerup',up); };
   const ST_C = { 'Trouvé':'#15803D', 'OUVERT':'#A15C07', 'Non trouvé':'#666666', 'Invalide':'#B42318', 'Refusé':'#B42318', 'Indisponible':'#A15C07' };
   const exportCsv = () => { const h='capture_id,seq,t_rel,interface,protocol,message,src,dst,procedure,result,cause\n'; const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([h+shown.map(m=>[m.cap,m.seq,m.rel,m.ifc,m.proto,m.name,m.from,m.to,m.proc,m.res,m.cause].map(x=>`"${x}"`).join(',')).join('\n')],{type:'text/csv'})); a.download='live-'+res.ue+'.csv'; a.click(); };
@@ -100,7 +101,8 @@ export default function LiveModule({ t, role, setPage }) {
     </div>
     {selM && <div className="border-t border-border-subtle px-4 py-3 grid grid-cols-[1fr_auto] gap-3 text-[12px] bg-surface-2">
       <div className="min-w-0"><div className="flex items-center gap-2"><b className="text-[13px]">{selM.name}</b><Tag c={IFC_C[selM.ifc]}>{selM.ifc}</Tag><Tag c={selM.corr==='EXACT'?'#15803D':'#A15C07'}>{selM.corr}</Tag>{selM.cause&&<Tag c="#B42318">{selM.cause}</Tag>}</div>
-        <pre className="mt-2 font-mono text-[11px] text-ink-2 whitespace-pre-wrap">{`capture_id=${selM.cap}  seq=${selM.seq}  t_rel=${selM.rel}s\n${selM.proto.split('/').map((l,i)=>'  '.repeat(i)+'▸ '+l).join('\n')}\n${'  '.repeat(selM.proto.split('/').length)}▸ ${selM.name}  (${selM.from} → ${selM.to})`}</pre></div>
+        <pre className="mt-2 font-mono text-[11px] text-ink-2 whitespace-pre-wrap">{`capture_id=${selM.cap}  seq=${selM.seq}  t_rel=${selM.rel}s\n${selM.proto.split('/').map((l,i)=>'  '.repeat(i)+'▸ '+l).join('\n')}\n${'  '.repeat(selM.proto.split('/').length)}▸ ${selM.name}  (${selM.from} → ${selM.to})`}</pre>
+        {!demo&&<pre className="mt-2 max-h-56 overflow-auto font-mono text-[11px] whitespace-pre-wrap">{dissection.isLoading?t('Décodage complet…'):dissection.isError?t('Décodage complet indisponible'):String(dissection.data?.data?.dissection??'')}</pre>}</div>
       <div className="flex flex-col gap-1.5"><Btn onClick={()=>setPage('sessions')}>{t('Décodage complet')} →</Btn><Btn onClick={()=>setPage('sessions')}>{t('Preuves')} →</Btn><Btn onClick={()=>setSel(null)}>✕</Btn></div>
     </div>}
   </div>;
