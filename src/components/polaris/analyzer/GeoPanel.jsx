@@ -23,7 +23,7 @@ export default function GeoPanel({ s, msg, setMsg, onHide, max, setMax }) {
   return <div className="flex flex-col h-full min-h-0">
     <div className="h-[42px] shrink-0 px-3 flex items-center gap-1.5 border-b border-border">
       <span className="text-[13px] font-semibold text-foreground mr-auto">Geolocating</span>
-      <div role="group" aria-label="Style de carte" className="flex rounded-md border border-border overflow-hidden">{[['light', 'Clair'], ['dark', 'Sombre']].map(([k, l]) => <button key={k} onClick={() => setTheme(k)} aria-pressed={theme === k} className={`h-7 px-2 text-[12px] ${theme === k ? 'bg-brand-soft text-[var(--app-accent)]' : 'hover:bg-muted'}`}>{l}</button>)}</div>
+      <div role="group" aria-label="Style de carte" className="flex rounded-md border border-border overflow-hidden">{[['light', 'Clair'], ['dark', 'Sombre'], ['osm', 'OpenStreetMap']].map(([k, l]) => <button key={k} onClick={() => setTheme(k)} aria-pressed={theme === k} className={`h-7 px-2 text-[12px] ${theme === k ? 'bg-brand-soft text-[var(--app-accent)]' : 'hover:bg-muted'}`}>{l}</button>)}</div>
       <button onClick={() => setMax(!max)} className={btn} title={max ? 'Restaurer' : 'Agrandir la carte'}>{max ? 'Restaurer' : 'Agrandir'}</button>
       <button onClick={onHide} title="Masquer Geolocating" className="w-7 h-7 rounded-md grid place-items-center text-muted-foreground hover:bg-muted">×</button>
     </div>
