@@ -48,7 +48,7 @@ const ALIASES: Record<string, string> = { 'NG-C': 'N2', 'NG-U': 'N3', 'S1-C': 'S
 export const canonical = (name: unknown) => { const raw = String(name ?? '').trim(); const up = raw.toUpperCase(); const ref = REFERENCE_LINKS.find(l => l.name.toUpperCase() === up); return ref?.name ?? ALIASES[up] ?? raw; };
 const nameOf = (row: Rec) => canonical(row['interface'] ?? row['name'] ?? row['capture_interface'] ?? row['role']);
 
-export type Evidence = { configured: boolean; runtime?: Rec; observed?: Rec; probes: string[] };
+export type Evidence = { configured: boolean; runtime: Rec | undefined; observed: Rec | undefined; probes: string[] };
 export type LinkView = RefLink & { evidence: Evidence; network: Availability; capturePoint: Availability; capture: CaptureState };
 
 /** Which reference interfaces the lab actually names, and in what state. */
