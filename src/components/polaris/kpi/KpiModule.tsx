@@ -61,7 +61,7 @@ export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChar
   return (
     <div className="flex-1 overflow-auto scroll-thin bg-surface-2">
       <div className="bg-white border-b border-border">
-        <div className="max-w-[1600px] mx-auto px-6 pt-4">
+        <div className="w-full px-6 pt-4">
           <div className="flex flex-wrap items-end gap-4">
             <div><div className="text-[12px] text-muted-foreground">POLARIS KPI</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">{t('KPI & Anomalies')}</h1></div>
             <div className="ml-auto flex items-center gap-3 pb-1">
@@ -72,8 +72,8 @@ export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChar
           <div className="flex gap-6 mt-3">{TABS.map(([k, n]) => <button key={k} onClick={() => { setTab(k); setOpenDash(null); }} className={`h-9 text-[13px] border-b-2 ${tab === k ? 'border-[var(--app-accent)] font-semibold text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>{t(n)}</button>)}</div>
         </div>
       </div>
-      {!demo && (metrics.isError || safety.isError) && <div className="max-w-[1600px] mx-auto px-6 pt-3"><div className="text-[12px] text-subtle flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-track" />{t('POLARIS non connecté : aucune donnée en direct.')} {t('Activez « Démo » pour un aperçu.')}</div></div>}
-      <div className="max-w-[1600px] mx-auto px-6 py-4">
+      {!demo && (metrics.isError || safety.isError) && <div className="w-full px-6 pt-3"><div className="text-[12px] text-subtle flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-track" />{t('POLARIS non connecté : aucune donnée en direct.')} {t('Activez « Démo » pour un aperçu.')}</div></div>}
+      <div className="w-full px-6 py-4">
         {tab === 'catalog' && <Catalog {...ctx} />}
         {!demo && tab!=='catalog' && <Empty title={t('Non disponible : backend à venir')} sub={t('Source POLARIS indisponible pour cette fonction.')} />}
         {demo && tab === 'builder' && <Builder key={(editKpi?.id || 'new') + bk} {...ctx} initial={editKpi} onNew={() => { setEditKpi(null); setBk(b => b + 1); }} />}

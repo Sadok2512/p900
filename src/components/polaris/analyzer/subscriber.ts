@@ -30,7 +30,7 @@ export function toJourney(data: unknown): { sessions: JourneySession[]; links: J
   const body = (data && typeof data === 'object' ? data : {}) as Rec;
   const sessions = (Array.isArray(body['sessions']) ? body['sessions'] : []).filter(x => x && typeof x === 'object').map(x => {
     const r = x as Rec; const procs = Array.isArray(r['procedures']) ? r['procedures'] : [];
-    return { session_id: String(r['session_id'] ?? '—'), capture_id: s(r['capture_id'] ?? r['anchor_capture_id']), seq: typeof r['seq'] === 'number' ? r['seq'] : typeof r['first_seq'] === 'number' ? r['first_seq'] : null,
+    return { session_id: String(r['session_id'] ?? '—'), capture_id: s(r['capture_id'] ?? r['anchor_capture_id']), seq: typeof r['seq'] === 'number' ? r['seq'] : typeof r['first_packet_number'] === 'number' ? r['first_packet_number'] : typeof r['first_seq'] === 'number' ? r['first_seq'] : null,
       procedures: procs.map(p => { const name = typeof p === 'string' ? p : String((p as Rec)?.['name'] ?? '—'); return { name, kind: procKind(name) }; }) };
   }).sort(cmp);
   const links = (Array.isArray(body['links']) ? body['links'] : []).filter(x => x && typeof x === 'object').flatMap(x => {

@@ -82,6 +82,34 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-danger-line: var(--danger-line);
+  --color-code-bg: var(--code-bg);
+  --color-code-fg: var(--code-fg);
+  --color-code-key: var(--code-key);
+  --color-code-string: var(--code-string);
+  --color-code-number: var(--code-number);
+  --color-code-literal: var(--code-literal);
+  --color-code-border: var(--code-border);
+  --color-ifc-blue-fg: var(--ifc-blue-fg);
+  --color-ifc-blue-bg: var(--ifc-blue-bg);
+  --color-ifc-blue-line: var(--ifc-blue-line);
+  --color-ifc-green-fg: var(--ifc-green-fg);
+  --color-ifc-green-bg: var(--ifc-green-bg);
+  --color-ifc-green-line: var(--ifc-green-line);
+  --color-ifc-amber-fg: var(--ifc-amber-fg);
+  --color-ifc-amber-bg: var(--ifc-amber-bg);
+  --color-ifc-amber-line: var(--ifc-amber-line);
+  --color-ifc-purple-fg: var(--ifc-purple-fg);
+  --color-ifc-purple-bg: var(--ifc-purple-bg);
+  --color-ifc-purple-line: var(--ifc-purple-line);
+  --color-ifc-pink-fg: var(--ifc-pink-fg);
+  --color-ifc-pink-bg: var(--ifc-pink-bg);
+  --color-ifc-pink-line: var(--ifc-pink-line);
+  --color-ifc-teal-fg: var(--ifc-teal-fg);
+  --color-ifc-teal-bg: var(--ifc-teal-bg);
+  --color-ifc-teal-line: var(--ifc-teal-line);
+  --color-ifc-gray-fg: var(--ifc-gray-fg);
+  --color-ifc-gray-bg: var(--ifc-gray-bg);
+  --color-ifc-gray-line: var(--ifc-gray-line);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -136,6 +164,39 @@
   --danger: oklch(0.505 0.19 27.5);
   --danger-soft: oklch(0.97 0.017 20);
   --danger-line: oklch(0.87 0.06 20);
+  /* Payload preview: the only dark surface in a light-mode application. */
+  --code-bg: oklch(0.235 0 89.88);
+  --code-fg: oklch(0.8699 0 89.88);
+  --code-key: oklch(0.8632 0.0801 232.08);
+  --code-string: oklch(0.7104 0.0825 43.17);
+  --code-number: oklch(0.8226 0.0586 134.91);
+  --code-literal: oklch(0.6713 0.1118 245.54);
+  --code-border: oklch(0.3211 0 89.88);
+  /* Interface families: a colour identifies the interface, never its state.
+   * Authored from the harmonization brief's hexes (#2563EB/#EFF6FF blue,
+   * #15803D/#DCFCE7 green, #B45309/#FEF3C7 amber, #7C3AED/#F3E8FF purple,
+   * #BE185D/#FCE7F3 pink, #0F766E/#CCFBF1 teal, #64748B/#F1F5F9 gray). */
+  --ifc-blue-fg: oklch(0.546 0.215 262.9);
+  --ifc-blue-bg: oklch(0.970 0.014 254.6);
+  --ifc-blue-line: oklch(0.882 0.057 254.1);
+  --ifc-green-fg: oklch(0.527 0.137 150.1);
+  --ifc-green-bg: oklch(0.962 0.043 156.7);
+  --ifc-green-line: oklch(0.925 0.081 156.0);
+  --ifc-amber-fg: oklch(0.555 0.146 49.0);
+  --ifc-amber-bg: oklch(0.962 0.058 95.6);
+  --ifc-amber-line: oklch(0.924 0.115 95.7);
+  --ifc-purple-fg: oklch(0.541 0.247 293.0);
+  --ifc-purple-bg: oklch(0.946 0.033 307.2);
+  --ifc-purple-line: oklch(0.902 0.060 306.7);
+  --ifc-pink-fg: oklch(0.525 0.199 4.0);
+  --ifc-pink-bg: oklch(0.948 0.028 342.3);
+  --ifc-pink-line: oklch(0.899 0.059 343.2);
+  --ifc-teal-fg: oklch(0.511 0.086 186.4);
+  --ifc-teal-bg: oklch(0.953 0.050 180.8);
+  --ifc-teal-line: oklch(0.910 0.093 180.4);
+  --ifc-gray-fg: oklch(0.554 0.041 257.4);
+  --ifc-gray-bg: oklch(0.968 0.007 247.9);
+  --ifc-gray-line: oklch(0.929 0.013 255.5);
   --sidebar: oklch(0.984 0.003 247.858);
   --sidebar-foreground: oklch(0.129 0.042 264.695);
   --sidebar-primary: oklch(0.208 0.042 265.755);
@@ -235,3 +296,43 @@
 .tabular-nums { font-variant-numeric: tabular-nums; }
 .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
 .scroll-thin::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; }
+
+/* Network Topology canvas: its own Light/Dark scope, independent of the app theme. */
+.topo-light {
+  --topo-bg: oklch(0.985 0.004 250);
+  --topo-grid: oklch(0.935 0.006 250);
+  --topo-zone: oklch(1 0 0 / 0.8);
+  --topo-zone-line: oklch(0.89 0.012 250);
+  --topo-node: oklch(1 0 0);
+  --topo-node-line: oklch(0.84 0.014 250);
+  --topo-text: oklch(0.24 0.025 258);
+  --topo-muted: oklch(0.55 0.02 255);
+  --topo-probe: oklch(0.48 0.09 235);
+  --topo-select: oklch(0.5 0.15 245);
+  --topo-mix: black;
+}
+.topo-dark {
+  --topo-bg: oklch(0.2 0.032 262);
+  --topo-grid: oklch(0.255 0.035 262);
+  --topo-zone: oklch(0.24 0.035 262 / 0.85);
+  --topo-zone-line: oklch(0.34 0.04 262);
+  --topo-node: oklch(0.27 0.038 262);
+  --topo-node-line: oklch(0.4 0.045 262);
+  --topo-text: oklch(0.95 0.01 255);
+  --topo-muted: oklch(0.72 0.025 255);
+  --topo-probe: oklch(0.8 0.09 220);
+  --topo-select: oklch(0.78 0.13 230);
+  --topo-mix: white;
+}
+.topo-canvas { background-color: var(--topo-bg); color: var(--topo-text); transition: background-color .25s ease, color .25s ease; }
+
+/* Query-condition categories (distinct from signalling interface colours). */
+.polaris-cond { background: var(--cond-bg); color: var(--cond-fg); border-color: var(--cond-line); }
+.polaris-cond[data-cond="fail"]      { --cond-bg: oklch(0.971 0.013 17.4); --cond-fg: oklch(0.505 0.213 27.5); --cond-line: oklch(0.808 0.114 19.6); }
+.polaris-cond[data-cond="success"]   { --cond-bg: oklch(0.982 0.018 155.8); --cond-fg: oklch(0.527 0.154 150.1); --cond-line: oklch(0.871 0.15 154.4); }
+.polaris-cond[data-cond="nr"]        { --cond-bg: oklch(0.97 0.014 254.6); --cond-fg: oklch(0.488 0.217 264.4); --cond-line: oklch(0.809 0.096 251.8); }
+.polaris-cond[data-cond="lte"]       { --cond-bg: oklch(0.982 0.018 155.8); --cond-fg: oklch(0.527 0.154 150.1); --cond-line: oklch(0.871 0.15 154.4); }
+.polaris-cond[data-cond="procedure"] { --cond-bg: oklch(0.977 0.014 308.3); --cond-fg: oklch(0.496 0.265 301.9); --cond-line: oklch(0.827 0.108 306.4); }
+.polaris-cond[data-cond="interface"] { --cond-bg: oklch(0.98 0.016 73.7); --cond-fg: oklch(0.553 0.195 38.4); --cond-line: oklch(0.837 0.128 66.3); }
+.polaris-cond[data-cond="cause"]     { --cond-bg: oklch(0.987 0.022 95.3); --cond-fg: oklch(0.555 0.163 48.998); --cond-line: oklch(0.879 0.169 91.6); }
+.polaris-cond[data-cond="other"]     { --cond-bg: oklch(0.984 0.003 247.9); --cond-fg: oklch(0.446 0.043 257.3); --cond-line: oklch(0.869 0.022 252.9); }

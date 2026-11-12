@@ -15,17 +15,18 @@ export function apiPath(path: string, params: QueryParams = {}, base = relativeB
 }
 // Remove identity-bearing fields before anything can reach a component or Query cache.
 const privateField = /imsi|supi|suci|guti|tmsi|imei|msisdn|password|token|secret|^(k|opc)$/i;
+const privateKey = (key: string) => privateField.test(key) && !/pseudonym/i.test(key);
 export function redact<T>(value: T): T {
   if (typeof value === 'string') return value.replace(/\b\d{14,16}\b/g, 'masqué') as T;
   if (Array.isArray(value)) return value.map(redact) as T;
   if (value && typeof value === 'object') {
     const object = value as Record<string, unknown>;
-    const sensitiveDescriptor = ['field', 'name', 'key'].some(k => typeof object[k] === 'string' && privateField.test(object[k] as string));
-    return Object.fromEntries(Object.entries(object).map(([k, v]) => [k, privateField.test(k) || sensitiveDescriptor && ['value', 'raw', 'decoded'].includes(k) ? 'masqué' : redact(v)])) as T;
+    const sensitiveDescriptor = ['field', 'name', 'key'].some(k => typeof object[k] === 'string' && privateKey(object[k] as string));
+    return Object.fromEntries(Object.entries(object).map(([k, v]) => [k, privateKey(k) || sensitiveDescriptor && ['value', 'raw', 'decoded'].includes(k) ? 'masqué' : redact(v)])) as T;
   }
   return value;
 }
-type RequestOptions = { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal; operatorIdentityResponse?: boolean };
+type RequestOptions = { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal; operatorIdentityResponse?: boolean; allowIdentityFields?: boolean };
 export async function requestFrom<T>(base: string, path: string, options: RequestOptions = {}): Promise<Envelope<T>> {
   const url = apiPath(path, options.params, base);
   let response: Response;
@@ -46,7 +47,7 @@ export async function requestFrom<T>(base: string, path: string, options: Reques
   }
   if (!payload || typeof payload !== 'object' || !('data' in payload)) throw new PolarisApiError('INVALID_RESPONSE', 'POLARIS non connecté', response.status);
   const envelope = payload as { data: T; meta?: unknown };
-  const operatorIdentity = options.operatorIdentityResponse && envelope.meta && typeof envelope.meta === 'object' && (envelope.meta as Record<string,unknown>)['identity_access'] === 'operator';
+  const operatorIdentity = (options.operatorIdentityResponse || options.allowIdentityFields) && envelope.meta && typeof envelope.meta === 'object' && (envelope.meta as Record<string,unknown>)['identity_access'] === 'operator';
   return { data: operatorIdentity ? envelope.data : redact(envelope.data), meta: envelope.meta && typeof envelope.meta === 'object' ? redact(envelope.meta) as Envelope<T>['meta'] : {} };
 }
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<Envelope<T>> {

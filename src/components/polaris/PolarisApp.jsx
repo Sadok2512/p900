@@ -1,4 +1,6 @@
 import KpiModule from './kpi/KpiModule';
+import { ConditionBadge } from './ui/ConditionBadge';
+import { conditionTone } from '@/lib/polaris-ui/conditionTone';
 import LiveModule from './live/LiveModule';
 import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionAnchors, useSessionFlows, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useSessionIdentityMap, useSessionIdentities, usePacketDissection, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
@@ -9,15 +11,16 @@ import ProbeRegistration from './admin/ProbeRegistration';
 import ProbeManagement from './admin/ProbeManagement';
 import { loadHidden, saveHidden, toggleHidden, isVisible, sanitizeHidden } from './admin/modules';
 import SubscriberJourney, { OtherSessions } from './analyzer/SubscriberJourney';
+import GeoPanel from './analyzer/GeoPanel';
 import { shortPseudo, groupBySubscriber } from './analyzer/subscriber';
+import { InterfaceBadge, AvailabilityStatus, TechnicalValue, BpfFilterDisplay } from './ui/InterfaceBadge';
+import { INTERFACE_FAMILY_HEX, interfaceFamilyOf } from '@/lib/polaris-ui/interfaceColors';
+/* Ladder lines and chips are SVG: they take the family's reference hex. */
+const ifcHex = (name, part) => INTERFACE_FAMILY_HEX[interfaceFamilyOf(name)][part];
 import { visibleMessages, filterOptions, emptyFilter, filterActive, pageItems, pageSlice, verdict, timeOf, toMs, fmtUtc, fmtDuration, sessionSummary } from './analyzer/analysis';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 /* Données fictives — PLMN de test 001/01. Tri canonique (capture_id, seq). */
-const IFC = {
-  'N2':['#1D4ED8','#EFF4FF'],'SBI':['#6D28D9','#F4F0FF'],'N4':['#A15C07','#FDF6E7'],'N3':['#15803D','#ECF8F0'],
-  'S1-MME':['#1D4ED8','#EFF4FF'],'S6a':['#BE185D','#FDEEF5'],'S11':['#A15C07','#FDF6E7'],'S5-C':['#A15C07','#FDF6E7'],'S1-U':['#15803D','#ECF8F0'],
-};
 const nodeIdx = (nodes, n) => nodes.indexOf(n==='AUSF'||n==='UDM' ? 'AUSF/UDM' : n);
 const fmtV = (v,u) => u==='%'?v.toFixed(1)+' %':u==='ms'?Math.round(v)+' ms':u==='s'?v.toFixed(1)+' s':String(Math.round(v));
 const FIELDS = [
@@ -32,7 +35,7 @@ const test = (s,[k,v]) => ({
 }[k] || (()=>true))();
 
 /* ------------------------------------------------------------------ */
-const EN = {"Débit, santé TCP, applications, congestion": "Throughput, TCP health, applications, congestion", "Aucune charge utile, aucune URL complète stockée.": "No payload, no full URL stored.", "Volume": "Volume", "Débit DL": "DL throughput", "Flux actifs": "Active flows", "Établissement TCP": "TCP setup", "RTT médian": "Median RTT", "Flux congestionnés": "Congested flows", "Vue d'ensemble": "Overview", "Catégorie": "Category", "Application": "Application", "Cellule": "Cell", "Vidéo": "Video", "Transfert": "Transfer", "Messagerie": "Messaging", "Voix": "Voice", "Jeu": "Gaming", "Non identifié": "Unidentified", "Réseau réel : agrégé uniquement, sans historique par abonné.": "Live network: aggregated only, no per-subscriber history.", "Santé TCP": "TCP health", "Sans réponse": "No response", "Retransmissions": "Retransmissions", "ACK dupliqués": "Duplicate ACKs", "Fenêtre nulle": "Zero window", "RTT intra-capture et même interface uniquement.": "RTT intra-capture and same interface only.", "Congestion cellules × temps": "Cell congestion × time", "Radio": "Radio", "Cœur/Internet": "Core/Internet", "Limite QoS": "QoS limit", "Limite récepteur": "Receiver limit", "Limite application": "Application limit", "INDÉTERMINÉ": "UNDETERMINED", "Flux": "Flows", "Règle": "Rule", "Verdict": "Verdict", "Détail du flux": "Flow detail", "Règle appliquée": "Applied rule", "Ouvrir la session dans l'Analyzer →": "Open session in Analyzer →", "Taux d’établissement TCP": "TCP setup rate", "RTT TCP": "TCP RTT", "Retransmissions TCP": "TCP retransmissions", "Live delayed by": "Live delayed by", "flux pris après décodage — dumpcap jamais touchés": "stream taken after decoding — dumpcap never touched", "Cible": "Target", "Pause": "Pause", "Reprendre": "Resume", "Rôle viewer : cible par pseudonyme uniquement, identités masquées.": "Viewer role: pseudonym targets only, identities masked.", "Traces actives": "Active traces", "Expiration": "Expires in", "Messages reçus": "Messages received", "En tampon (pause)": "Buffered (paused)", "Signalisation live": "Live signalling", "en direct": "live", "en pause": "paused", "Ordre (capture_id, seq) — chaque message est retrouvable à l'identique dans l'Analyzer.": "Order (capture_id, seq) — every message is found identical in the Analyzer.", "Chaîne d'identité": "Identity chain", "masqué": "masked", "Débit live": "Live throughput", "Rapport d'usage PFCP": "PFCP usage report", "écart": "gap", "RTP live": "Live RTP", "Codec": "Codec", "Débit": "Bitrate", "Pertes": "Loss", "Gigue": "Jitter", "Déséquencement": "Reordering", "estimation G.107": "G.107 estimate", "En-têtes seulement — aucune charge audio lue ni stockée.": "Headers only — no audio payload read or stored.", "Journal des traces": "Trace log", "trace créée": "trace created", "recherche IMSI": "IMSI lookup", "consultation historique": "history viewed", "Données de démo": "Demo data", "Fraîcheur : 4 s": "Freshness: 4 s", "moyenne": "average", "échecs": "failures", "maintenant": "now", "il y a": "", "preuve": "evidence", "Analyse": "Analysis", "Template": "Template", "il y a 3 min": "3 min ago", "il y a 12 min": "12 min ago", "il y a 40 min": "40 min ago", "il y a 2 h": "2 h ago", "Données de démo — POLARIS non connecté.": "Demo data — POLARIS not connected.", "Accueil": "Home", "Administrateur": "Administrator", "Topologie et état des nœuds du réseau.": "Network node topology and status.", "Analyzer": "Analyzer", "Nœuds": "Nodes", "KPI": "KPI", "Live": "Live", "Trafic": "Traffic", "Templates": "Templates", "Paramètres": "Settings", "Compte": "Account", "Notifications": "Notifications", "Rechercher…": "Search…", "← Retour": "← Back", "Gérez votre compte et l'apparence de POLARIS": "Manage your account and the look of POLARIS", "Apparence": "Appearance", "Couleur et thème": "Color and theme", "Sécurité": "Security", "Mot de passe": "Password", "À propos": "About", "Version et build": "Version and build", "Langue": "Language", "Français ou English": "French or English", "Couleur de l'application": "App color", "Choisissez la couleur d'accent utilisée dans toute l'interface.": "Choose the accent color used across the interface.", "Bleu": "Blue", "Noir": "Black", "Vert": "Green", "Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.": "Use at least 8 characters, with uppercase letters, numbers and symbols.", "Mot de passe actuel": "Current password", "Nouveau mot de passe": "New password", "Confirmer le mot de passe": "Confirm password", "Mettre à jour le mot de passe": "Update password", "Versions des composants installés.": "Versions of installed components.", "Langue de l'interface": "Interface language", "Choisissez la langue utilisée dans POLARIS.": "Choose the language used in POLARIS.", "Mot de passe actuel requis et 8 caractères minimum.": "Current password required, 8 characters minimum.", "Les mots de passe ne correspondent pas.": "Passwords do not match.", "Mot de passe mis à jour.": "Password updated.", "Bienvenue sur POLARIS": "Welcome to POLARIS", "Analyse, diagnostic et supervision des sessions et du trafic réseau.": "Analysis, diagnostics and monitoring of network sessions and traffic.", "Nouvelle analyse": "New analysis", "Ouvrir un template": "Open a template", "Explorer un run": "Explore a run", "Trace live": "Live trace", "Bientôt": "Soon", "Modules": "Modules", "KPI & Anomalies": "KPI & Anomalies", "Plan usager": "User plane", "Requêtes, ladder et corrélation des sessions 4G/5G.": "Queries, ladder and correlation of 4G/5G sessions.", "Indicateurs par procédure et détection d'écarts.": "Per-procedure indicators and anomaly detection.", "Suivi en temps réel des sessions capturées.": "Real-time tracking of captured sessions.", "Débits et flux N3 / S1-U par session.": "N3 / S1-U throughput and flows per session.", "Requêtes enregistrées et modèles prêts à l'emploi.": "Saved queries and ready-to-use models.", "Ouvrir →": "Open →", "Activité récente": "Recent activity", "Voir tout": "View all", "Aucune activité pour l'instant": "No activity yet", "Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.": "Your analyses, KPI queries, templates and viewed runs will appear here.", "Lancer une analyse →": "Start an analysis →", "État de la plateforme": "Platform status", "Voir la supervision": "View monitoring", "Capture": "Capture", "dumpcap actifs / attendus": "active / expected dumpcap", "Fraîcheur des données": "Data freshness", "dernier import": "last import", "Alertes": "Alerts", "points de vigilance": "watch points", "Service POLARIS non connecté : aucune donnée en direct.": "POLARIS service not connected: no live data.", "Données à jour · retard 4 s": "Data up to date · 4 s delay", "Fraîcheur : — (POLARIS non connecté)": "Freshness: — (POLARIS not connected)", "Rechercher un KPI…": "Search a KPI…", "Santé sonde": "Probe health", "Procédures 5G": "5G procedures", "Procédures 4G": "4G procedures", "Session N4": "N4 session", "Erreurs": "Errors", "Latence": "Latency", "Corrélation": "Correlation", "Dumpcap actifs": "Active dumpcap", "Segments ignorés": "Dropped segments", "Retard d’import": "Import lag", "Disque disponible": "Disk available", "Succès Registration": "Registration success", "Succès PDU Session": "PDU Session success", "Succès Service Request": "Service Request success", "Succès Attach": "Attach success", "Succès E-RAB Setup": "E-RAB Setup success", "Succès établissement N4": "N4 establishment success", "Erreurs S6a": "S6a errors", "Erreurs SBI par NF": "SBI errors per NF", "Latence par procédure": "Latency per procedure", "Taux de liens EXACT": "EXACT link rate", "Séries": "Series", "Heatmap causes × temps": "Causes × time heatmap", "Top-N": "Top-N", "Granularité": "Granularity", "Aucune donnée à afficher": "No data to display", "Chaque point cliquable ouvrira l'Analyzer pré-filtré (fenêtre + dimension).": "Each clickable point will open the Analyzer pre-filtered (window + dimension).", "Requête générée": "Generated query", "Fiche KPI": "KPI sheet", "Formule": "Formula", "Événements sources": "Source events", "Dimensions": "Dimensions", "Unité": "Unit", "Règle de dédup": "Dedup rule", "Invariant": "Invariant", "Explorer dans l'Analyzer →": "Explore in Analyzer →", "Anomalies": "Anomalies", "Règles et invariants": "Rules and invariants", "Nouveauté": "Novelty", "Invariant de comptage": "Counting invariant", "succès + échec = total, par procédure et par minute": "success + failure = total, per procedure per minute", "Cause obligatoire": "Mandatory cause", "toute procédure en échec porte une cause (NAS, Diameter, HTTP…)": "every failed procedure carries a cause (NAS, Diameter, HTTP…)", "Ordre canonique": "Canonical order", "seq strictement croissant dans une capture (capture_id, seq)": "seq strictly increasing within a capture (capture_id, seq)", "Cause jamais vue": "Never-seen cause", "une cause d’échec absente du référentiel historique": "a failure cause absent from the historical reference", "Séquence hors flux 3GPP": "Out-of-flow 3GPP sequence", "enchaînement de messages incompatible avec la procédure": "message sequence incompatible with the procedure", "jamais déclenchée": "never triggered", "Une anomalie se ferme avec une preuve, ou reste OUVERTE.": "An anomaly closes with evidence, or stays OPEN.", "Requêtes": "Queries", "Requête": "Query", "Session": "Session", "Comparaison": "Comparison", "Trace": "Trace", "Fermer l'onglet": "Close tab", "Nouvel onglet": "New tab", "Vue partagée": "Shared view", "Toutes les sessions": "All sessions", "Nouvelle requête": "New query"};
+const EN = {"Débit, santé TCP, applications, congestion": "Throughput, TCP health, applications, congestion", "Aucune charge utile, aucune URL complète stockée.": "No payload, no full URL stored.", "Volume": "Volume", "Débit DL": "DL throughput", "Flux actifs": "Active flows", "Établissement TCP": "TCP setup", "RTT médian": "Median RTT", "Flux congestionnés": "Congested flows", "Vue d'ensemble": "Overview", "Catégorie": "Category", "Application": "Application", "Cellule": "Cell", "Vidéo": "Video", "Transfert": "Transfer", "Messagerie": "Messaging", "Voix": "Voice", "Jeu": "Gaming", "Non identifié": "Unidentified", "Réseau réel : agrégé uniquement, sans historique par abonné.": "Live network: aggregated only, no per-subscriber history.", "Santé TCP": "TCP health", "Sans réponse": "No response", "Retransmissions": "Retransmissions", "ACK dupliqués": "Duplicate ACKs", "Fenêtre nulle": "Zero window", "RTT intra-capture et même interface uniquement.": "RTT intra-capture and same interface only.", "Congestion cellules × temps": "Cell congestion × time", "Radio": "Radio", "Cœur/Internet": "Core/Internet", "Limite QoS": "QoS limit", "Limite récepteur": "Receiver limit", "Limite application": "Application limit", "INDÉTERMINÉ": "UNDETERMINED", "Flux": "Flows", "Règle": "Rule", "Verdict": "Verdict", "Détail du flux": "Flow detail", "Règle appliquée": "Applied rule", "Ouvrir la session dans l'Analyzer →": "Open session in Analyzer →", "Taux d’établissement TCP": "TCP setup rate", "RTT TCP": "TCP RTT", "Retransmissions TCP": "TCP retransmissions", "Live delayed by": "Live delayed by", "flux pris après décodage — dumpcap jamais touchés": "stream taken after decoding — dumpcap never touched", "Cible": "Target", "Pause": "Pause", "Reprendre": "Resume", "Rôle viewer : cible par pseudonyme uniquement, identités masquées.": "Viewer role: pseudonym targets only, identities masked.", "Traces actives": "Active traces", "Expiration": "Expires in", "Messages reçus": "Messages received", "En tampon (pause)": "Buffered (paused)", "Signalisation live": "Live signalling", "en direct": "live", "en pause": "paused", "Ordre (capture_id, seq) — chaque message est retrouvable à l'identique dans l'Analyzer.": "Order (capture_id, seq) — every message is found identical in the Analyzer.", "Chaîne d'identité": "Identity chain", "masqué": "masked", "Débit live": "Live throughput", "Rapport d'usage PFCP": "PFCP usage report", "écart": "gap", "RTP live": "Live RTP", "Codec": "Codec", "Débit": "Bitrate", "Pertes": "Loss", "Gigue": "Jitter", "Déséquencement": "Reordering", "estimation G.107": "G.107 estimate", "En-têtes seulement — aucune charge audio lue ni stockée.": "Headers only — no audio payload read or stored.", "Journal des traces": "Trace log", "trace créée": "trace created", "recherche IMSI": "IMSI lookup", "consultation historique": "history viewed", "Données de démo": "Demo data", "Fraîcheur : 4 s": "Freshness: 4 s", "moyenne": "average", "échecs": "failures", "maintenant": "now", "il y a": "", "preuve": "evidence", "Analyse": "Analysis", "Template": "Template", "il y a 3 min": "3 min ago", "il y a 12 min": "12 min ago", "il y a 40 min": "40 min ago", "il y a 2 h": "2 h ago", "Données de démo — POLARIS non connecté.": "Demo data — POLARIS not connected.", "Accueil": "Home", "Administrateur": "Administrator", "Topologie et état des nœuds du réseau.": "Network node topology and status.", "Analyzer": "Analyzer", "Nœuds": "Nodes", "KPI": "KPI", "Live": "Live", "Trafic": "Traffic", "Templates": "Templates", "Paramètres": "Settings", "Compte": "Account", "Notifications": "Notifications", "Rechercher…": "Search…", "← Retour": "← Back", "Gérez votre compte et l'apparence de POLARIS": "Manage your account and the look of POLARIS", "Apparence": "Appearance", "Couleur et thème": "Color and theme", "Sécurité": "Security", "Mot de passe": "Password", "À propos": "About", "Version et build": "Version and build", "Langue": "Language", "Français ou English": "French or English", "Couleur de l'application": "App color", "Choisissez la couleur d'accent utilisée dans toute l'interface.": "Choose the accent color used across the interface.", "Bleu": "Blue", "Noir": "Black", "Vert": "Green", "Utilisez au moins 8 caractères, avec majuscules, chiffres et symboles.": "Use at least 8 characters, with uppercase letters, numbers and symbols.", "Mot de passe actuel": "Current password", "Nouveau mot de passe": "New password", "Confirmer le mot de passe": "Confirm password", "Mettre à jour le mot de passe": "Update password", "Versions des composants installés.": "Versions of installed components.", "Langue de l'interface": "Interface language", "Choisissez la langue utilisée dans POLARIS.": "Choose the language used in POLARIS.", "Mot de passe actuel requis et 8 caractères minimum.": "Current password required, 8 characters minimum.", "Les mots de passe ne correspondent pas.": "Passwords do not match.", "Mot de passe mis à jour.": "Password updated.", "Bienvenue sur POLARIS": "Welcome to POLARIS", "Analyse, diagnostic et supervision des sessions et du trafic réseau.": "Analysis, diagnostics and monitoring of network sessions and traffic.", "Nouvelle analyse": "New analysis", "Ouvrir un template": "Open a template", "Explorer un run": "Explore a run", "Trace live": "Live trace", "Bientôt": "Soon", "Modules": "Modules", "KPI & Anomalies": "KPI & Anomalies", "Plan usager": "User plane", "Requêtes, ladder et corrélation des sessions 4G/5G.": "Queries, ladder and correlation of 4G/5G sessions.", "Indicateurs par procédure et détection d'écarts.": "Per-procedure indicators and anomaly detection.", "Suivi en temps réel des sessions capturées.": "Real-time tracking of captured sessions.", "Débits et flux N3 / S1-U par session.": "N3 / S1-U throughput and flows per session.", "Requêtes enregistrées et modèles prêts à l'emploi.": "Saved queries and ready-to-use models.", "Ouvrir →": "Open →", "Activité récente": "Recent activity", "Voir tout": "View all", "Aucune activité pour l'instant": "No activity yet", "Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.": "Your analyses, KPI queries, templates and viewed runs will appear here.", "Lancer une analyse →": "Start an analysis →", "État de la plateforme": "Platform status", "Voir la supervision": "View monitoring", "Capture": "Capture", "dumpcap actifs / attendus": "active / expected dumpcap", "Fraîcheur des données": "Data freshness", "dernier import": "last import", "Alertes": "Alerts", "points de vigilance": "watch points", "Service POLARIS non connecté : aucune donnée en direct.": "POLARIS service not connected: no live data.", "Données à jour · retard 4 s": "Data up to date · 4 s delay", "Fraîcheur : — (POLARIS non connecté)": "Freshness: — (POLARIS not connected)", "Rechercher un KPI…": "Search a KPI…", "Santé sonde": "Probe health", "Procédures 5G": "5G procedures", "Procédures 4G": "4G procedures", "Session N4": "N4 session", "Erreurs": "Errors", "Latence": "Latency", "Corrélation": "Correlation", "Dumpcap actifs": "Active dumpcap", "Segments ignorés": "Dropped segments", "Retard d’import": "Import lag", "Disque disponible": "Disk available", "Succès Registration": "Registration success", "Succès PDU Session": "PDU Session success", "Succès Service Request": "Service Request success", "Succès Attach": "Attach success", "Succès E-RAB Setup": "E-RAB Setup success", "Succès établissement N4": "N4 establishment success", "Erreurs S6a": "S6a errors", "Erreurs SBI par NF": "SBI errors per NF", "Latence par procédure": "Latency per procedure", "Taux de liens EXACT": "EXACT link rate", "Séries": "Series", "Heatmap causes × temps": "Causes × time heatmap", "Top-N": "Top-N", "Granularité": "Granularity", "Aucune donnée à afficher": "No data to display", "Chaque point cliquable ouvrira l'Analyzer pré-filtré (fenêtre + dimension).": "Each clickable point will open the Analyzer pre-filtered (window + dimension).", "Requête générée": "Generated query", "Fiche KPI": "KPI sheet", "Formule": "Formula", "Événements sources": "Source events", "Dimensions": "Dimensions", "Unité": "Unit", "Règle de dédup": "Dedup rule", "Invariant": "Invariant", "Explorer dans l'Analyzer →": "Explore in Analyzer →", "Anomalies": "Anomalies", "Règles et invariants": "Rules and invariants", "Nouveauté": "Novelty", "Invariant de comptage": "Counting invariant", "succès + échec = total, par procédure et par minute": "success + failure = total, per procedure per minute", "Cause obligatoire": "Mandatory cause", "toute procédure en échec porte une cause (NAS, Diameter, HTTP…)": "every failed procedure carries a cause (NAS, Diameter, HTTP…)", "Ordre canonique": "Canonical order", "seq strictement croissant dans une capture (capture_id, seq)": "seq strictly increasing within a capture (capture_id, seq)", "Cause jamais vue": "Never-seen cause", "une cause d’échec absente du référentiel historique": "a failure cause absent from the historical reference", "Séquence hors flux 3GPP": "Out-of-flow 3GPP sequence", "enchaînement de messages incompatible avec la procédure": "message sequence incompatible with the procedure", "jamais déclenchée": "never triggered", "Une anomalie se ferme avec une preuve, ou reste OUVERTE.": "An anomaly closes with evidence, or stays OPEN.", "Requêtes": "Queries", "Requête": "Query", "Session": "Session", "Comparaison": "Comparison", "Trace": "Trace", "Fermer l'onglet": "Close tab", "Nouvel onglet": "New tab", "Vue partagée": "Shared view", "Toutes les sessions": "All sessions", "Nouvelle requête": "New query", "Segments en attente": "Pending segments", "À importer": "To import", "Échecs ingestion": "Ingestion failures", "Import": "Import", "Segments ingérés": "Ingested segments", "Importés": "Imported", "Segments ouverts": "Open segments", "Capture en cours": "Capture in progress", "Segments sans événement": "Zero-event segments", "Décodage": "Decoding", "Stockage": "Storage", "État de capture": "Capture state", "Opérationnel": "Operational", "Vigilance": "Warning", "Échec": "Failure", "Inconnu": "Unknown", "Information": "Information", "POLARIS connecté": "POLARIS connected", "Connexion POLARIS…": "Connecting to POLARIS…"};
 let LANG = 'fr';
 EN["Afficher toutes les sessions"] = "Display all sessions";
 const t = s => LANG==='en' ? (EN[s] ?? s) : s;
@@ -44,7 +47,13 @@ const ic = {
   lens:'M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Zm9 2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z', pin:'M9 4h6l-1 6 4 3H6l4-3zM12 13v7',
   split:'M4 5h16v14H4zM12 5v14',
 };
-const Tag = ({i}) => <span className="inline-block font-mono text-[11px] font-semibold leading-none rounded-[3px] px-1.5 py-[3px]" style={{color:(IFC[i] || IFC.N2)[0],background:(IFC[i] || IFC.N2)[1]}}>{i}</span>;
+const Tag = ({i}) => <InterfaceBadge name={i}/>;
+/* Badge strip for a probe row: compact, capped, the overflow in a tooltip. */
+const InterfaceStrip = ({names}) => {
+  const list = [...new Set((Array.isArray(names) ? names : []).filter(Boolean))];
+  if (!list.length) return <span className="text-[11px] text-faint">aucune interface remontée</span>;
+  return <span className="mt-1 flex flex-wrap items-center gap-1">{list.slice(0,4).map(i=><InterfaceBadge key={i} name={i}/>)}{list.length>4 && <span className="text-[11px] text-subtle" title={list.slice(4).join(', ')}>+{list.length-4}</span>}</span>;
+};
 const Res = ({r}) => <span className="inline-flex items-center gap-1.5"><span className={`w-[7px] h-[7px] rounded-full ${r==='Succès'||r==='success'?'bg-success':r==='Échec'||r==='failed'?'bg-warning':'bg-track'}`}/>{r}</span>;
 const Stat = ({s}) => {
   const m = {'EXACT':'text-success bg-success-soft border-success-line','OUVERT':'text-warning bg-warning-soft border-warning-line','OUVERT':'text-danger bg-danger-soft border-danger-line'}[s];
@@ -66,38 +75,38 @@ function TopBarLive({metrics,demo,onOpen}) {
   const indicator=topBarLiveIndicator({demo,apiReachable:!(metrics.isError||metrics.isRefetchError)&&!!data,captureState:data?.capture_state,pendingHistory});
   const sampledAt=metrics.dataUpdatedAt ? new Date(metrics.dataUpdatedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}) : '—';
   const title=`capture_state: ${available(data?.capture_state)}\nsegments ingérés: ${available(data?.segments_ingested)}\npending: ${available(data?.pending_segments)}\ndernier relevé: ${sampledAt}`;
-  return <button type="button" onClick={onOpen} title={title} aria-label={`État capture : ${indicator.label}`} className="h-8 px-2 flex items-center gap-1.5 rounded-md hover:bg-muted font-semibold text-[11.5px] tracking-wide" style={{color:indicator.color}}><span aria-hidden="true" className={`w-2 h-2 rounded-full shrink-0 ${indicator.pulse?'polaris-live-pulse':''}`} style={{backgroundColor:indicator.color}}/><span>{indicator.label}</span></button>;
+  return <button type="button" onClick={onOpen} title={title} aria-label={`État capture : ${indicator.label}`} className="h-9 px-2.5 flex items-center gap-2 rounded-md hover:bg-muted font-semibold text-[12.5px] tracking-wide" style={{color:indicator.color}}><span aria-hidden="true" className={`w-2 h-2 rounded-full shrink-0 ${indicator.pulse?'polaris-live-pulse':''}`} style={{backgroundColor:indicator.color}}/><span>{indicator.label}</span></button>;
 }
 
 function TopBarVersion({version}) {
   const data=version.data?.data;
   const title=`backend_api: ${available(data?.backend_api)}\nsession_engine: ${available(data?.session_engine)}\ncorrelation_engine: ${available(data?.correlation_engine)}\nevent_schema: ${available(data?.event_schema)}\ndecoders: ${decoderVersions(data?.decoders)}`;
-  return <div title={title} className="flex items-baseline gap-1.5 whitespace-nowrap"><span className="text-[14px] font-semibold tracking-tight text-foreground">POLARIS</span><span className="hidden xl:inline text-[11.5px] text-muted-foreground font-mono">{available(data?.platform_core)} · UI {UI_VERSION}</span></div>;
+  return <div title={title} className="flex flex-col justify-center leading-none whitespace-nowrap"><span className="text-[17px] font-semibold tracking-tight text-foreground leading-[20px]">POLARIS</span><span className="text-[10.5px] text-muted-foreground font-mono leading-[14px] mt-0.5">{available(data?.platform_core)} · UI {UI_VERSION}</span></div>;
 }
 
 function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,demo,hidden=[]}) {
   const [menu,setMenu] = useState(false);
   return (
-    <header className="h-12 shrink-0 bg-white border-b border-border flex items-center px-3 lg:px-4 gap-3 lg:gap-6 min-w-0">
-      <div className="flex items-center gap-2">
-        <div style={{background:accent}} className="w-6 h-6 rounded-[5px] grid place-items-center"><svg viewBox="0 0 24 24" className="w-3.5 h-3.5"><path d="M12 2 13.6 10.4 22 12 13.6 13.6 12 22 10.4 13.6 2 12 10.4 10.4Z" fill="#fff"/></svg></div>
+    <header className="h-14 shrink-0 bg-white border-b border-border flex items-center px-4 lg:px-5 gap-4 lg:gap-8 min-w-0">
+      <div className="flex items-center gap-2.5 shrink-0">
+        <div style={{background:accent}} className="w-8 h-8 rounded-[7px] grid place-items-center"><svg viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path d="M12 2 13.6 10.4 22 12 13.6 13.6 12 22 10.4 13.6 2 12 10.4 10.4Z" fill="#fff"/></svg></div>
         <TopBarVersion version={version}/>
       </div>
-      <nav className="flex h-full min-w-0 overflow-x-auto scroll-thin">
+      <nav className="flex h-full min-w-0 overflow-x-auto scroll-thin gap-1 lg:gap-2">
         {[['home','Accueil'],['templates','Dashboard'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],...(TRAFFIC_ENABLED ? [['trafic','Traffic']] : [])].filter(([k])=>isVisible(hidden,k)).map(([k,n]) => {
           const on = page===k, ok = ['home','sessions','nodes','templates','kpi','live','trafic'].includes(k);
-          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative shrink-0 px-2 lg:px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-foreground font-semibold':'text-muted-foreground hover:text-foreground'}`}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
+          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative shrink-0 px-3 h-full flex items-center text-[14px] outline-none focus-visible:bg-muted rounded-sm transition-colors ${ok?'cursor-pointer':'cursor-default'} ${on?'text-foreground font-semibold':'text-muted-foreground font-medium hover:text-foreground'}`} aria-current={on?'page':undefined}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-sm"/>}</button>;
         })}
       </nav>
-      <div className="ml-auto shrink-0 flex items-center gap-2 lg:gap-4 text-[12.5px]">
+      <div className="ml-auto shrink-0 flex items-center gap-2 lg:gap-4 text-[13px]">
         <TopBarLive metrics={metrics} demo={demo} onOpen={()=>setPage('live')}/>
         <span className="hidden lg:inline text-muted-foreground" aria-label="Rôle">{role || '—'}</span>
-        <button type="button" title={t("Notifications")} className="w-8 h-8 rounded-md grid place-items-center text-muted-foreground hover:bg-muted hover:text-foreground"><I d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" c="w-4 h-4"/></button>
+        <button type="button" title={t("Notifications")} className="w-9 h-9 rounded-md grid place-items-center text-muted-foreground hover:bg-muted hover:text-foreground"><I d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" c="w-[18px] h-[18px]"/></button>
         <div className="relative">
-          <button type="button" onClick={()=>setMenu(m=>!m)} title={t("Compte")} style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white hover:opacity-90">SD</button>
+          <button type="button" onClick={()=>setMenu(m=>!m)} title={t("Compte")} style={{background:accent}} className="w-8 h-8 rounded-full grid place-items-center text-[12px] font-semibold text-white hover:opacity-90">SD</button>
           {menu && <>
             <div className="fixed inset-0 z-40" onClick={()=>setMenu(false)}/>
-            <div className="absolute right-0 top-9 z-50 w-48 bg-white border border-border rounded-md shadow-lg py-1 text-[13px]">
+            <div className="absolute right-0 top-10 z-50 w-48 bg-white border border-border rounded-md shadow-lg py-1 text-[13px]">
               <div className="px-3 py-2 border-b border-border"><div className="font-semibold text-foreground">SD</div><div className="text-[11.5px] text-subtle">{role}</div></div>
               <button type="button" onClick={()=>{setMenu(false);onSettings();}} className="w-full text-left px-3 py-2 hover:bg-surface-2 text-foreground">{t("Paramètres")}</button>
             </div></>}
@@ -146,12 +155,7 @@ function QueryPanel({conds,setConds}) {
         <div><Lbl>Conditions</Lbl>
           <div className="space-y-1.5">
             {conds.map((c,i) => (
-              <div key={i} className="flex items-center h-8 rounded-md border border-border text-[12.5px] overflow-hidden">
-                <span className="px-2 h-full flex items-center bg-surface-2 border-r border-border text-muted-foreground">{c[0]}</span>
-                <span className="px-2 text-subtle">=</span>
-                <span className="flex-1 truncate font-medium">{c[1]}</span>
-                <button onClick={()=>setConds(conds.filter((_,j)=>j!==i))} className="w-7 h-full grid place-items-center text-subtle hover:text-danger"><I d={ic.x} c="w-3.5 h-3.5"/></button>
-              </div>
+              <div key={i} className="flex"><ConditionBadge field={c[0]} value={c[1]} size="md" className="flex-1 pr-0"><button onClick={()=>setConds(conds.filter((_,j)=>j!==i))} aria-label="Retirer" className="ml-auto w-7 h-full grid place-items-center opacity-70 hover:opacity-100 hover:text-danger"><I d={ic.x} c="w-3.5 h-3.5"/></button></ConditionBadge></div>
             ))}
             {adding ? (
               <div className="rounded-md border border-foreground p-2 space-y-1.5 bg-surface-2">
@@ -259,7 +263,7 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
         <span className="text-[13px] font-semibold text-foreground">Sessions</span>
         <div className="flex-1 h-7 rounded-md border border-border flex items-center gap-1.5 px-2 focus-within:border-[var(--app-accent)]">
           <I d={ic.search} c="w-[14px] h-[14px] text-muted-foreground"/>
-          {conds.map((c,i) => <span key={i} className="flex items-center gap-1 h-5 rounded-[4px] bg-muted border border-border pl-1.5 pr-1 text-[11.5px] text-foreground whitespace-nowrap"><span className="text-muted-foreground">{c[0]}</span>{c[1]}<button onClick={()=>setConds(conds.filter((_,j)=>j!==i))}><I d={ic.x} c="w-3 h-3"/></button></span>)}
+          {conds.map((c,i) => <ConditionBadge key={i} field={c[0]} value={c[1]} op={c[2]||'='} className="pr-1"><button onClick={()=>setConds(conds.filter((_,j)=>j!==i))} aria-label="Retirer" className="opacity-70 hover:opacity-100"><I d={ic.x} c="w-3 h-3"/></button></ConditionBadge>)}
           <input aria-label="Rechercher dans les sessions" value={txt} onChange={e=>setTxt(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter'&&txt){ const f=FIELDS.find(x=>x[1].some(v=>v.toLowerCase()===txt.toLowerCase())); if(f){ setConds([...conds,[f[0],f[1].find(v=>v.toLowerCase()===txt.toLowerCase())]]); setTxt(''); } } }}
             placeholder="Rechercher… (Entrée sur Échec, LTE, N4… ajoute un filtre)" className="flex-1 min-w-[140px] outline-none text-[12.5px] placeholder:text-subtle"/>
         </div>
@@ -344,7 +348,7 @@ function Ladder({d,sel,setSel,lens,hidden,collapsed,width,zoom=1,timers=false,al
       {vis.map((k,row) => {
         const m = d.msgs[k];
         const [a,b] = m[2].split(' → ').map(s=>nodeIdx(d.nodes,s));
-        const y = TOP + row*ROW + 18, x1 = x(a), x2 = x(b), dir = x2>x1?1:-1, c = (IFC[m[0]] || IFC.N2)[0];
+        const y = TOP + row*ROW + 18, x1 = x(a), x2 = x(b), dir = x2>x1?1:-1, c = ifcHex(m[0],'fg');
         const on = sel===k, lit = lens && m[5]===lens, cause = isCause(m);
         const full = m[1] + (m[3] ? '  ·  '+m[3] : '');
         const maxc = Math.max(8, Math.floor((Math.abs(x2-x1)-14)/6.1));
@@ -357,7 +361,7 @@ function Ladder({d,sel,setSel,lens,hidden,collapsed,width,zoom=1,timers=false,al
             {on && <rect x="0" y={y-18} width="3" height={ROW} fill="var(--app-accent)"/>}
             <text x="12" y={y+4} fontSize="10.5" fill="#94A3B8" fontFamily="Geist Mono">{String(d.evidence?.[k]?.seq ?? k+1).padStart(2,'0')}</text>
             <text x="40" y={y+4} fontSize="10.5" fill="#64748B" fontFamily="Geist Mono">{fmtUtc(timeOf(d.evidence?.[k]))}</text>
-            <rect x="128" y={y-7} width="34" height="14" rx="3" fill={(IFC[m[0]]||IFC.N2)[1]}/><text x="145" y={y+3.5} textAnchor="middle" fontSize="9.5" fontWeight="600" fill={c} fontFamily="Geist Mono">{String(m[0]).slice(0,6)}</text>
+            <rect x="128" y={y-7} width="34" height="14" rx="3" fill={ifcHex(m[0],'bg')}/><text x="145" y={y+3.5} textAnchor="middle" fontSize="9.5" fontWeight="600" fill={c} fontFamily="Geist Mono">{String(m[0]).slice(0,6)}</text>
             {pstart && <text x="168" y={y+4} fontSize="10.5" fill="#334155" fontWeight="600">{String(pstart[0]).slice(0,7)}</text>}
             {timers && row>0 && (()=>{const a=timeOf(d.evidence?.[vis[row-1]]), b=timeOf(d.evidence?.[k]); return a!=null&&b!=null ? <text x={W-8} y={y+4} textAnchor="end" fontSize="10" fill="#94A3B8" fontFamily="Geist Mono">+{fmtDuration(b-a)}</text> : null;})()}
             <line x1={x1} x2={x2 - dir*7} y1={y} y2={y} stroke={c} strokeWidth={on?2.5:1.2}/>
@@ -581,73 +585,91 @@ const HOME_ACTIONS = [
 ];
 const MODULES = [
   ['POLARIS Analyzer','Requêtes, ladder et corrélation des sessions 4G/5G.','M11 19a8 8 0 1 1 0-16 8 8 0 0 1 0 16Zm10 2-4.35-4.35','sessions'],
-  ['Polaris Monitor','Indicateurs par procédure et détection d\'écarts.','M4 20V10M10 20V4M16 20v-7M22 20H2','kpi'],
-  ['Polaris Live','Suivi en temps réel des sessions capturées.','M3 12h4l3-8 4 16 3-8h4','live'],
+  ['POLARIS Monitor','Indicateurs par procédure et détection d\'écarts.','M4 20V10M10 20V4M16 20v-7M22 20H2','kpi'],
+  ['POLARIS Live','Suivi en temps réel des sessions capturées.','M3 12h4l3-8 4 16 3-8h4','live'],
   ['Traffic','Débit, santé TCP, applications, congestion','M4 7h16M4 12h16M4 17h16','trafic'],
-  ['Polaris Nodes','Topologie et état des nœuds du réseau.','M12 5v4M5 19l4-5M19 19l-4-5M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6ZM12 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM4 18a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM20 18a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z','nodes',true],
+  ['POLARIS Nodes','Topologie et état des nœuds du réseau.','M12 5v4M5 19l4-5M19 19l-4-5M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6ZM12 2a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM4 18a2 2 0 1 1 0 4 2 2 0 0 1 0-4ZM20 18a2 2 0 1 1 0 4 2 2 0 0 1 0-4Z','nodes',true],
 ];
 const Soon = () => <span className="text-[11px] font-medium text-subtle border border-border rounded px-1.5 py-[1px]">{t("Bientôt")}</span>;
+
+// Status tone from real values only: unavailable → gray, never green by default.
+function homeTone(key, v) {
+  if (v === undefined || v === null || v === '') return 'unknown';
+  const n = Number(v);
+  if (key === 'capture') { const x = String(v).toLowerCase(); return ['capturing','running','active'].includes(x) ? 'ok' : ['degraded','warning','partial','starting','stopping'].includes(x) ? 'warn' : ['failed','error','stopped'].includes(x) ? 'fail' : 'unknown'; }
+  if (!Number.isFinite(n)) return 'unknown';
+  if (key === 'failures') return n > 0 ? 'fail' : 'ok';
+  if (key === 'pending' || key === 'zero') return n > 0 ? 'warn' : 'ok';
+  if (key === 'disk') return n < 10 ? 'fail' : n < 20 ? 'warn' : 'ok';
+  return 'neutral';
+}
+const HOME_TONE = { ok: 'var(--success)', warn: 'var(--warning)', fail: 'var(--danger)', unknown: 'var(--subtle)', neutral: 'var(--muted-foreground)' };
+const HOME_TONE_LABEL = { ok: 'Opérationnel', warn: 'Vigilance', fail: 'Échec', unknown: 'Inconnu', neutral: 'Information' };
 
 function Home({setPage,onNew,hidden=[]}) {
   const { demo } = usePolarisMode();
   const health = useHealth(), metrics = useMetrics(), safety = useStorageSafety();
   const m = metrics.data?.data, h = health.data?.data;
-
-  const go = t => t && setPage(t);
+  const go = tg => tg && setPage(tg);
+  const mods = MODULES.filter(x=>(x[3]!=='trafic'||TRAFFIC_ENABLED) && isVisible(hidden,x[3]));
+  const cols = mods.length <= 2 ? 'lg:grid-cols-2' : mods.length === 4 ? 'lg:grid-cols-4' : mods.length % 3 === 0 || mods.length === 5 ? 'lg:grid-cols-3' : 'lg:grid-cols-4';
+  const activity = demo ? [['Analyse','Run 5G #482 · Registration','il y a 3 min','sessions'],['KPI','Succès PDU Session · 15 min','il y a 12 min','kpi'],['Template','Échecs Attach par cellule','il y a 40 min','templates'],['Analyse','Run 4G #219 · E-RAB Setup','il y a 2 h','sessions']] : [];
+  const status = [['capture','Capture','État de capture',m?.capture_state ?? h?.capture_state],['pending','Segments en attente','À importer',m?.pending_segments],['failures','Échecs ingestion','Import',m?.ingestion_failures],['ingested','Segments ingérés','Importés',m?.segments_ingested],['open','Segments ouverts','Capture en cours',m?.open_segments],['zero','Segments sans événement','Décodage',m?.zero_event_segments],['disk','Disque disponible','Stockage',safety.data?.data?.free_percent]];
+  const conn = demo ? ['warn','Données de démo'] : health.isError ? ['fail',health.error.message] : health.isPending ? ['unknown','Connexion POLARIS…'] : ['ok','POLARIS connecté'];
+  const sectionHead = (title, action) => <div className="h-11 px-4 flex items-center border-b border-border-subtle"><h2 className="text-[14px] font-semibold text-foreground">{t(title)}</h2><div className="ml-auto">{action}</div></div>;
   return (
-    <div className="flex-1 overflow-auto scroll-thin bg-white">
-      <div className="polaris-content-shell px-8 pt-14 pb-16">
-        <header className="flex flex-wrap items-end justify-between gap-6">
+    <div className="flex-1 overflow-auto scroll-thin bg-surface-2">
+      <div className="polaris-content-shell px-8 pt-7 pb-8 space-y-5">
+        <header className="rounded-xl border border-border bg-white px-6 py-5 flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
           <div className="min-w-0">
-            <h1 className="text-[30px] leading-[1.15] font-semibold tracking-[-0.02em] text-foreground">{t("Bienvenue sur POLARIS")}</h1>
-            <p className="mt-2 text-[15px] text-muted-foreground">{t("Analyse, diagnostic et supervision des sessions et du trafic réseau.")}</p>
+            <h1 className="text-[28px] leading-[1.15] font-semibold tracking-[-0.02em] text-foreground">{t("Bienvenue sur POLARIS")}</h1>
+            <p className="mt-1.5 text-[13.5px] text-muted-foreground">{t("Analyse, diagnostic et supervision des sessions et du trafic réseau.")}</p>
           </div>
-          <button onClick={()=>onNew?onNew():setPage('sessions')} className="h-10 px-5 rounded-lg bg-[var(--app-accent)] text-white text-[14px] font-medium flex items-center gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.12)] hover:opacity-90 transition"><I d={ic.plus} c="w-4 h-4"/>{t("Nouvelle analyse")}</button>
+          <div className="flex flex-wrap items-center gap-2">
+            {HOME_ACTIONS.map(([k,n,d,tg])=>(
+              <button key={k} disabled={!tg} onClick={()=>go(tg)} className="h-9 px-3.5 rounded-lg border border-border bg-white text-[13px] text-foreground flex items-center gap-2 hover:border-border-strong hover:bg-surface-2 transition disabled:text-subtle disabled:hover:bg-white disabled:cursor-not-allowed">
+                <I d={d} c="w-4 h-4 text-muted-foreground"/>{t(n)}{!tg && <Soon/>}</button>))}
+            <button onClick={()=>onNew?onNew():setPage('sessions')} className="h-9 px-4 rounded-lg bg-[var(--app-accent)] text-white text-[13px] font-medium flex items-center gap-2 shadow-[0_1px_2px_rgba(0,0,0,0.12)] hover:opacity-90 transition"><I d={ic.plus} c="w-4 h-4"/>{t("Nouvelle analyse")}</button>
+          </div>
         </header>
-        <div className="mt-6 flex flex-wrap gap-2">
-          {HOME_ACTIONS.map(([k,n,d,tg])=>(
-            <button key={k} disabled={!tg} onClick={()=>go(tg)} className="h-9 px-3.5 rounded-lg border border-border bg-white text-[13px] text-foreground flex items-center gap-2 hover:border-border-strong hover:bg-surface-2 transition disabled:text-subtle disabled:hover:bg-white disabled:cursor-not-allowed">
-              <I d={d} c="w-4 h-4 text-muted-foreground"/>{t(n)}{!tg && <Soon/>}</button>))}
-        </div>
 
-        <section className="mt-14">
-          <h2 className="text-[13px] font-semibold text-foreground mb-4">{t("Modules")}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {MODULES.filter(x=>(x[3]!=='trafic'||TRAFFIC_ENABLED) && isVisible(hidden,x[3])).map(([n,desc,d,tg,adm])=>(
-              <button key={n} disabled={!tg} onClick={()=>go(tg)} className="group text-left h-full rounded-xl border border-border bg-white p-4 flex flex-col transition hover:border-border-strong hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:border-border">
-                <span className={`w-8 h-8 rounded-lg grid place-items-center ${tg?'bg-[var(--app-accent)] text-white':'bg-muted text-subtle'}`}><I d={d} c="w-4 h-4"/></span>
-                <span className={`mt-4 text-[14px] font-semibold flex items-center gap-1.5 flex-wrap ${tg?'text-foreground':'text-muted-foreground'}`}>{t(n)}{adm && <span className="text-[11px] font-semibold uppercase tracking-wide rounded px-1.5 py-[1px] bg-[var(--app-accent)] text-white">{t("Administrateur")}</span>}</span>
-                <span className="mt-1 text-[12.5px] leading-[1.45] text-muted-foreground flex-1">{t(desc)}</span>
-                <span className="mt-4 text-[12.5px] font-medium flex items-center gap-1">{tg ? <span className="text-foreground group-hover:translate-x-0.5 transition">{t("Ouvrir →")}</span> : <Soon/>}</span>
+        <section aria-label={t("Modules")}>
+          <h2 className="text-[14px] font-semibold text-foreground mb-3">{t("Modules")}</h2>
+          <div className={`grid grid-cols-1 sm:grid-cols-2 ${cols} gap-3`}>
+            {mods.map(([n,desc,d,tg,adm])=>(
+              <button key={n} disabled={!tg} onClick={()=>go(tg)} className="group text-left rounded-xl border border-border bg-white p-4 flex items-start gap-3.5 transition hover:border-[var(--app-accent)] hover:shadow-[0_2px_8px_rgba(0,0,0,0.05)] focus-visible:outline-2 focus-visible:outline-[var(--app-accent)] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:border-border">
+                <span className={`w-9 h-9 shrink-0 rounded-lg grid place-items-center ${tg?'bg-[var(--app-accent)] text-white':'bg-muted text-subtle'}`}><I d={d} c="w-[18px] h-[18px]"/></span>
+                <span className="min-w-0 flex-1 flex flex-col">
+                  <span className={`text-[14.5px] font-semibold flex items-center gap-1.5 flex-wrap ${tg?'text-foreground':'text-muted-foreground'}`}>{t(n)}{adm && <span className="text-[10.5px] font-semibold uppercase tracking-wide rounded px-1.5 py-[1px] border border-border text-muted-foreground">{t("Administrateur")}</span>}</span>
+                  <span className="mt-1 text-[12.5px] leading-[1.45] text-muted-foreground">{t(desc)}</span>
+                  <span className="mt-2.5 text-[12.5px] font-medium">{tg ? <span className="text-[var(--app-accent)] group-hover:underline">{t("Ouvrir →")}</span> : <Soon/>}</span>
+                </span>
               </button>))}
           </div>
         </section>
 
-        <div className="mt-14 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-10">
-          <section>
-            <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-foreground">{t("Activité récente")}</h2><button disabled className="ml-auto text-[12.5px] text-subtle cursor-not-allowed">{t("Voir tout")}</button></div>
-            <div className="rounded-xl border border-border bg-white divide-y divide-border-subtle">
-              {(demo ? [['Analyse','Run 5G #482 · Registration','il y a 3 min','sessions'],['KPI','Succès PDU Session · 15 min','il y a 12 min','kpi'],['Template','Échecs Attach par cellule','il y a 40 min','templates'],['Analyse','Run 4G #219 · E-RAB Setup','il y a 2 h','sessions']] : []).map(([ty,n,w,tg])=>(
-                <button key={n} onClick={()=>setPage(tg)} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-2"><span className="text-[11px] font-medium text-muted-foreground bg-muted rounded px-1.5 py-[1px] w-16 text-center">{t(ty)}</span><span className="text-[13px] text-foreground truncate">{n}</span><span className="ml-auto text-[12px] text-subtle shrink-0">{t(w)}</span></button>))}
-            </div>
-            <div className={demo ? "hidden" : "py-6 text-center"}>
-              <div className="mx-auto w-9 h-9 rounded-full bg-muted grid place-items-center text-subtle"><I d="M12 7v5l3 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z" c="w-4 h-4"/></div>
-              <div className="mt-3 text-[14px] font-medium text-foreground">{t("Aucune activité pour l'instant")}</div>
-              <div className="mt-1 text-[13px] text-muted-foreground">{t("Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.")}</div>
-              <button onClick={()=>onNew?onNew():setPage('sessions')} className="mt-4 text-[13px] font-medium text-foreground hover:underline">{t("Lancer une analyse →")}</button>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-5 items-start">
+          <section className="rounded-xl border border-border bg-white overflow-hidden">
+            {sectionHead("Activité récente", <button disabled className="text-[12.5px] text-subtle cursor-not-allowed">{t("Voir tout")}</button>)}
+            {activity.length ? <div className="divide-y divide-border-subtle">{activity.map(([ty,n,w,tg])=>(
+              <button key={n} onClick={()=>setPage(tg)} className="w-full text-left px-4 h-11 flex items-center gap-3 hover:bg-surface-2"><span className="text-[11.5px] font-medium text-muted-foreground bg-muted rounded px-1.5 py-[1px] w-[72px] text-center">{t(ty)}</span><span className="text-[13px] text-foreground truncate">{n}</span><span className="ml-auto text-[12px] text-subtle shrink-0">{t(w)}</span></button>))}</div>
+            : <div className="px-4 py-4 flex items-center gap-3">
+                <span className="w-8 h-8 shrink-0 rounded-full bg-muted grid place-items-center text-subtle"><I d="M12 7v5l3 2M12 21a9 9 0 1 1 0-18 9 9 0 0 1 0 18Z" c="w-4 h-4"/></span>
+                <div className="min-w-0 flex-1"><div className="text-[13px] font-medium text-foreground">{t("Aucune activité pour l'instant")}</div><div className="text-[12px] text-muted-foreground">{t("Vos analyses, requêtes KPI, templates et runs consultés apparaîtront ici.")}</div></div>
+                <button onClick={()=>onNew?onNew():setPage('sessions')} className="shrink-0 text-[13px] font-medium text-foreground hover:underline">{t("Lancer une analyse →")}</button>
+              </div>}
           </section>
-          <section>
-            <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-foreground">{t("État de la plateforme")}</h2><button onClick={()=>setPage('nodes')} className="ml-auto text-[12.5px] font-medium text-foreground hover:underline">{t("Voir la supervision")}</button></div>
-            <div className="rounded-xl border border-border divide-y divide-border-subtle">
-              {[['Capture','État de capture',available(m?.capture_state ?? h?.capture_state),'var(--muted-foreground)'],['Segments en attente','À importer',available(m?.pending_segments),'var(--muted-foreground)'],['Échecs ingestion','Import',available(m?.ingestion_failures),'var(--muted-foreground)'],['Segments ingérés','Importés',available(m?.segments_ingested),'var(--muted-foreground)'],['Segments ouverts','Capture en cours',available(m?.open_segments),'var(--muted-foreground)'],['Segments sans événement','Décodage',available(m?.zero_event_segments),'var(--muted-foreground)'],['Disque disponible','Stockage',available(safety.data?.data?.free_percent),'var(--muted-foreground)']].map(([n,d,v,c])=>(
-                <div key={n} className="px-4 py-3.5 flex items-center gap-3">
-                  <span className="w-[7px] h-[7px] rounded-full" style={{background:c}}/>
-                  <div className="min-w-0"><div className="text-[13px] text-foreground">{t(n)}</div><div className="text-[12px] text-subtle">{t(d)}</div></div>
-                  <span title={`event_id=${available(m?.event_id)} · seq=${available(m?.seq)}`} className="ml-auto text-[13px] font-medium tabular-nums text-foreground">{v}</span>
-                </div>))}
+          <section className="rounded-xl border border-border bg-white overflow-hidden">
+            {sectionHead("État de la plateforme", <button onClick={()=>setPage('nodes')} className="text-[12.5px] font-medium text-foreground hover:underline">{t("Voir la supervision")}</button>)}
+            <div className="px-4 py-2 flex items-center gap-2 border-b border-border-subtle bg-surface-2 text-[12px]"><span className="w-2 h-2 rounded-full" style={{background:HOME_TONE[conn[0]]}}/><span className="text-muted-foreground truncate">{t(conn[1])}</span></div>
+            <div className="grid grid-cols-1 sm:grid-cols-2">
+              {status.map(([k,n,d,raw])=>{ const tone = homeTone(k,raw); return (
+                <div key={k} className="px-4 h-12 flex items-center gap-2.5 border-b border-border-subtle sm:odd:border-r">
+                  <span title={t(HOME_TONE_LABEL[tone])} aria-label={t(HOME_TONE_LABEL[tone])} className="w-2 h-2 rounded-full shrink-0" style={{background:HOME_TONE[tone]}}/>
+                  <div className="min-w-0"><div className="text-[13px] text-foreground truncate">{t(n)}</div><div className="text-[12px] text-subtle truncate">{t(d)}</div></div>
+                  <span title={`event_id=${available(m?.event_id)} · seq=${available(m?.seq)}`} className="ml-auto text-[13px] font-medium tabular-nums text-foreground">{available(raw)}</span>
+                </div>); })}
             </div>
-            <p className="mt-3 text-[12px] text-warning">{t(demo ? 'Données de démo' : health.isError ? health.error.message : 'POLARIS')}</p>
           </section>
         </div>
       </div>
@@ -656,7 +678,7 @@ function Home({setPage,onNew,hidden=[]}) {
 }
 
 /* ---------------- PROBE MANAGER : liste des sondes, puis fiche détaillée ---------------- */
-const PROBE_TABS = ['Général','Live Capture','Interfaces et points de capture','Stockage et ingestion','Actions'];
+const PROBE_TABS = ['Général','Live Capture','Stockage et ingestion','Actions'];
 
 function ProbeDetails({ node, onBack }) {
   const { demo } = usePolarisMode();
@@ -709,7 +731,8 @@ function ProbeDetails({ node, onBack }) {
         {PROBE_TABS.map(x => <button key={x} role="tab" aria-selected={tab===x} onClick={()=>setTab(x)} className={`relative shrink-0 h-10 px-3 text-[13px] ${tab===x?'text-foreground font-semibold':'text-muted-foreground hover:text-foreground'}`}>{x}{tab===x && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-[var(--app-accent)]"/>}</button>)}
       </div>
       <div role="tabpanel" aria-label={tab} className="space-y-5">
-        {tab==='Général' && <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {tab==='Général' && <>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <Card title="Identité et état">
             <div className="p-4 text-[12.5px]">
               {row('Nom',available(node.n))}{row('ID',available(node.id ?? node.n))}{row('Type',available(node.role))}{row('Hôte',available(node.info))}
@@ -728,16 +751,17 @@ function ProbeDetails({ node, onBack }) {
             </div>
             {(safety.isError || metrics.isError) && <div className="px-4 pb-4">{failure(safety,'/storage/safety') ?? failure(metrics,'/metrics')}</div>}
           </Card>
-        </div>}
-        {tab==='Live Capture' && <LiveCapture probe={node}/>}
-        {tab==='Interfaces et points de capture' && <Card title="Interfaces et points de capture">
+        </div>
+        <Card title="Interfaces et points de capture">
           <table className="w-full text-[12.5px]"><thead><tr>{['Interface','Protocole','Source de capture','Filtre BPF','Disponibilité'].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border-subtle">{h}</th>)}</tr></thead>
-            <tbody>{ifaceRows.map(x=><tr key={x.name}><td className="h-10 px-4 border-b border-border-subtle font-mono">{x.name}</td><td className="px-4 border-b border-border-subtle">{available(x.protocol)}</td><td className="px-4 border-b border-border-subtle font-mono text-[11.5px]">{available(x.source)}</td><td className="px-4 border-b border-border-subtle font-mono text-[11.5px] max-w-[220px] truncate" title={String(available(x.bpf))}>{available(x.bpf)}</td>
-              <td className="px-4 border-b border-border-subtle">{x.active==null ? <span className="text-subtle">—</span> : <span className="inline-flex items-center gap-1.5"><Dot st={x.active?'ok':'error'}/>{x.active?'Disponible':'Indisponible'}</span>}</td></tr>)}
+            <tbody>{ifaceRows.map(x=><tr key={x.name} className="hover:bg-surface-2"><td className="h-10 px-4 border-b border-border-subtle"><InterfaceBadge name={x.name}/></td><td className="px-4 border-b border-border-subtle text-[12px] text-ink-2">{available(x.protocol)}</td><td className="px-4 border-b border-border-subtle"><TechnicalValue value={x.source}/></td><td className="px-4 border-b border-border-subtle"><BpfFilterDisplay filter={x.bpf}/></td>
+              <td className="px-4 border-b border-border-subtle"><AvailabilityStatus active={x.active}/></td></tr>)}
               {!ifaceRows.length && <tr><td colSpan="5" className="p-4 text-subtle">{resources.probeInterfaces.isPending || resources.interfaces.isPending ? 'Connexion POLARIS…' : 'Aucune interface renvoyée par /probes/{id}/interfaces ni /interfaces'}</td></tr>}
             </tbody></table>
           <div className="px-4 py-3 text-[11.5px] text-subtle">{ifaceRows.length ? (records(resources.probeInterfaces.data?.data,'interfaces').length ? 'Liste fournie par /probes/{id}/interfaces · disponibilité par /interfaces/runtime.' : 'Liste fournie par /interfaces · disponibilité par /interfaces/runtime.') : (failure(resources.probeInterfaces,'/probes/'+String(node.id ?? node.n)+'/interfaces') ?? failure(resources.interfaces,'/interfaces'))}</div>
-        </Card>}
+        </Card>
+        </>}
+        {tab==='Live Capture' && <LiveCapture probe={node}/>}
         {tab==='Stockage et ingestion' && <Card title="Stockage et ingestion">
           <div className="p-4 space-y-3 text-[12.5px]">{[['Disque disponible',diskAvailable],['Segments ingérés',metrics.data?.data?.segments_ingested],['Échecs ingestion',metrics.data?.data?.ingestion_failures],['Segments en attente',metrics.data?.data?.pending_segments],['Segments ouverts',metrics.data?.data?.open_segments]].map(([label,value])=><div key={label} className="flex justify-between border-b border-border-subtle py-1.5 last:border-0"><span className="text-muted-foreground">{label}</span><span className="font-mono text-[12px]">{available(value)}</span></div>)}</div>
           {(safety.isError || metrics.isError) && <div className="px-4 pb-4 text-danger">{failure(safety,'/storage/safety') ?? failure(metrics,'/metrics')}</div>}
@@ -765,10 +789,10 @@ function ProbeDetails({ node, onBack }) {
   );
 }
 
-function Nodes() {
+function Nodes({ initialOpen = null } = {}) {
   const { demo } = usePolarisMode(); const probes = useProbes(); const auth = useAuthMe();
   const metrics = useMetrics(); const safety = useStorageSafety(); const version = useVersion();
-  const [open,setOpen] = useState(null);
+  const [open,setOpen] = useState(initialOpen);
   const [registering,setRegistering] = useState(false);
   const [menu,setMenu] = useState(null);
   const [managing,setManaging] = useState(null);
@@ -790,7 +814,7 @@ function Nodes() {
           <tbody>
             {nodes.map(n => (
               <tr key={n.n} onClick={()=>setOpen(n.n)} className="cursor-pointer hover:bg-surface-2">
-                <td className="h-11 px-4 border-b border-border-subtle"><div className="font-mono text-[12px] text-foreground">{n.n}</div><div className="text-[11.5px] text-subtle">{n.info}</div></td>
+                <td className="h-11 px-4 border-b border-border-subtle"><div className="font-mono text-[12px] text-foreground">{n.n}</div><div className="text-[11.5px] text-subtle">{n.info}</div><InterfaceStrip names={n.interfaces ?? n.connected_interfaces}/></td>
                 <td className="px-4 border-b border-border-subtle text-ink-2">{n.role}</td>
                 <td className="px-4 border-b border-border-subtle"><span className="inline-flex items-center gap-1.5"><Dot st={n.st}/>{n.st==='ok'?'Opérationnel':n.st==='warn'?'Vigilance':'—'}</span></td>
                 <td className="px-4 border-b border-border-subtle"><span className="font-mono text-[11.5px]">{n.ver}</span>{n.exp && n.ver.includes(n.exp) && <span className="ml-1.5 text-[11px] text-success">✓ attendue</span>}</td>
@@ -828,50 +852,57 @@ const mkDraft = (o={}) => ({tpl:'Parcourir',scope:'',conds:[],join:'ET',group:'A
 function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
   const [q,setQ] = useState(''); const [flt,setFlt] = useState('Toutes');
   const list = saved.filter(x=>(flt==='Toutes'||(flt==='Favoris'?x.fav:x.shared)) && x.n.toLowerCase().includes(q.toLowerCase()));
+  const empty = saved.length===0 ? 'Aucune requête enregistrée.' : q ? `Aucune requête ne correspond à « ${q} ».` : flt==='Favoris' ? 'Aucune requête en favori.' : flt==='Partagées' ? 'Aucune requête partagée.' : 'Aucune requête.';
+  const focus = 'outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-1';
   return (
     <div className="flex-1 overflow-auto scroll-thin">
-      <div className="max-w-[1280px] mx-auto px-8 py-8 space-y-6">
-        <div className="flex items-end gap-4">
-          <div><div className="text-[12px] text-muted-foreground">POLARIS Analyzer</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Requêtes</h1>
+      <div className="w-full px-8 py-6 space-y-5">
+        <header className="rounded-xl border border-border bg-white px-6 py-5 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <div className="min-w-0"><div className="text-[12px] font-medium text-muted-foreground">POLARIS Analyzer</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-0.5">Requêtes</h1>
             <div className="text-[13px] text-muted-foreground mt-1">Consulte et lance tes requêtes. La création s’ouvre dans un nouvel onglet.</div></div>
-          {onDisplayAll && <button onClick={onDisplayAll} disabled={displayingAll} className="ml-auto h-10 px-5 rounded-lg border border-border bg-white text-foreground text-[14px] font-medium hover:border-[var(--app-accent)] disabled:opacity-50">{t("Afficher toutes les sessions")}</button>}
-          <button onClick={()=>onNew()} className={`${onDisplayAll?'':'ml-auto'} h-10 px-5 rounded-lg bg-[var(--app-accent)] text-white text-[14px] font-medium flex items-center gap-2 hover:opacity-90`}><I d={ic.plus} c="w-4 h-4"/>Nouvelle requête</button>
+          <div className="ml-auto flex items-center gap-2">
+            {onDisplayAll && <button onClick={onDisplayAll} disabled={displayingAll} className={`h-9 px-4 rounded-lg border border-border bg-white text-foreground text-[13px] font-medium hover:border-[var(--app-accent)] disabled:opacity-50 ${focus}`}>{t("Afficher toutes les sessions")}</button>}
+            <button onClick={()=>onNew()} className={`h-9 px-4 rounded-lg bg-[var(--app-accent)] text-white text-[13px] font-semibold flex items-center gap-2 hover:opacity-90 ${focus}`}><I d={ic.plus} c="w-4 h-4"/>Nouvelle requête</button>
+          </div>
+        </header>
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-10 rounded-lg border border-border bg-white flex items-center gap-2.5 px-3 focus-within:border-[var(--app-accent)] focus-within:ring-2 focus-within:ring-[var(--app-accent)]/15"><I d={ic.search} c="w-4 h-4 text-subtle shrink-0"/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher une requête…" aria-label="Rechercher une requête" className="flex-1 outline-none text-[13px] bg-transparent text-foreground placeholder:text-subtle"/></div>
+          <div role="tablist" className="flex rounded-lg border border-border p-[3px] bg-white">{['Toutes','Favoris','Partagées'].map(f=><button key={f} role="tab" aria-selected={flt===f} onClick={()=>setFlt(f)} className={`h-8 px-3.5 rounded-md text-[13px] transition-colors ${focus} ${flt===f?'bg-[var(--app-accent)] text-white font-semibold':'text-muted-foreground hover:text-foreground hover:bg-surface-2'}`}>{f}</button>)}</div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-9 rounded-md border border-border bg-white flex items-center gap-2 px-3 focus-within:border-[var(--app-accent)]"><I d={ic.search} c="w-4 h-4 text-subtle"/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher une requête…" className="flex-1 outline-none text-[13px] bg-transparent"/></div>
-          <div className="flex rounded-md border border-border p-[2px] bg-white">{['Toutes','Favoris','Partagées'].map(f=><button key={f} onClick={()=>setFlt(f)} className={`h-8 px-3 rounded-[4px] text-[12.5px] ${flt===f?'bg-[var(--app-accent)] text-white font-medium':'text-muted-foreground'}`}>{f}</button>)}</div>
-        </div>
-        <div>
-          <div className="text-[13px] font-semibold mb-3">Démarrer depuis un modèle</div>
-          <div className="grid grid-cols-4 gap-3">
+        <section>
+          <div className="flex items-baseline gap-3 mb-2.5"><h2 className="text-[15px] font-semibold text-foreground">Démarrer depuis un modèle</h2><span className="text-[12.5px] text-muted-foreground">Crée une nouvelle requête préconfigurée</span></div>
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
             {STARTERS.map(([tt,d,c]) => (
-              <button key={tt} onClick={()=>onNew(mkDraft({tpl:'Parcourir',conds:c.map(x=>[x[0],x[1],'=']),name:tt,group:c[0][0]==='Résultat'?'Cause':'Résultat'}),tt)} className="text-left bg-white rounded-lg border border-border hover:border-[var(--app-accent)] p-4 transition">
-                <div className="text-[13px] font-medium">{tt}</div><div className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{d}</div>
-                <div className="flex flex-wrap gap-1 mt-3">{c.map(x=><span key={x[1]} className="text-[11px] rounded border border-border px-1.5 py-0.5 text-ink-2">{x[0]} = {x[1]}</span>)}</div>
+              <button key={tt} onClick={()=>onNew(mkDraft({tpl:'Parcourir',conds:c.map(x=>[x[0],x[1],'=']),name:tt,group:c[0][0]==='Résultat'?'Cause':'Résultat'}),tt)} className={`group h-full flex flex-col text-left bg-white rounded-xl border border-border hover:border-[var(--app-accent)] hover:bg-surface-2/50 px-4 py-3.5 transition-colors ${focus}`}>
+                <div className="flex items-center gap-2"><span data-cond={conditionTone(c[0][0],c[0][1])} className="polaris-cond w-7 h-7 shrink-0 rounded-md border grid place-items-center"><I d={ic.plus} c="w-3.5 h-3.5"/></span><span className="text-[14px] font-semibold text-foreground">{tt}</span></div>
+                <div className="text-[12.5px] text-muted-foreground mt-2 leading-snug flex-1">{d}</div>
+                <div className="flex flex-wrap gap-1 mt-3">{c.map(x=><ConditionBadge key={x[1]} field={x[0]} value={x[1]}/>)}</div>
               </button>
             ))}
           </div>
-        </div>
-        <section className="bg-white rounded-lg border border-border overflow-hidden">
-          <div className="px-5 h-12 flex items-center border-b border-border-subtle"><h3 className="text-[14px] font-semibold">Requêtes enregistrées</h3><span className="ml-auto text-[12px] text-muted-foreground">{list.length} requêtes</span></div>
-          <table className="w-full text-[12.5px]">
-            <thead><tr>{['','Nom','Gabarit','Portée','Conditions','Dernière exécution','Résultats',''].map((h,k)=><th key={k} className="h-9 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border">{h}</th>)}</tr></thead>
+        </section>
+        <section className="bg-white rounded-xl border border-border overflow-hidden">
+          <div className="px-5 h-12 flex items-center gap-3 border-b border-border"><h2 className="text-[15px] font-semibold text-foreground">Requêtes enregistrées</h2><span className="text-[12.5px] text-muted-foreground">Rouvrir une requête existante</span><span className="ml-auto text-[12px] font-medium text-muted-foreground tabular-nums">{list.length} requête{list.length>1?'s':''}</span></div>
+          <div className="overflow-x-auto scroll-thin">
+          <table className="w-full text-[13px]">
+            <thead><tr>{[['',''],['Nom',''],['Gabarit',''],['Portée',''],['Conditions',''],['Dernière exécution',''],['Résultats','text-right'],['','']].map(([h,a],k)=><th key={k} className={`h-9 px-4 font-semibold text-[12px] text-muted-foreground bg-surface-2 border-b border-border whitespace-nowrap ${a||'text-left'}`}>{h}</th>)}</tr></thead>
             <tbody>
-              {list.length===0 && <tr><td colSpan={8} className="h-16 text-center text-subtle">Aucune requête.</td></tr>}
+              {list.length===0 && <tr><td colSpan={8} className="h-14 px-5 text-[13px] text-muted-foreground">{empty}{saved.length===0 && <button onClick={()=>onNew()} className="ml-2 font-medium text-[var(--app-accent)] hover:underline">Nouvelle requête →</button>}</td></tr>}
               {list.map(x => (
-                <tr key={x.n} onClick={()=>onOpen(x)} className="cursor-pointer hover:bg-surface-2 group">
-                  <td className="h-11 pl-4 border-b border-border-subtle w-8"><I d={ic.star} c={`w-3.5 h-3.5 ${x.fav?'text-foreground':'text-faint'}`}/></td>
-                  <td className="px-4 border-b border-border-subtle font-medium text-foreground">{x.n}{x.shared && <span className="ml-2 text-[11px] rounded border border-border px-1.5 py-0.5 text-muted-foreground">partagée</span>}</td>
-                  <td className="px-4 border-b border-border-subtle text-ink-2">{x.g}</td>
-                  <td className="px-4 border-b border-border-subtle font-mono text-[11.5px] text-muted-foreground">{x.p}</td>
-                  <td className="px-4 border-b border-border-subtle"><span className="flex flex-wrap gap-1">{x.c.map((y,k)=><span key={k} className="text-[11px] rounded border border-border px-1.5 py-0.5 text-ink-2">{y[0]} {y[2]||'='} {y[1]}</span>)}</span></td>
-                  <td className="px-4 border-b border-border-subtle text-muted-foreground">{x.last}</td>
-                  <td className="px-4 border-b border-border-subtle tabular-nums">{x.r}</td>
-                  <td className="px-4 border-b border-border-subtle text-right"><span className="inline-flex items-center gap-1 text-[12px] font-medium text-foreground opacity-0 group-hover:opacity-100">Ouvrir<I d={ic.chev} c="w-3.5 h-3.5 -rotate-90"/></span></td>
+                <tr key={x.n} tabIndex={0} onClick={()=>onOpen(x)} onKeyDown={ev=>{ if(ev.key==='Enter') onOpen(x); }} className="cursor-pointer hover:bg-surface-2 focus-visible:bg-surface-2 outline-none group">
+                  <td className="h-10 pl-4 border-b border-border-subtle w-8" title={x.fav?'Favori':''}><I d={ic.star} c={`w-3.5 h-3.5 ${x.fav?'text-warning':'text-faint'}`}/></td>
+                  <td className="px-4 border-b border-border-subtle max-w-[320px]"><span className="flex items-center gap-2 min-w-0"><span title={x.n} className="truncate font-semibold text-foreground group-hover:text-[var(--app-accent)]">{x.n}</span>{x.shared && <span className="shrink-0 text-[11px] h-5 inline-flex items-center rounded-md border border-border px-1.5 text-muted-foreground">partagée</span>}</span></td>
+                  <td className="px-4 border-b border-border-subtle text-muted-foreground whitespace-nowrap">{x.g}</td>
+                  <td className="px-4 border-b border-border-subtle font-mono text-[11.5px] text-muted-foreground whitespace-nowrap">{x.p}</td>
+                  <td className="px-4 py-1.5 border-b border-border-subtle"><span className="flex flex-wrap gap-1">{x.c.map((y,k)=><ConditionBadge key={k} field={y[0]} value={y[1]} op={y[2]||'='}/>)}</span></td>
+                  <td className="px-4 border-b border-border-subtle text-ink-2 whitespace-nowrap">{x.last}</td>
+                  <td className="px-4 border-b border-border-subtle text-right tabular-nums font-medium text-foreground">{x.r==null||x.r===''?<span className="text-subtle" title="Résultat indisponible">—</span>:x.r}</td>
+                  <td className="px-4 border-b border-border-subtle text-right w-24"><span className="inline-flex items-center gap-1 text-[12.5px] font-medium text-[var(--app-accent)] opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">Ouvrir<I d={ic.chev} c="w-3.5 h-3.5 -rotate-90"/></span></td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </section>
         <div className="text-[11.5px] text-subtle">local à ce navigateur</div>
       </div>
@@ -914,7 +945,7 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]})
   };
   return (
     <div className="flex-1 overflow-auto scroll-thin">
-      <div className="max-w-[1280px] mx-auto px-8 py-6 space-y-3">
+      <div className="w-full px-8 py-6 space-y-3">
         <div className="flex items-end gap-4 pb-1">
           <div><div className="text-[12px] text-muted-foreground">POLARIS Analyzer · Requête</div>
             <input value={draft.name} onChange={e=>up({name:e.target.value})} placeholder="Nouvelle requête" className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1 bg-transparent outline-none w-[520px] placeholder:text-foreground"/></div>
@@ -933,7 +964,7 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]})
               <span className="text-subtle">· NON via l’opérateur ≠</span></div>
             <div className="flex flex-wrap gap-2 min-h-[32px]">
               {draft.conds.length===0 && <span className="text-[12.5px] text-subtle self-center">Aucune condition : toutes les sessions de la portée.</span>}
-              {draft.conds.map((c,i) => <span key={i} className="inline-flex items-center h-8 rounded-md border border-border text-[12.5px] overflow-hidden">{i>0 && <span className="px-2 h-full flex items-center text-[11px] font-semibold text-subtle border-r border-border">{draft.join}</span>}<span className="px-2.5 h-full flex items-center bg-surface-2 border-r border-border text-muted-foreground">{c[0]}</span><span className="px-2 text-subtle">{c[2]||'='}</span><span className="pr-2.5 font-medium">{c[1]}</span><button onClick={()=>up({conds:draft.conds.filter((_,j)=>j!==i)})} aria-label="Retirer" className="w-7 h-full grid place-items-center text-subtle hover:text-danger border-l border-border"><I d={ic.x} c="w-3.5 h-3.5"/></button></span>)}
+              {draft.conds.map((c,i) => <span key={i} className="inline-flex items-center h-8 rounded-md border border-border text-[12.5px] overflow-hidden">{i>0 && <span className="px-2 h-full flex items-center text-[11px] font-semibold text-subtle border-r border-border">{draft.join}</span>}<ConditionBadge field={c[0]} value={c[1]} op={c[2]||'='} size="md" className="rounded-none border-0 pr-0"><button onClick={()=>up({conds:draft.conds.filter((_,j)=>j!==i)})} aria-label="Retirer" className="w-7 h-full grid place-items-center opacity-70 hover:opacity-100 hover:text-danger"><I d={ic.x} c="w-3.5 h-3.5"/></button></ConditionBadge></span>)}
             </div>
             <div className="flex items-center gap-2">
               <select value={f} onChange={e=>{setF(e.target.value); setV(fieldList.find(x=>x[0]===e.target.value)[1][0] || '');}} className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-white">{fieldList.map(x=><option key={x[0]} disabled={idField(x[0]) && x[0]==='IMSI' && role!=='operator'}>{x[0]}</option>)}</select>
@@ -1219,7 +1250,7 @@ function App() {
   const [msg,setMsg] = useState(0);
   const [lens,setLens] = useState(null);
   const L0 = (()=>{ try { return JSON.parse(localStorage.getItem('polaris-layout-v2'))||{}; } catch(e) { return {}; } })();
-  const DEF = {gridPct:25,insPct:22,anaPct:21,jouPct:24};
+  const DEF = {gridPct:25,insPct:22,anaPct:21,jouPct:24,geoPct:26};
   const [gridPct,setGridPct] = useState(L0.gridPct ?? DEF.gridPct);
   const [gridHidden,setGridHidden] = useState(L0.gridHidden ?? false);
   const [insPct,setInsPct] = useState(L0.insPct ?? DEF.insPct);
@@ -1228,15 +1259,19 @@ function App() {
   const [anaHidden,setAnaHidden] = useState(L0.anaHidden ?? false);
   const [jouPct,setJouPct] = useState(L0.jouPct ?? DEF.jouPct);
   const [jouHidden,setJouHidden] = useState(L0.jouHidden ?? true);
+  const [geoPct,setGeoPct] = useState(L0.geoPct ?? DEF.geoPct);
+  const [geoHidden,setGeoHidden] = useState(L0.geoHidden ?? true);
+  const [geoMax,setGeoMax] = useState(false);
   const [full,setFull] = useState(false);
-  useEffect(()=>{ try { localStorage.setItem('polaris-layout-v2',JSON.stringify({gridPct,gridHidden,insPct,anaPct,insHidden,anaHidden,jouPct,jouHidden})); } catch(e) {} },[gridPct,gridHidden,insPct,anaPct,insHidden,anaHidden,jouPct,jouHidden]);
+  useEffect(()=>{ try { localStorage.setItem('polaris-layout-v2',JSON.stringify({gridPct,gridHidden,insPct,anaPct,insHidden,anaHidden,jouPct,jouHidden,geoPct,geoHidden})); } catch(e) {} },[gridPct,gridHidden,insPct,anaPct,insHidden,anaHidden,jouPct,jouHidden,geoPct,geoHidden]);
   const mainRef = useRef(null), lowRef = useRef(null), rowRef = useRef(null);
-  const resetLayout = () => { setGridPct(DEF.gridPct); setInsPct(DEF.insPct); setAnaPct(DEF.anaPct); setJouPct(DEF.jouPct); };
+  const resetLayout = () => { setGridPct(DEF.gridPct); setInsPct(DEF.insPct); setAnaPct(DEF.anaPct); setJouPct(DEF.jouPct); setGeoPct(DEF.geoPct); };
   const drag = (e,kind) => { e.preventDefault(); const r = (kind==='h'?mainRef:rowRef).current.getBoundingClientRect();
     const mv = ev => {
       if(kind==='h') return setGridPct(Math.min(70,Math.max(12,(ev.clientY-r.top)/r.height*100)));
       const fromRight = (r.right-ev.clientX)/r.width*100;
       if(kind==='ana') setAnaPct(Math.min(40,Math.max(14,fromRight)));
+      else if(kind==='geo') setGeoPct(Math.min(55,Math.max(18,fromRight-(anaHidden?0:anaPct)-(insHidden?0:insPct)-(jouHidden?0:jouPct))));
       else if(kind==='jou') setJouPct(Math.min(45,Math.max(16,fromRight-(anaHidden?0:anaPct)-(insHidden?0:insPct))));
       else setInsPct(Math.min(45,Math.max(14,fromRight-(anaHidden?0:anaPct))));
     };
@@ -1252,7 +1287,7 @@ function App() {
       {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={navHidden} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : page==='templates' ? <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
       {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
       {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">
-        <main ref={mainRef} className="flex-1 min-w-0 flex flex-col">
+        <main ref={mainRef} className={`flex-1 min-w-0 flex-col ${geoMax && selected && !geoHidden && !full ? 'hidden' : 'flex'}`}>
           {!full && !gridHidden && <>
             <Grid rows={rows} sel={s?.id} setSel={setSel} role={role} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`}/>
             <div onMouseDown={e=>drag(e,'h')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group h-2 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[2px] w-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
@@ -1261,11 +1296,12 @@ function App() {
             <div className="flex-1 min-w-[280px] flex flex-col">{selected ? <Detail s={selected} sel={msg} setSel={setMsg} lens={lens} ui={ui} onOpenSession={id=>setSel(id)}/> : <div className="p-8 text-muted-foreground bg-white rounded-xl border border-border flex-1">{sessionsQuery.isError ? sessionsQuery.error.message : sessionsQuery.isPending ? "Connexion POLARIS…" : "Aucune session"}</div>}</div>
           </div>
         </main>
+        {selected && !full && (geoHidden ? null : <>{!geoMax && <div onMouseDown={e=>drag(e,'geo')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div>}<aside style={geoMax?undefined:{width:`${geoPct}%`}} aria-label="Geolocating" className={`${geoMax?'flex-1':'shrink-0'} bg-white flex flex-col min-w-0 rounded-xl border border-border overflow-hidden`}><GeoPanel s={selected} msg={msg} setMsg={k=>setMsg(Math.max(0,k))} onHide={()=>{setGeoHidden(true); setGeoMax(false);}} max={geoMax} setMax={setGeoMax}/></aside></>)}
         {selected && !full && (jouHidden ? null : <><div onMouseDown={e=>drag(e,'jou')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><aside style={{width:`${jouPct}%`}} aria-label="Parcours abonné" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-border overflow-hidden"><div className="h-[42px] shrink-0 px-4 flex items-center border-b border-border"><span className="text-[13px] font-semibold text-foreground">Parcours abonné</span><button onClick={()=>setJouHidden(true)} title="Masquer Parcours abonné" className="ml-auto w-7 h-7 rounded-md grid place-items-center text-muted-foreground hover:bg-muted">×</button></div><div className="flex-1 overflow-auto scroll-thin"><SubscriberJourney s={selected} role={role} onOpen={id=>{ if(id) setSel(id); }}/></div></aside></>)}
         {selected && !full && (insHidden ? null : <><div onMouseDown={e=>drag(e,'ins')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><Inspector key={selected.id} s={selected} sel={msg} role={role} lens={lens} setLens={setLens} width={`${insPct}%`} onHide={()=>setInsHidden(true)}/></>)}
         {selected && !full && (anaHidden ? null : <><div onMouseDown={e=>drag(e,'ana')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><SessionAnalysis role={role} onOpenSession={id=>setSel(id)} s={selected} width={`${anaPct}%`} loading={bundle.callflow.isFetching || bundle.events.isFetching} onPick={k=>setMsg(Math.max(0,k))} onHide={()=>setAnaHidden(true)}/></>)}
         {selected && !full && <nav aria-label="Panneaux" className="ml-2 w-10 shrink-0 self-stretch bg-white rounded-xl border border-border flex flex-col items-center py-2 gap-1">
-          {[['Parcours abonné',jouHidden,setJouHidden,'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6'],['Décodage',insHidden,setInsHidden,'M8 6l-6 6 6 6M16 6l6 6-6 6'],['Analyse sessions',anaHidden,setAnaHidden,'M4 20V10M10 20V4M16 20v-7M22 20H2']].map(([l,h,set,d])=><button key={l} type="button" onClick={()=>set(!h)} aria-pressed={!h} title={`${h?'Afficher':'Masquer'} ${l}`} className={`w-8 rounded-lg flex flex-col items-center gap-2 py-2.5 transition ${!h?'bg-brand-soft text-[var(--app-accent)]':'text-muted-foreground hover:bg-muted hover:text-foreground'}`}><I d={d} c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[11.5px] font-medium">{l}</span></button>)}
+          {[['Geolocating',geoHidden,v=>{setGeoHidden(v); if(v) setGeoMax(false);},'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5'],['Parcours abonné',jouHidden,setJouHidden,'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6'],['Décodage',insHidden,setInsHidden,'M8 6l-6 6 6 6M16 6l6 6-6 6'],['Analyse sessions',anaHidden,setAnaHidden,'M4 20V10M10 20V4M16 20v-7M22 20H2']].map(([l,h,set,d])=><button key={l} type="button" onClick={()=>set(!h)} aria-pressed={!h} title={`${h?'Afficher':'Masquer'} ${l}`} className={`w-8 rounded-lg flex flex-col items-center gap-2 py-2.5 transition ${!h?'bg-brand-soft text-[var(--app-accent)]':'text-muted-foreground hover:bg-muted hover:text-foreground'}`}><I d={d} c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[11.5px] font-medium">{l}</span></button>)}
         </nav>}
       </div>}</>}
       <footer className="h-7 shrink-0 bg-white border-t border-border flex items-center gap-5 px-4 text-[11.5px] text-muted-foreground">

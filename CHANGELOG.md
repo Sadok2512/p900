@@ -1,15 +1,40 @@
 # Changelog
 
-## 0.16.0
+## 0.18.0
 
 - Live Trace raccordé aux traces OIRAN 2.14.0 et au flux SSE reprenable : recherche armée, messages, débit, informations UE, pause avec tampon client et marqueurs.
-- Les recherches d'identités claires restent réservées à operator ; viewer ne voit que le pseudonyme et aucune valeur de recherche n'est journalisée.
+- Analyzer operator raccordé au coffre OIRAN 2.12.0 : IMSI, TMSI, S-TMSI, M-TMSI, IMEI et MSISDN avec preuves paquet ; ces colonnes restent absentes pour viewer.
+- Authentification Basic du proxy 8091, jeton operator injecté côté serveur, SSE sans compression ni mise en tampon et décodage complet `tshark -V` par paquet.
+- Harmonisation des interfaces : chaque famille d'interface a une couleur unique (N2/S1-MME bleu, N3/S1-U vert, N4/S11/S5-C/S5 ambre, SBI/S6a/Sxab violet, IMS rose, N6 turquoise, autre gris) et apparaît en badge compact dans la liste des sondes, la fiche sonde, l'onglet Live Capture et les formulaires d'enregistrement / d'édition.
+- La disponibilité (verte, rouge, grise ou orange) et l'état du processus dumpcap (actif, inactif, démarrage, arrêt, inconnu) restent indépendants de la couleur de l'interface ; le trafic réellement vu est affiché à part de l'état du processus.
+- Les valeurs techniques (source de capture, filtre BPF, PID, débit, segment) passent en monospace avec infobulle ; une mesure manquante reste « — » et n'est jamais remplacée par zéro, la courbe 15 min n'affiche que des échantillons réellement mesurés.
+- Règles et couleurs centralisées dans `src/lib/polaris-ui/interfaceColors.ts` et `src/components/polaris/ui/InterfaceBadge.tsx` ; le ladder de l'Analyzer et la démo live utilisent la même table.
+
+## 0.17.1
+
+- Retour arrière du thème bleu nuit : l'application retrouve son thème clair tel qu'il était avant la 0.17.0 (fond, cartes, tableaux, ladder, panneau JSON, pages d'erreur).
+- Le raccordement du Parcours abonné (0.17.0) est conservé tel quel.
+
+## 0.17.0
+
+- Le Parcours abonné est raccordé aux routes OIRAN 2.13.0 : frise Abonné → Contextes UE → Sessions PDN/PDU → Procédures, liens `EXACT` ou `OUVERT`, et chaîne TMSI ordonnée par références paquet.
+- La colonne Abonné affiche `subscriber_pseudonym` et le badge `subscriber_session_count`; le tableau peut grouper les sessions par abonné et la fiche expose les sessions précédente/suivante.
+- La recherche d'identité et les valeurs en clair restent limitées au rôle operator via les routes `/identities` existantes. Le viewer ne reçoit et n'affiche que des pseudonymes.
+- Les événements et sessions conservent l'ordre de l'API ; aucun lien n'est inféré depuis l'heure, la cellule, l'IMEI ou l'adresse IP.
+
+## 0.16.0
+
+- Formulaire de sonde unifié : la création et l'édition partagent le même composant `ProbeForm` (mêmes dimensions, même typographie, même aperçu de charge utile, mêmes boutons).
+- Fenêtre élargie à 1040 px (95vw max, 90vh max) : en-tête et pied fixes, le contenu est la seule zone qui défile.
+- Interfaces de capture : table compacte avec en-têtes de colonnes — Interface, Rôle de capture, Protocole, Filtre BPF, Retirer — au lieu de lignes de formulaire empilées.
+- Correction mapping des rôles : un rôle renvoyé par le serveur hors de l'énumération `N2 / N3 / N4 / S1 / N6` (S6a, S1-MME, S11, S5-C…) n'est plus réécrit en `N2`. Il est conservé tel quel, renvoyé tel quel, et signalé dans la ligne.
+- Aperçu de charge utile : panneau sombre type éditeur de code, toujours visible et déplié, coloration syntaxique JSON, bouton Copier JSON, hauteur 220–350 px avec défilement interne.
+- Validation : message sous le champ concerné, bordure rouge, résumé compact quand plusieurs champs sont en cause, et explication de l'action verrouillée dans le pied.
 
 ## 0.15.1
 
-- Authentification Basic du proxy 8091 avec mot de passe lu depuis un fichier hors Git ; le navigateur ne reçoit jamais le jeton OIRAN operator.
-- Analyzer operator : colonnes IMSI, TMSI, S-TMSI, M-TMSI, IMEI et MSISDN, bloc Abonné et recherche raccordés au coffre 2.12.0. Les colonnes sont absentes pour viewer.
-- Décodage complet : l'onglet Hex appelle la route operator `tshark -V` par `(capture_id, packet_number)`.
+- Fiche sonde (Administration → Node Manager) : « Interfaces et points de capture » n'est plus un onglet, la table s'affiche directement sous « Identité et état » et « Télémétrie de la sonde » dans l'onglet Général.
+- Les onglets de la fiche deviennent Général, Live Capture, Stockage et ingestion, Actions.
 
 ## 0.15.0
 

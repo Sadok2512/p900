@@ -22,6 +22,9 @@ All endpoint paths below are relative to `/api/v1`. “Branché” means code an
 | Exécuter une requête | POST `/sessions/filter` | equality fields `message`, `cause`, `interface`, `pseudonym`, optional `dataset_id` | Partiel: AND/equality only; OR, inequality, duplicate fields, grouping and non-Parcourir templates rejected explicitly |
 | Causes / portée | GET `/sessions/available_causes`, `/datasets` | cause strings or `cause`/`code`; dataset `id` | Branché in query editor; dataset labels currently IDs |
 | Session | GET `/sessions/:id` | mêmes champs, identifiant exclusivement `session_id` | Branché; un échec détail affiche l'endpoint et son statut HTTP |
+| Parcours abonné | GET `/subscribers`, `/subscribers/:pseudo/journey` | `subscriber_pseudonym`, contextes UE, sessions, procédures, liens `EXACT`/`OUVERT`, références `capture_id` + `first_packet_number` | Branché; ordre API/canonique, aucun tri timestamp ni inférence heure/cellule/IP/IMEI |
+| Chaîne TMSI | GET `/subscribers/:pseudo/tmsi` | `tmsi_pseudonym`, `assigned`, `presented`, `status` | Branché; pseudonyme pour viewer, attribution absente affichée OUVERT |
+| Identités operator | GET `/sessions/:id/identities`, `/identities?q=` | IMSI, TMSI, IMEI(SV), MSISDN et `subscriber_pseudonym` | Branché; valeurs claires admises uniquement sur ces deux requêtes explicitement operator et autorisées par le serveur |
 | Ladder / messages / procédures | GET `/sessions/:id/callflow`, `/events`, `/procedures` | `event_id`, `interface`, `protocol`, `message_name`, `source_participant`, `destination_participant`, `direction`, `decoding_status`, `semantic_status`, `procedure_group`, `capture_id`, `packet_references[].packet_number`, `decoded_ie_tree`, `errors[]` | Branché; callflow preferred, events fallback, ordre API strictement préservé |
 | Corrélations | GET `/sessions/:id/correlations` | `edges[]`: `edge_id`, événements/interfaces source et cible, `matching_identifiers`, `rule_id`, `rule_version`, `matched_rules`, description/type de preuve, `confidence`, `scope`, `limitations`, références paquet | Branché; `confidence`/`evidence_type` deviennent EXACT ou OUVERT, les autres valeurs sont omises |
 | Inspecteur | GET `/events/:id`, `/events/:id/provenance` | `decoded`, `capture_id`, `seq`, `packet_number`, `event_id` | Branché; identity-bearing decoding fields masked; no synthetic packet numbers |
@@ -53,6 +56,9 @@ Vitest: typed client envelope, 403/network/invalid responses, relative-only base
 |---|---|
 | `session_id` | Identifiant de navigation et requêtes `/sessions/:id/*`; aucune valeur de remplacement |
 | `ue_pseudonym` | UE |
+| `subscriber_pseudonym` | Abonné |
+| `subscriber_session_count` | Badge « N sessions » |
+| `previous_session_id`, `next_session_id` | Bloc « Autres sessions » |
 | `technology` | RAT |
 | `procedure` | Procédure |
 | `state` | Résultat |

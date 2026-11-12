@@ -2,6 +2,7 @@
 import { useLiveDemo, usePacketDissection, usePolarisMode } from '@/lib/polaris-api';
 import { apiPath, request } from '@/lib/polaris-api/client';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { InterfaceBadge } from '../ui/InterfaceBadge';
 
 /* ---------- Scripts (demo) : [ifc, proto, from, to, message, procedure, result, cause, kind] ---------- */
 const fingerprint = (s) => { let h = 5381; for (const c of s) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return 'sha256:' + h.toString(16).padStart(8,'0') + '…'; };
@@ -10,7 +11,6 @@ const useStore = (key, init) => { const [v,setV] = useState(init); useEffect(()=
 const card = 'bg-white rounded-xl border border-border';
 const Btn = ({ primary, on, children, className='', ...p }) => <button {...p} className={`h-8 px-3 rounded-md text-[12.5px] font-medium whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${primary?'bg-[var(--app-accent)] text-white hover:opacity-90':on?'bg-muted text-foreground border border-border':'border border-border bg-white text-foreground hover:bg-surface-2'} ${className}`}>{children}</button>;
 const Tag = ({ c='#666666', children }) => <span className="text-[11px] font-medium rounded px-1.5 py-[1px] border whitespace-nowrap" style={{ color:c, borderColor:c+'33', background:c+'0D' }}>{children}</span>;
-const IFC_C = { N2:'#0062A1', SBI:'#0F5B56', N4:'#A15C07', 'S1-MME':'#0062A1', S6a:'#7C3AED', S11:'#A15C07', S5:'#DB2777' };
 const RES_C = (r) => r==='Échec'?'#B42318':r==='Succès'||r==='Accepted'||/^2\d\d/.test(r)?'#15803D':'#8F8F8F';
 const fmtRate = (v) => v>=1000?(v/1000).toFixed(2)+' Gb/s':v>=1?v.toFixed(1)+' Mb/s':(v*1000).toFixed(0)+' kb/s';
 
@@ -100,7 +100,7 @@ export default function LiveModule({ t, role, setPage }) {
             <td className="px-2.5"><button onClick={e=>{e.stopPropagation();setSel(m.seq);setMode('ladder');}} className="text-[11px] text-[var(--app-accent)]">{t('→ ladder')}</button></td></tr>)}</tbody></table>}
     </div>
     {selM && <div className="border-t border-border-subtle px-4 py-3 grid grid-cols-[1fr_auto] gap-3 text-[12px] bg-surface-2">
-      <div className="min-w-0"><div className="flex items-center gap-2"><b className="text-[13px]">{selM.name}</b><Tag c={IFC_C[selM.ifc]}>{selM.ifc}</Tag><Tag c={selM.corr==='EXACT'?'#15803D':'#A15C07'}>{selM.corr}</Tag>{selM.cause&&<Tag c="#B42318">{selM.cause}</Tag>}</div>
+      <div className="min-w-0"><div className="flex items-center gap-2"><b className="text-[13px]">{selM.name}</b><InterfaceBadge name={selM.ifc}/><Tag c={selM.corr==='EXACT'?'#15803D':'#A15C07'}>{selM.corr}</Tag>{selM.cause&&<Tag c="#B42318">{selM.cause}</Tag>}</div>
         <pre className="mt-2 font-mono text-[11px] text-ink-2 whitespace-pre-wrap">{`capture_id=${selM.cap}  seq=${selM.seq}  t_rel=${selM.rel}s\n${selM.proto.split('/').map((l,i)=>'  '.repeat(i)+'▸ '+l).join('\n')}\n${'  '.repeat(selM.proto.split('/').length)}▸ ${selM.name}  (${selM.from} → ${selM.to})`}</pre>
         {!demo&&<pre className="mt-2 max-h-56 overflow-auto font-mono text-[11px] whitespace-pre-wrap">{dissection.isLoading?t('Décodage complet…'):dissection.isError?t('Décodage complet indisponible'):String(dissection.data?.data?.dissection??'')}</pre>}</div>
       <div className="flex flex-col gap-1.5"><Btn onClick={()=>setPage('sessions')}>{t('Décodage complet')} →</Btn><Btn onClick={()=>setPage('sessions')}>{t('Preuves')} →</Btn><Btn onClick={()=>setSel(null)}>✕</Btn></div>
@@ -111,7 +111,7 @@ export default function LiveModule({ t, role, setPage }) {
     <div className="flex-1 overflow-auto scroll-thin bg-surface-2">
       {/* Top zone */}
       <div className="bg-white border-b border-border">
-        <div className="max-w-[1600px] mx-auto px-6 py-4 flex flex-wrap items-center gap-3">
+        <div className="w-full px-6 py-4 flex flex-wrap items-center gap-3">
           <div className="mr-2"><div className="text-[12px] text-muted-foreground">POLARIS Live</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Live Trace</h1></div>
           <form onSubmit={find} className="flex items-center h-9 rounded-lg border border-border bg-white focus-within:border-[var(--app-accent)] overflow-hidden">
             <select value={ttype} onChange={e=>{setTtype(e.target.value);setQ('');}} className="h-full px-2 text-[12px] bg-surface-2 border-r border-border outline-none">
@@ -131,14 +131,14 @@ export default function LiveModule({ t, role, setPage }) {
           </div>
         </div>
         {/* compact counters */}
-        <div className="max-w-[1600px] mx-auto px-6 h-8 flex items-center gap-5 text-[11.5px] text-muted-foreground border-t border-border-subtle">
+        <div className="w-full px-6 h-8 flex items-center gap-5 text-[11.5px] text-muted-foreground border-t border-border-subtle">
           {[['Traces actives', tracking?'1 / 10':'—'],['Expiration', tracking?`${Math.floor(ttl/60)}:${String(ttl%60).padStart(2,'0')}`:'—'],['Messages',msgs.length],['Tampon',buf.length],['Marqueurs',marks.length],['Techno',ue?(ue.tech==='LTE'?'LTE':'5G SA'):'—']].map(([n,v])=><span key={n}>{t(n)} <b className="text-foreground tabular-nums">{v}</b></span>)}
           {!op && <span className="text-subtle">· {t('viewer : recherche IMSI masquée, pseudonymes uniquement')}</span>}
           {demo && <span className="ml-auto text-warning">{t('Données de démo — API live POLARIS (WebSocket) non connectée')}</span>}
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-6 py-4">
+      <div className="w-full px-6 py-4">
         {full==='sig' ? sig : full==='thr' ? <Throughput t={t} data={thr} running={running} delay={delay} tracking={tracking} full onFull={()=>setFull(null)} ue={ue}/> :
         <div className="flex items-start">
           <div className="flex-1 min-w-0 space-y-0">

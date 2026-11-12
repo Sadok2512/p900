@@ -37,3 +37,4 @@ use the editor.
 - Analyzer session verdicts, chronology and KPIs live in src/components/polaris/analyzer/analysis.ts as pure, tested rules; keeps conclusions traceable to observed messages.
 - Administration tabs live in src/components/polaris/admin/; module visibility only filters navigation (never access) and Home/Administration are locked visible to prevent lockout.
 - POLARIS UI colours come from semantic tokens in src/styles.css (foreground, ink-2, muted-foreground, subtle, border, border-subtle, surface-2, success/warning/danger + -soft/-line, brand); never add raw hex classes in components — keeps one visual identity. Signalling/procedure colours in inline styles are exempt.
+- Analyzer geolocation reads coordinates only from POLARIS data via pure rules in src/components/polaris/analyzer/geo.ts; maps use maplibre-gl + OpenFreeMap, lazy-loaded client-side — never derive or fake positions.

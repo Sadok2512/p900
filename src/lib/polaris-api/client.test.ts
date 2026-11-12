@@ -48,6 +48,14 @@ describe('POLARIS client', () => {
     fetcher.mockResolvedValueOnce(new Response(JSON.stringify({data:{imsi:'001010123456789'},meta:{}})));
     expect((await request<{imsi:string}>('/sessions/test/identities',{operatorIdentityResponse:true})).data.imsi).toBe('masqué');
   });
+  it('keeps opaque temporary-identity pseudonyms while masking clear TMSI fields', () => {
+    expect(redact({ tmsi: 'private', tmsi_pseudonym: 'psn-temporary-a' })).toEqual({ tmsi: 'masqué', tmsi_pseudonym: 'psn-temporary-a' });
+  });
+  it('requires the server operator envelope even for an operator-scoped request', async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: { imsi: 'test-value' }, meta: { identity_access: 'operator' } })));
+    vi.stubGlobal('fetch', fetcher);
+    expect((await request('/sessions/s/identities', { allowIdentityFields: true })).data).toEqual({ imsi: 'test-value' });
+  });
 });
 
 import { it as itU, expect as expectU, vi as viU } from 'vitest';

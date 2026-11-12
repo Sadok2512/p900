@@ -105,22 +105,24 @@ export function useKpiDemo() { const { demo } = usePolarisMode(); return { dashb
 const pseudoPath = (p?: string | null) => encodeURIComponent(String(p ?? ''));
 export const useSubscriberJourney = (p?: string | null) => useResource<RecordData>(`/subscribers/${pseudoPath(p)}/journey`, {}, !!p, true);
 export const useSubscriberTmsi = (p?: string | null) => useResource<RecordData[]>(`/subscribers/${pseudoPath(p)}/tmsi`, {}, !!p, true);
-export const useSessionIdentities = (id?: string | null, enabled = true) => useQuery({ queryKey:['polaris','api','identity',id], queryFn:({signal})=>request<SessionIdentities>(`/sessions/${idPath(id)}/identities`,{signal,operatorIdentityResponse:true}), enabled:!!id&&enabled, retry:false, refetchOnWindowFocus:false });
+export const useSessionIdentities = (id?: string | null, enabled = true) => useQuery({ queryKey:['polaris','operator-identities','session',id], queryFn:({signal})=>request<SessionIdentities>(`/sessions/${idPath(id)}/identities`,{signal,operatorIdentityResponse:true}), enabled:!!id&&enabled, retry:false, refetchOnWindowFocus:false });
 export function useSessionIdentityMap(ids: Array<string | null | undefined>, enabled=true): Record<string,SessionIdentities|undefined> {
   const unique=[...new Set(ids.filter((id):id is string=>!!id))];
   const queries=useQueries({queries:unique.map(id=>({queryKey:['polaris','api','identity',id],queryFn:({signal}:{signal:AbortSignal})=>request<SessionIdentities>(`/sessions/${idPath(id)}/identities`,{signal,operatorIdentityResponse:true}),enabled,retry:false,refetchOnWindowFocus:false}))});
   return Object.fromEntries(unique.map((id,index)=>[id,queries[index]?.data?.data]));
 }
-export const useIdentityLookup = (q: string) => useQuery({ queryKey:['polaris','api','identity-lookup',q], queryFn:({signal})=>request<RecordData>('/identities',{params:{q},signal,operatorIdentityResponse:true}), enabled:q.trim().length>=4, retry:false, refetchOnWindowFocus:false });
+export const useIdentityLookup = (q: string) => useQuery({ queryKey:['polaris','operator-identities','lookup',q], queryFn:({signal})=>request<RecordData>('/identities',{params:{q},signal,operatorIdentityResponse:true}), enabled:q.trim().length>=4, retry:false, refetchOnWindowFocus:false });
 export const usePacketDissection = (captureId?: string | null, packetNumber?: number | null, enabled=true) => useQuery({ queryKey:['polaris','api','dissect',captureId,packetNumber], queryFn:({signal})=>request<RecordData>(`/packets/${idPath(captureId)}/${packetNumber}/dissect`,{signal,operatorIdentityResponse:true}), enabled:enabled&&!!captureId&&packetNumber!=null, retry:false, refetchOnWindowFocus:false });
 // Administration (no demo): users, roles and audit come only from the lab server, which enforces permissions.
 export const useAdminUsers = () => useResource<RecordData[]>('/users', {}, true, false);
 export const useAdminRoles = () => useResource<RecordData[]>('/roles', {}, true, false);
 export const useAuditLog = () => useResource<RecordData[]>('/audit', {}, true, false);
 const polarisOptions = <T,>(path: string) => queryOptions({ queryKey: ['polaris-control', path], queryFn: ({ signal }) => requestFrom<T>('/polaris-api/v1', path, { signal }), staleTime: 5_000, retry: false, refetchOnWindowFocus: false });
-export const usePolarisLab = () => useQuery({ ...polarisOptions<RecordData>('/lab'), refetchInterval: 5_000 });
-export const usePolarisNodes = () => useQuery({ ...polarisOptions<RecordData>('/nodes'), refetchInterval: 5_000 });
-export const usePolarisUes = () => useQuery({ ...polarisOptions<RecordData>('/ues'), refetchInterval: 5_000 });
+// Unreachable simulator: back off to 60 s so the topology stops flickering every 5 s.
+const simulatorPoll = (q: { state: { status: string } }) => (q.state.status === 'error' ? 60_000 : 15_000);
+export const usePolarisLab = () => useQuery({ ...polarisOptions<RecordData>('/lab'), refetchInterval: simulatorPoll });
+export const usePolarisNodes = () => useQuery({ ...polarisOptions<RecordData>('/nodes'), refetchInterval: simulatorPoll });
+export const usePolarisUes = () => useQuery({ ...polarisOptions<RecordData>('/ues'), refetchInterval: simulatorPoll });
 export function useInterfaceMutation() {
   const client = useQueryClient();
   return useMutation({ mutationFn: ({ action, name, body }: { action: 'add' | 'update' | 'delete' | 'rollback'; name?: string; body?: RecordData }) => {
