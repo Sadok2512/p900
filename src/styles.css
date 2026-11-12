@@ -325,3 +325,14 @@
   --topo-mix: white;
 }
 .topo-canvas { background-color: var(--topo-bg); color: var(--topo-text); transition: background-color .25s ease, color .25s ease; }
+
+/* Query-condition categories (distinct from signalling interface colours). */
+.polaris-cond { background: var(--cond-bg); color: var(--cond-fg); border-color: var(--cond-line); }
+.polaris-cond[data-cond="fail"]      { --cond-bg: oklch(0.971 0.013 17.4); --cond-fg: oklch(0.505 0.213 27.5); --cond-line: oklch(0.808 0.114 19.6); }
+.polaris-cond[data-cond="success"]   { --cond-bg: oklch(0.982 0.018 155.8); --cond-fg: oklch(0.527 0.154 150.1); --cond-line: oklch(0.871 0.15 154.4); }
+.polaris-cond[data-cond="nr"]        { --cond-bg: oklch(0.97 0.014 254.6); --cond-fg: oklch(0.488 0.217 264.4); --cond-line: oklch(0.809 0.096 251.8); }
+.polaris-cond[data-cond="lte"]       { --cond-bg: oklch(0.982 0.018 155.8); --cond-fg: oklch(0.527 0.154 150.1); --cond-line: oklch(0.871 0.15 154.4); }
+.polaris-cond[data-cond="procedure"] { --cond-bg: oklch(0.977 0.014 308.3); --cond-fg: oklch(0.496 0.265 301.9); --cond-line: oklch(0.827 0.108 306.4); }
+.polaris-cond[data-cond="interface"] { --cond-bg: oklch(0.98 0.016 73.7); --cond-fg: oklch(0.553 0.195 38.4); --cond-line: oklch(0.837 0.128 66.3); }
+.polaris-cond[data-cond="cause"]     { --cond-bg: oklch(0.987 0.022 95.3); --cond-fg: oklch(0.555 0.163 48.998); --cond-line: oklch(0.879 0.169 91.6); }
+.polaris-cond[data-cond="other"]     { --cond-bg: oklch(0.984 0.003 247.9); --cond-fg: oklch(0.446 0.043 257.3); --cond-line: oklch(0.869 0.022 252.9); }

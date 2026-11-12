@@ -1,4 +1,6 @@
 import KpiModule from './kpi/KpiModule';
+import { ConditionBadge } from './ui/ConditionBadge';
+import { conditionTone } from '@/lib/polaris-ui/conditionTone';
 import LiveModule from './live/LiveModule';
 import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionAnchors, useSessionFlows, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
@@ -152,12 +154,7 @@ function QueryPanel({conds,setConds}) {
         <div><Lbl>Conditions</Lbl>
           <div className="space-y-1.5">
             {conds.map((c,i) => (
-              <div key={i} className="flex items-center h-8 rounded-md border border-border text-[12.5px] overflow-hidden">
-                <span className="px-2 h-full flex items-center bg-surface-2 border-r border-border text-muted-foreground">{c[0]}</span>
-                <span className="px-2 text-subtle">=</span>
-                <span className="flex-1 truncate font-medium">{c[1]}</span>
-                <button onClick={()=>setConds(conds.filter((_,j)=>j!==i))} className="w-7 h-full grid place-items-center text-subtle hover:text-danger"><I d={ic.x} c="w-3.5 h-3.5"/></button>
-              </div>
+              <div key={i} className="flex"><ConditionBadge field={c[0]} value={c[1]} size="md" className="flex-1 pr-0"><button onClick={()=>setConds(conds.filter((_,j)=>j!==i))} aria-label="Retirer" className="ml-auto w-7 h-full grid place-items-center opacity-70 hover:opacity-100 hover:text-danger"><I d={ic.x} c="w-3.5 h-3.5"/></button></ConditionBadge></div>
             ))}
             {adding ? (
               <div className="rounded-md border border-foreground p-2 space-y-1.5 bg-surface-2">
@@ -257,7 +254,7 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
         <span className="text-[13px] font-semibold text-foreground">Sessions</span>
         <div className="flex-1 h-7 rounded-md border border-border flex items-center gap-1.5 px-2 focus-within:border-[var(--app-accent)]">
           <I d={ic.search} c="w-[14px] h-[14px] text-muted-foreground"/>
-          {conds.map((c,i) => <span key={i} className="flex items-center gap-1 h-5 rounded-[4px] bg-muted border border-border pl-1.5 pr-1 text-[11.5px] text-foreground whitespace-nowrap"><span className="text-muted-foreground">{c[0]}</span>{c[1]}<button onClick={()=>setConds(conds.filter((_,j)=>j!==i))}><I d={ic.x} c="w-3 h-3"/></button></span>)}
+          {conds.map((c,i) => <ConditionBadge key={i} field={c[0]} value={c[1]} op={c[2]||'='} className="pr-1"><button onClick={()=>setConds(conds.filter((_,j)=>j!==i))} aria-label="Retirer" className="opacity-70 hover:opacity-100"><I d={ic.x} c="w-3 h-3"/></button></ConditionBadge>)}
           <input aria-label="Rechercher dans les sessions" value={txt} onChange={e=>setTxt(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter'&&txt){ const f=FIELDS.find(x=>x[1].some(v=>v.toLowerCase()===txt.toLowerCase())); if(f){ setConds([...conds,[f[0],f[1].find(v=>v.toLowerCase()===txt.toLowerCase())]]); setTxt(''); } } }}
             placeholder="Rechercher… (Entrée sur Échec, LTE, N4… ajoute un filtre)" className="flex-1 min-w-[140px] outline-none text-[12.5px] placeholder:text-subtle"/>
         </div>
@@ -865,9 +862,9 @@ function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
           <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
             {STARTERS.map(([tt,d,c]) => (
               <button key={tt} onClick={()=>onNew(mkDraft({tpl:'Parcourir',conds:c.map(x=>[x[0],x[1],'=']),name:tt,group:c[0][0]==='Résultat'?'Cause':'Résultat'}),tt)} className={`group h-full flex flex-col text-left bg-white rounded-xl border border-border hover:border-[var(--app-accent)] hover:bg-surface-2/50 px-4 py-3.5 transition-colors ${focus}`}>
-                <div className="flex items-center gap-2"><span className="w-7 h-7 shrink-0 rounded-md grid place-items-center bg-surface-2 text-muted-foreground group-hover:text-[var(--app-accent)]"><I d={ic.plus} c="w-3.5 h-3.5"/></span><span className="text-[14px] font-semibold text-foreground">{tt}</span></div>
+                <div className="flex items-center gap-2"><span data-cond={conditionTone(c[0][0],c[0][1])} className="polaris-cond w-7 h-7 shrink-0 rounded-md border grid place-items-center"><I d={ic.plus} c="w-3.5 h-3.5"/></span><span className="text-[14px] font-semibold text-foreground">{tt}</span></div>
                 <div className="text-[12.5px] text-muted-foreground mt-2 leading-snug flex-1">{d}</div>
-                <div className="flex flex-wrap gap-1 mt-3">{c.map(x=><span key={x[1]} className="text-[11.5px] h-[22px] inline-flex items-center rounded-md border border-border bg-surface-2 px-2 text-ink-2">{x[0]} = {x[1]}</span>)}</div>
+                <div className="flex flex-wrap gap-1 mt-3">{c.map(x=><ConditionBadge key={x[1]} field={x[0]} value={x[1]}/>)}</div>
               </button>
             ))}
           </div>
@@ -885,7 +882,7 @@ function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
                   <td className="px-4 border-b border-border-subtle max-w-[320px]"><span className="flex items-center gap-2 min-w-0"><span title={x.n} className="truncate font-semibold text-foreground group-hover:text-[var(--app-accent)]">{x.n}</span>{x.shared && <span className="shrink-0 text-[11px] h-5 inline-flex items-center rounded-md border border-border px-1.5 text-muted-foreground">partagée</span>}</span></td>
                   <td className="px-4 border-b border-border-subtle text-muted-foreground whitespace-nowrap">{x.g}</td>
                   <td className="px-4 border-b border-border-subtle font-mono text-[11.5px] text-muted-foreground whitespace-nowrap">{x.p}</td>
-                  <td className="px-4 py-1.5 border-b border-border-subtle"><span className="flex flex-wrap gap-1">{x.c.map((y,k)=><span key={k} className="text-[11.5px] h-[22px] inline-flex items-center rounded-md border border-border bg-surface-2 px-2 text-ink-2 whitespace-nowrap">{y[0]} {y[2]||'='} {y[1]}</span>)}</span></td>
+                  <td className="px-4 py-1.5 border-b border-border-subtle"><span className="flex flex-wrap gap-1">{x.c.map((y,k)=><ConditionBadge key={k} field={y[0]} value={y[1]} op={y[2]||'='}/>)}</span></td>
                   <td className="px-4 border-b border-border-subtle text-ink-2 whitespace-nowrap">{x.last}</td>
                   <td className="px-4 border-b border-border-subtle text-right tabular-nums font-medium text-foreground">{x.r==null||x.r===''?<span className="text-subtle" title="Résultat indisponible">—</span>:x.r}</td>
                   <td className="px-4 border-b border-border-subtle text-right w-24"><span className="inline-flex items-center gap-1 text-[12.5px] font-medium text-[var(--app-accent)] opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">Ouvrir<I d={ic.chev} c="w-3.5 h-3.5 -rotate-90"/></span></td>
@@ -955,7 +952,7 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]})
               <span className="text-subtle">· NON via l’opérateur ≠</span></div>
             <div className="flex flex-wrap gap-2 min-h-[32px]">
               {draft.conds.length===0 && <span className="text-[12.5px] text-subtle self-center">Aucune condition : toutes les sessions de la portée.</span>}
-              {draft.conds.map((c,i) => <span key={i} className="inline-flex items-center h-8 rounded-md border border-border text-[12.5px] overflow-hidden">{i>0 && <span className="px-2 h-full flex items-center text-[11px] font-semibold text-subtle border-r border-border">{draft.join}</span>}<span className="px-2.5 h-full flex items-center bg-surface-2 border-r border-border text-muted-foreground">{c[0]}</span><span className="px-2 text-subtle">{c[2]||'='}</span><span className="pr-2.5 font-medium">{c[1]}</span><button onClick={()=>up({conds:draft.conds.filter((_,j)=>j!==i)})} aria-label="Retirer" className="w-7 h-full grid place-items-center text-subtle hover:text-danger border-l border-border"><I d={ic.x} c="w-3.5 h-3.5"/></button></span>)}
+              {draft.conds.map((c,i) => <span key={i} className="inline-flex items-center h-8 rounded-md border border-border text-[12.5px] overflow-hidden">{i>0 && <span className="px-2 h-full flex items-center text-[11px] font-semibold text-subtle border-r border-border">{draft.join}</span>}<ConditionBadge field={c[0]} value={c[1]} op={c[2]||'='} size="md" className="rounded-none border-0 pr-0"><button onClick={()=>up({conds:draft.conds.filter((_,j)=>j!==i)})} aria-label="Retirer" className="w-7 h-full grid place-items-center opacity-70 hover:opacity-100 hover:text-danger"><I d={ic.x} c="w-3.5 h-3.5"/></button></ConditionBadge></span>)}
             </div>
             <div className="flex items-center gap-2">
               <select value={f} onChange={e=>{setF(e.target.value); setV(fieldList.find(x=>x[0]===e.target.value)[1][0] || '');}} className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-white">{fieldList.map(x=><option key={x[0]} disabled={idField(x[0]) && x[0]==='IMSI' && role!=='operator'}>{x[0]}</option>)}</select>
