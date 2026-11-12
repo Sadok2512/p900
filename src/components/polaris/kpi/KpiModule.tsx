@@ -51,12 +51,11 @@ export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChar
   const [editKpi, setEditKpi] = useState(null);
   const [openDash, setOpenDash] = useState(null);
   const [bk, setBk] = useState(0);
-  const canWrite = true;
-  const log = (a) => setAudit(x => [{ ts: new Date().toLocaleString('fr-FR'), who: 'SD', role, a }, ...x].slice(0, 100));
+  const log = (a) => setAudit(x => [{ ts: new Date().toLocaleString('fr-FR'), who: 'SD', a }, ...x].slice(0, 100));
   const all = useMemo(() => [...KPIS.filter(k => demo || k.id.startsWith('kpi.probe.')).map(k => ({ ...k, lib: 'SYSTEM', owner: 'system', tech: TECH(k.id) })), ...(demo ? custom : [])], [KPIS, custom, demo]);
   const byId = (id) => all.find(k => k.id === id);
   const metricEvidence = metrics.data?.data; const storageEvidence = safety.data?.data;
-  const ctx = { metricEvidence, storageEvidence, measurement, t, role, canWrite, demo, all, byId, custom, setCustom, favs, setFavs, dashes, setDashes, log, audit, mockSeries, MockChart, fmtV, setPage, setTab, setEditKpi, setOpenDash };
+  const ctx = { metricEvidence, storageEvidence, measurement, t, demo, all, byId, custom, setCustom, favs, setFavs, dashes, setDashes, log, audit, mockSeries, MockChart, fmtV, setPage, setTab, setEditKpi, setOpenDash };
   const TABS = demo ? [['catalog', 'Catalogue KPI'], ['builder', 'KPI Builder'], ['dash', 'Dashboards'], ['anom', 'Anomalies']] : [['catalog', 'Catalogue KPI']];
   useEffect(() => { if (!demo && tab !== 'catalog') setTab('catalog'); }, [demo, tab, setTab]);
   return (
@@ -106,7 +105,7 @@ function Tree({ t, all, favs, sel, setSel, q, tech, owner }) {
 }
 
 function Catalog(p) {
-  const { t, all, byId, favs, setFavs, demo, mockSeries, MockChart, fmtV, canWrite, setCustom, log, setTab, setEditKpi, dashes, setDashes, setPage } = p;
+  const { t, all, byId, favs, setFavs, demo, mockSeries, MockChart, fmtV, setCustom, log, setTab, setEditKpi, dashes, setDashes, setPage } = p;
   const [sel, setSel] = useStore('polaris-kpi-sel', 'kpi.probe.dumpcap');
   const [q, setQ] = useState(''); const [tech, setTech] = useState('all'); const [owner, setOwner] = useState('all');
   const [treeW, setTreeW] = useStore('polaris-kpi-treew', 300); const [sheet, setSheet] = useStore('polaris-kpi-sheet', true);
@@ -144,7 +143,7 @@ function Catalog(p) {
             <div className="ml-auto flex flex-wrap gap-1.5">
               <Btn onClick={() => setFavs(f => f.includes(k.id) ? f.filter(x => x !== k.id) : [...f, k.id])}>{favs.includes(k.id) ? '★' : '☆'} {t('Favori')}</Btn>
               <Btn disabled={!demo} onClick={dup}>{t('Dupliquer')}</Btn>
-              {k.lib !== 'SYSTEM' && <Btn disabled={!canWrite || !demo} onClick={() => { setEditKpi(k); setTab('builder'); }}>{t('Modifier')}</Btn>}
+              {k.lib !== 'SYSTEM' && <Btn disabled={!demo} onClick={() => { setEditKpi(k); setTab('builder'); }}>{t('Modifier')}</Btn>}
               <div className="relative"><Btn disabled={!demo} title={!demo ? t('Non disponible : backend à venir') : ''} onClick={() => setAddTo(!addTo)}>+ Dashboard</Btn>{addTo && <div className="absolute right-0 top-9 z-20 w-56 bg-white rounded-lg border border-border shadow-lg py-1">{dashes.length === 0 && <div className="px-3 py-2 text-[12px] text-subtle">{t('Aucun dashboard personnel')}</div>}{dashes.map(d => <button key={d.id} onClick={() => { setDashes(ds => ds.map(x => x.id === d.id ? { ...x, widgets: [...x.widgets, { id: 'w' + Date.now(), kpi: k.id, type: 'series', title: '', x: 0, y: 99, w: 4, h: 3, inherit: true, color: '', thr: '' }] } : x)); log('KPI ' + k.id + ' ajouté à ' + d.name); setAddTo(false); }} className="w-full text-left px-3 py-1.5 text-[12.5px] hover:bg-surface-2">{d.name}</button>)}</div>}</div>
               <Btn onClick={() => setSheet(!sheet)}>{sheet ? t('Masquer la fiche') : t('Fiche KPI')}</Btn>
             </div>
@@ -179,7 +178,7 @@ function genQuery(f) {
   return `SELECT minute${g},\n  ${agg} FILTER (WHERE ${cond(f.num)})\n  / NULLIF(${agg} FILTER (WHERE ${cond(f.den)}), 0)${f.unit === '%' ? ' * 100' : ''} AS value\nFROM msg\nWHERE run IN (:scope)\nGROUP BY 1${g ? ', ' + f.dims.map((_, i) => i + 2).join(', ') : ''}\n-- dedup: ${f.dedup}`;
 }
 function Builder(p) {
-  const { t, canWrite, setCustom, log, initial, setEditKpi, setTab, demo, mockSeries, MockChart, fmtV } = p;
+  const { t, setCustom, log, initial, setEditKpi, setTab, demo, mockSeries, MockChart, fmtV } = p;
   const init = initial ? { ...initial, num: initial.rules?.num || [blankRule()], den: initial.rules?.den || [blankRule()], dims: initial.dimsArr || [], agg: initial.agg || 'COUNT' } : { name: '', id: 'kpi.my.', desc: '', tech: '5G', cat: 'Accessibility', folder: 'My KPI', lib: 'PRIVATE', unit: '%', ver: '0.1.0', num: [{ ...blankRule(), msg: 'PDU Session Establishment Accept' }], den: [blankRule()], agg: 'COUNT', dedup: '1ère tentative / UE / procédure', inv: 'succès + échec = total', dims: ['RAT', 'Cellule'], status: 'draft' };
   const [f, setF] = useState(init); const [step, setStep] = useState(0); const [tested, setTested] = useState(null); const [pub, setPub] = useState({ ver: init.ver, log: '' });
   const set = (k, v) => setF(x => ({ ...x, [k]: v }));
@@ -205,8 +204,7 @@ function Builder(p) {
       <div className={card + ' overflow-hidden'}>
         <div className="px-5 h-12 flex items-center gap-1 border-b border-border-subtle">{STEPS.map((s, i) => <button key={s} onClick={() => setStep(i)} className={`flex items-center gap-2 h-8 px-2.5 rounded-md text-[12.5px] ${step === i ? 'bg-muted font-semibold text-foreground' : 'text-muted-foreground'}`}><span className={`w-5 h-5 rounded-full grid place-items-center text-[11px] ${step >= i ? 'bg-[var(--app-accent)] text-white' : 'bg-muted text-subtle'}`}>{i + 1}</span>{t(s)}</button>)}
           <button onClick={p.onNew} className="ml-auto text-[12px] text-muted-foreground hover:text-foreground">{t('Nouveau')}</button></div>
-        {!canWrite && <div className="mx-5 mt-4 text-[12px] rounded-md bg-warning-soft text-warning px-3 py-2">{t('Rôle viewer : consultation uniquement. Passez en operator pour créer un KPI.')}</div>}
-        <fieldset disabled={!canWrite || !demo} className="p-5 space-y-4 disabled:opacity-60">
+        <fieldset disabled={!demo} className="p-5 space-y-4 disabled:opacity-60">
           {step === 0 && <div className="grid grid-cols-2 gap-4">
             <Field label={t('Nom du KPI')}><input className={inp} value={f.name} onChange={e => set('name', e.target.value)} placeholder="PDU Session Establishment Success Rate" /></Field>
             <Field label={t('Identifiant unique')}><input className={inp + ' font-mono'} value={f.id} onChange={e => set('id', e.target.value)} /></Field>
@@ -248,7 +246,7 @@ function Builder(p) {
             <div className="text-[11.5px] text-subtle">{t('Publication : test réussi + validation + SemVer + CHANGELOG. Requête reproductible jointe.')}</div>
           </div>}
         </fieldset>
-        <div className="px-5 py-3 border-t border-border-subtle flex gap-2"><Btn type="button" disabled={step === 0} onClick={() => setStep(step - 1)}>← {t('Précédent')}</Btn><Btn type="button" disabled={!canWrite || errs.length > 0} onClick={() => save('draft')}>{t('Enregistrer brouillon')}</Btn><Btn primary className="ml-auto" type="button" disabled={step === 4} onClick={() => setStep(step + 1)}>{t('Suivant')} →</Btn></div>
+        <div className="px-5 py-3 border-t border-border-subtle flex gap-2"><Btn type="button" disabled={step === 0} onClick={() => setStep(step - 1)}>← {t('Précédent')}</Btn><Btn type="button" disabled={errs.length > 0} onClick={() => save('draft')}>{t('Enregistrer brouillon')}</Btn><Btn primary className="ml-auto" type="button" disabled={step === 4} onClick={() => setStep(step + 1)}>{t('Suivant')} →</Btn></div>
       </div>
       <div className={card + ' overflow-hidden sticky top-4'}>
         <div className="h-11 px-4 flex items-center border-b border-border-subtle"><h3 className="text-[13px] font-semibold">{t('Aperçu')}</h3><Tag c={LIBC[f.lib]} >{f.lib}</Tag><span className="ml-auto font-mono text-[11px] text-subtle">v{f.ver}</span></div>
@@ -263,25 +261,25 @@ function Builder(p) {
 /* ===== Dashboards ===== */
 function DashLib(p) {
   const { dashboards: SYS_DASH } = useKpiDemo();
-  const { t, dashes, setDashes, canWrite, log, setOpenDash } = p;
+  const { t, dashes, setDashes, demo, log, setOpenDash } = p;
   const [confirm, setConfirm] = useState(null);
   const all = [...SYS_DASH, ...dashes];
   const nw = () => { const d = { id: 'd' + Date.now(), lib: 'PRIVATE', name: t('Nouveau dashboard'), widgets: [] }; setDashes(x => [...x, d]); log('Dashboard créé ' + d.name); setOpenDash(d); };
   const dup = (d) => { const n = { ...d, id: 'd' + Date.now(), lib: 'PRIVATE', name: d.name + ' (copie)', widgets: d.widgets.map(w => ({ ...w, id: w.id + 'c' + Date.now() })) }; setDashes(x => [...x, n]); log('Dashboard dupliqué ' + d.name); };
   const exp = (d) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' })); a.download = d.name + '.json'; a.click(); };
   return <div className="space-y-6">
-    <div className="flex items-center"><div className="text-[13px] text-muted-foreground">{all.length} dashboards</div><Btn primary className="ml-auto" disabled={!canWrite || !demo} onClick={nw}>+ {t('Nouveau dashboard')}</Btn></div>
+    <div className="flex items-center"><div className="text-[13px] text-muted-foreground">{all.length} dashboards</div><Btn primary className="ml-auto" disabled={!demo} onClick={nw}>+ {t('Nouveau dashboard')}</Btn></div>
     {['SYSTEM', 'PUBLIC', 'PRIVATE'].map(L => { const ds = all.filter(d => d.lib === L); return <section key={L}><h2 className="text-[11px] font-bold tracking-[0.06em] mb-3" style={{ color: LIBC[L] }}>{L} <span className="text-subtle font-normal">{ds.length}</span></h2>
       {ds.length === 0 ? <div className="rounded-xl border border-dashed border-border px-5 py-6 text-[12.5px] text-subtle">{t('Aucun dashboard')}</div> :
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">{ds.map(d => <div key={d.id} className={card + ' p-4 flex flex-col hover:border-border-strong transition'}>
           <button onClick={() => setOpenDash(d)} className="text-left"><div className="h-20 rounded-md bg-surface-2 border border-border-subtle grid grid-cols-3 gap-1 p-1.5">{d.widgets.slice(0, 6).map(w => <div key={w.id} className="rounded-sm bg-white border border-border" />)}</div><div className="mt-3 text-[14px] font-semibold text-foreground">{d.name}</div><div className="text-[12px] text-subtle">{d.widgets.length} widgets</div></button>
           <div className="mt-3 flex flex-wrap gap-1 text-[11.5px]">
             <button onClick={() => setOpenDash(d)} className="font-medium text-[var(--app-accent)]">{t('Ouvrir')}</button><span className="text-faint">·</span>
-            <button disabled={!canWrite || !demo} onClick={() => dup(d)} className="text-muted-foreground disabled:opacity-40">{t('Dupliquer')}</button><span className="text-faint">·</span>
+            <button disabled={!demo} onClick={() => dup(d)} className="text-muted-foreground disabled:opacity-40">{t('Dupliquer')}</button><span className="text-faint">·</span>
             <button onClick={() => exp(d)} className="text-muted-foreground">{t('Exporter')}</button>
-            {d.lib !== 'SYSTEM' && <><span className="text-faint">·</span><button disabled={!canWrite || !demo} onClick={() => { const n = prompt(t('Renommer'), d.name); if (n) { setDashes(x => x.map(y => y.id === d.id ? { ...y, name: n } : y)); log('Dashboard renommé ' + n); } }} className="text-muted-foreground disabled:opacity-40">{t('Renommer')}</button><span className="text-faint">·</span>
-              <button disabled={!canWrite || !demo} onClick={() => { setDashes(x => x.map(y => y.id === d.id ? { ...y, lib: y.lib === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC' } : y)); log('Dashboard partagé ' + d.name); }} className="text-muted-foreground disabled:opacity-40">{d.lib === 'PUBLIC' ? t('Rendre privé') : t('Partager')}</button><span className="text-faint">·</span>
-              <button disabled={!canWrite || !demo} onClick={() => setConfirm(d)} className="text-danger disabled:opacity-40">{t('Supprimer')}</button></>}
+            {d.lib !== 'SYSTEM' && <><span className="text-faint">·</span><button disabled={!demo} onClick={() => { const n = prompt(t('Renommer'), d.name); if (n) { setDashes(x => x.map(y => y.id === d.id ? { ...y, name: n } : y)); log('Dashboard renommé ' + n); } }} className="text-muted-foreground disabled:opacity-40">{t('Renommer')}</button><span className="text-faint">·</span>
+              <button disabled={!demo} onClick={() => { setDashes(x => x.map(y => y.id === d.id ? { ...y, lib: y.lib === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC' } : y)); log('Dashboard partagé ' + d.name); }} className="text-muted-foreground disabled:opacity-40">{d.lib === 'PUBLIC' ? t('Rendre privé') : t('Partager')}</button><span className="text-faint">·</span>
+              <button disabled={!demo} onClick={() => setConfirm(d)} className="text-danger disabled:opacity-40">{t('Supprimer')}</button></>}
           </div></div>)}</div>}</section>; })}
     {confirm && <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center" onClick={() => setConfirm(null)}><div onClick={e => e.stopPropagation()} className="bg-white rounded-xl p-5 w-[380px] shadow-xl"><div className="text-[15px] font-semibold">{t('Supprimer le dashboard ?')}</div><div className="mt-1 text-[13px] text-muted-foreground">« {confirm.name} » — {t('cette action est journalisée.')}</div><div className="mt-4 flex justify-end gap-2"><Btn onClick={() => setConfirm(null)}>{t('Annuler')}</Btn><button onClick={() => { setDashes(x => x.filter(y => y.id !== confirm.id)); log('Dashboard supprimé ' + confirm.name); setConfirm(null); }} className="h-8 px-3 rounded-md bg-danger text-white text-[12.5px] font-medium">{t('Supprimer')}</button></div></div></div>}
   </div>;
@@ -302,8 +300,8 @@ function Widget({ w, k, p, filters }) {
 }
 
 function DashEditor(p) {
-  const { t, dash, setDashes, canWrite, byId, all, log, setOpenDash, setPage } = p;
-  const ro = dash.lib === 'SYSTEM' || !canWrite;
+  const { t, dash, setDashes, byId, all, log, setOpenDash, setPage } = p;
+  const ro = dash.lib === 'SYSTEM';
   const [d, setD] = useState(dash); const [sel, setSel] = useState(null); const [dirty, setDirty] = useState(false);
   const [filters, setFilters] = useState({ period: '15 min', run: 'Tous', rat: 'Tous', site: 'Tous', cell: 'Toutes', ifc: 'Toutes', dnn: 'Tous', nssai: 'Tous' });
   const grid = useRef(null); const ROW = 80;
@@ -360,7 +358,7 @@ function DashEditor(p) {
 /* ===== Anomalies ===== */
 function Anomalies(p) {
   const { anomalies: ANOMS } = useKpiDemo();
-  const { t, demo, byId, canWrite, log, setPage } = p;
+  const { t, demo, byId, log, setPage } = p;
   const [list, setList] = useStore('polaris-anoms', ANOMS);
   const [f, setF] = useState({ q: '', sev: 'all', st: 'all', kpi: 'all', per: '24 h' }); const [sel, setSel] = useState(null); const [just, setJust] = useState(''); const [proof, setProof] = useState('');
   const rows = demo ? list.filter(a => (f.sev === 'all' || a.sev === f.sev) && (f.st === 'all' || a.st === f.st) && (f.kpi === 'all' || a.kpi === f.kpi) && (!f.q || (a.id + a.rule + a.kpi).toLowerCase().includes(f.q.toLowerCase()))) : [];
@@ -389,7 +387,7 @@ function Anomalies(p) {
           <div><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle mb-1.5">{t('Historique')}</div>{a.ev.map(([h, m], i) => <div key={i} className="flex gap-3 py-1"><span className="font-mono text-[11px] text-subtle w-20 shrink-0">{h}</span><span className="text-ink-2">{m}</span></div>)}</div>
           <div className="text-[11.5px] text-subtle">{t('Constat factuel uniquement — aucune cause supposée sans preuve.')}</div>
           <div className="flex gap-2"><Btn onClick={() => setPage('sessions')}>{t('Sessions')} →</Btn><Btn onClick={() => setPage('sessions')}>{t('Preuves')} →</Btn></div>
-          {a.st === 'OUVERT' && <div className="pt-3 border-t border-border-subtle space-y-2"><Field label={t('Justification')}><textarea disabled={!canWrite || !demo} className={inp + ' h-16 py-2'} value={just} onChange={e => setJust(e.target.value)} /></Field><Field label={t('Preuve (réf.)')}><input disabled={!canWrite || !demo} className={inp} value={proof} onChange={e => setProof(e.target.value)} placeholder="#312" /></Field><Btn primary disabled={!canWrite || !just.trim() || !proof.trim()} onClick={close}>{t('Fermer l’anomalie')}</Btn></div>}
+          {a.st === 'OUVERT' && <div className="pt-3 border-t border-border-subtle space-y-2"><Field label={t('Justification')}><textarea disabled={!demo} className={inp + ' h-16 py-2'} value={just} onChange={e => setJust(e.target.value)} /></Field><Field label={t('Preuve (réf.)')}><input disabled={!demo} className={inp} value={proof} onChange={e => setProof(e.target.value)} placeholder="#312" /></Field><Btn primary disabled={!just.trim() || !proof.trim()} onClick={close}>{t('Fermer l’anomalie')}</Btn></div>}
         </div></div>}
     </div>
   </div>;

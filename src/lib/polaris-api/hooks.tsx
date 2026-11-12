@@ -6,8 +6,8 @@ import { ALL_KPIS, mockSeries, seedRand, SAVED } from './demo/catalogue';
 import { TR_CATS, TR_APPS, TR_CELLS, TR_V, TR_FLOWS } from './demo/traffic';
 import { SYS_DASH, ANOMS } from './demo/kpi';
 import { DIR, S5G, SLTE, NODES, IFC_C } from './demo/live';
-import { records, toLegacyCallflow, filterBody, querySupport, canCapture, type Draft } from './adapters';
-import type { AuthMe, Health, Version, Metrics, Safety, Session, Event, Probe, RecordData, QueryParams, Envelope, Correlation, SessionIdentities } from './types';
+import { records, toLegacyCallflow, filterBody, querySupport, type Draft } from './adapters';
+import type { Health, Version, Metrics, Safety, Session, Event, Probe, RecordData, QueryParams, Envelope, Correlation, SessionIdentities } from './types';
 const Mode = createContext({ demo: false, setDemo: (_value: boolean) => {} });
 export function PolarisDataProvider({ children }: { children: ReactNode }) { const [demo, setDemo] = useState(false); return <Mode.Provider value={{ demo, setDemo }}>{children}</Mode.Provider>; }
 export const usePolarisMode = () => useContext(Mode);
@@ -16,7 +16,6 @@ export function useResource<T>(path: string, params: QueryParams = {}, enabled =
   const { demo } = usePolarisMode();
   return useQuery({ ...resourceOptions<T>(path, params, allowDemo && demo), enabled });
 }
-export const useAuthMe = () => useResource<AuthMe>('/auth/me', {}, true, false);
 export const useHealth = () => useQuery({ ...resourceOptions<Health>('/health', {}, false), refetchInterval: 5_000, refetchIntervalInBackground: true });
 export const useVersion = () => useQuery({ ...resourceOptions<Version>('/version', {}, false), refetchInterval: 30_000, refetchIntervalInBackground: true });
 export const useMetrics = () => useResource<Metrics>('/metrics');
@@ -44,7 +43,7 @@ export function useSessionAnchors(sessions: Session[], enabled = true): Record<s
     return [String(session.session_id), records<Event>(Array.isArray(value) ? value : body['events'] ?? body['messages'])[0]];
   }));
 }
-export const useEvent = (id?: string | number | null, operatorIdentities=false) => useQuery({ queryKey:['polaris','api','event',id,operatorIdentities?'operator':'viewer'], queryFn:({signal})=>request<Event>(`/events/${idPath(id)}`,{signal,operatorIdentityResponse:operatorIdentities}), enabled:id!=null, retry:false, refetchOnWindowFocus:false });
+export const useEvent = (id?: string | number | null, clearIdentities=false) => useQuery({ queryKey:['polaris','api','event',id,clearIdentities?'clear':'redacted'], queryFn:({signal})=>request<Event>(`/events/${idPath(id)}`,{signal,clearIdentityResponse:clearIdentities}), enabled:id!=null, retry:false, refetchOnWindowFocus:false });
 export const useProvenance = (id?: string | number | null) => useResource<RecordData>(`/events/${idPath(id)}/provenance`, {}, id != null);
 export const usePackets = (params: QueryParams = {}, enabled = true) => useResource<RecordData[]>('/packets', params, enabled);
 export const usePacket = (id?: string | number | null) => useResource<RecordData>(`/packets/${idPath(id)}`, {}, id != null);
@@ -88,9 +87,9 @@ export function useSessionFilter() {
   const { demo } = usePolarisMode(); const client = useQueryClient();
   return useMutation({ mutationFn: async (draft: Draft) => { const unsupported = querySupport(draft, demo); if (unsupported) throw new PolarisApiError('UNAVAILABLE', unsupported, 0); return demo ? demoResponse<Session[]>('/sessions/filter') as Envelope<Session[]> : request<Session[]>('/sessions/filter', { method: 'POST', body: filterBody(draft) }); }, onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris', 'api', '/sessions'] }); } });
 }
-export function useCaptureAction(role: unknown, coordinationOpen: unknown) {
+export function useCaptureAction() {
   const client = useQueryClient();
-  return useMutation({ mutationFn: async ({ action, id, target, confirmed }: { action: 'start' | 'validate' | 'stop'; id?: string | number; target?: string; confirmed: boolean }) => { if (!canCapture(role, coordinationOpen) || !confirmed) throw new PolarisApiError('FORBIDDEN', 'Accès refusé (rôle)', 403); return request<RecordData>(action === 'stop' ? `/captures/${idPath(id)}/stop` : `/captures/${action}`, { method: 'POST', body: { target } }); }, onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris'] }); } });
+  return useMutation({ mutationFn: async ({ action, id, target }: { action: 'start' | 'validate' | 'stop'; id?: string | number; target?: string }) => request<RecordData>(action === 'stop' ? `/captures/${idPath(id)}/stop` : `/captures/${action}`, { method: 'POST', body: { target } }), onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris'] }); } });
 }
 // Catalogue definitions are not measured values. Only the demo adapter can generate series.
 export function useKpiCatalogue() { const { demo } = usePolarisMode(); return { catalogue: ALL_KPIS, mockSeries: demo ? mockSeries : () => [], seedRand }; }
@@ -104,15 +103,15 @@ export function useKpiDemo() { const { demo } = usePolarisMode(); return { dashb
 // Subscriber journey (OIRAN 2.13.0) and identity vault (operator, 2.12.0). Absent routes surface as errors, never as invented data.
 const pseudoPath = (p?: string | null) => encodeURIComponent(String(p ?? ''));
 export const useSubscriberJourney = (p?: string | null) => useResource<RecordData>(`/subscribers/${pseudoPath(p)}/journey`, {}, !!p, true);
-export const useSubscriberTmsi = (p?: string | null, operatorIdentities=false) => useQuery({ queryKey:['polaris','api','subscriber-tmsi',p,operatorIdentities?'operator':'viewer'], queryFn:({signal})=>request<RecordData[]>(`/subscribers/${pseudoPath(p)}/tmsi`,{signal,operatorIdentityResponse:operatorIdentities}), enabled:!!p, retry:false, refetchOnWindowFocus:false });
-export const useSessionIdentities = (id?: string | null, enabled = true) => useQuery({ queryKey:['polaris','operator-identities','session',id], queryFn:({signal})=>request<SessionIdentities>(`/sessions/${idPath(id)}/identities`,{signal,operatorIdentityResponse:true}), enabled:!!id&&enabled, retry:false, refetchOnWindowFocus:false });
+export const useSubscriberTmsi = (p?: string | null, clearIdentities=false) => useQuery({ queryKey:['polaris','api','subscriber-tmsi',p,clearIdentities?'clear':'redacted'], queryFn:({signal})=>request<RecordData[]>(`/subscribers/${pseudoPath(p)}/tmsi`,{signal,clearIdentityResponse:clearIdentities}), enabled:!!p, retry:false, refetchOnWindowFocus:false });
+export const useSessionIdentities = (id?: string | null, enabled = true) => useQuery({ queryKey:['polaris','clear-identities','session',id], queryFn:({signal})=>request<SessionIdentities>(`/sessions/${idPath(id)}/identities`,{signal,clearIdentityResponse:true}), enabled:!!id&&enabled, retry:false, refetchOnWindowFocus:false });
 export function useSessionIdentityMap(ids: Array<string | null | undefined>, enabled=true): Record<string,SessionIdentities|undefined> {
   const unique=[...new Set(ids.filter((id):id is string=>!!id))];
-  const queries=useQueries({queries:unique.map(id=>({queryKey:['polaris','operator-identities','session',id],queryFn:({signal}:{signal:AbortSignal})=>request<SessionIdentities>(`/sessions/${idPath(id)}/identities`,{signal,operatorIdentityResponse:true}),enabled,retry:false,refetchOnWindowFocus:false}))});
+  const queries=useQueries({queries:unique.map(id=>({queryKey:['polaris','clear-identities','session',id],queryFn:({signal}:{signal:AbortSignal})=>request<SessionIdentities>(`/sessions/${idPath(id)}/identities`,{signal,clearIdentityResponse:true}),enabled,retry:false,refetchOnWindowFocus:false}))});
   return Object.fromEntries(unique.map((id,index)=>[id,queries[index]?.data?.data]));
 }
-export const useIdentityLookup = (q: string, enabled=true) => useQuery({ queryKey:['polaris','operator-identities','lookup',q], queryFn:({signal})=>request<RecordData>('/identities',{params:{q},signal,operatorIdentityResponse:true}), enabled:enabled&&q.trim().length>=4, retry:false, refetchOnWindowFocus:false });
-export const usePacketDissection = (captureId?: string | null, packetNumber?: number | null, enabled=true) => useQuery({ queryKey:['polaris','api','dissect',captureId,packetNumber], queryFn:({signal})=>request<RecordData>(`/packets/${idPath(captureId)}/${packetNumber}/dissect`,{signal,operatorIdentityResponse:true}), enabled:enabled&&!!captureId&&packetNumber!=null, retry:false, refetchOnWindowFocus:false });
+export const useIdentityLookup = (q: string, enabled=true) => useQuery({ queryKey:['polaris','clear-identities','lookup',q], queryFn:({signal})=>request<RecordData>('/identities',{params:{q},signal,clearIdentityResponse:true}), enabled:enabled&&q.trim().length>=4, retry:false, refetchOnWindowFocus:false });
+export const usePacketDissection = (captureId?: string | null, packetNumber?: number | null, enabled=true) => useQuery({ queryKey:['polaris','api','dissect',captureId,packetNumber], queryFn:({signal})=>request<RecordData>(`/packets/${idPath(captureId)}/${packetNumber}/dissect`,{signal,clearIdentityResponse:true}), enabled:enabled&&!!captureId&&packetNumber!=null, retry:false, refetchOnWindowFocus:false });
 // Administration (no demo): users, roles and audit come only from the lab server, which enforces permissions.
 export const useAdminUsers = () => useResource<RecordData[]>('/users', {}, true, false);
 export const useAdminRoles = () => useResource<RecordData[]>('/roles', {}, true, false);

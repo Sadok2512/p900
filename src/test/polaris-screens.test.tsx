@@ -122,14 +122,30 @@ describe('main screens with simulated REST responses',()=>{
       expect(consoleError.mock.calls.flat().join(' ')).not.toContain('same key');
     } finally { payloads['/sessions/s1/callflow']=previous; consoleError.mockRestore(); }
   });
-  it('Nodes uses probes and server version; capture targets remain disabled', async()=>{
+  it('Nodes uses probes and server version; capture actions remain directly available', async()=>{
     open('nodes'); await screen.findByText('lab-probe'); expect(screen.getByText('probe-test')).toBeInTheDocument();
     expect(screen.getByText('POLARIS connecté')).toBeInTheDocument();
     expect(screen.getByRole('button',{name:'Ajouter une sonde'})).toBeInTheDocument();
     expect(screen.queryByRole('button',{name:'Déploiements'})).not.toBeInTheDocument();
     fireEvent.click(screen.getByText('lab-probe'));
     fireEvent.click(await screen.findByRole('tab',{name:'Actions'}));
-    await screen.findByRole('textbox',{name:'Cible de capture'}); expect(screen.getByRole('textbox',{name:'Cible de capture'})).toBeDisabled();
+    await screen.findByRole('textbox',{name:'Cible de capture'}); expect(screen.getByRole('textbox',{name:'Cible de capture'})).toBeEnabled();
+    expect(screen.getByRole('button',{name:'Valider la capture'})).toBeEnabled();
+    expect(screen.getByRole('button',{name:'Démarrer la capture'})).toBeEnabled();
+    expect(screen.getByRole('button',{name:'Arrêter la capture'})).toBeEnabled();
+  });
+  it('shows a neutral inline error when the server refuses a capture action', async()=>{
+    fetcher.mockImplementation(async (url: string, options: RequestInit = {}) => {
+      const path=url.replace('/api/v1','').split('?')[0] ?? '';
+      if(path==='/captures/validate' && options.method==='POST') return new Response(JSON.stringify({error:{code:'FORBIDDEN'}}),{status:403,headers:{'Content-Type':'application/json'}});
+      return new Response(JSON.stringify({data:payloads[path] ?? [],meta:{total:1}}),{headers:{'Content-Type':'application/json'}});
+    });
+    const browserAlert=vi.spyOn(window,'alert').mockImplementation(()=>{});
+    open('nodes'); fireEvent.click(await screen.findByText('lab-probe')); fireEvent.click(await screen.findByRole('tab',{name:'Actions'}));
+    fireEvent.click(await screen.findByRole('button',{name:'Valider la capture'}));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Action refusée par le serveur (HTTP 403)');
+    expect(browserAlert).not.toHaveBeenCalled();
+    browserAlert.mockRestore();
   });
   it('registers a probe with the published OIRAN payload', async()=>{
     open('nodes');
@@ -209,7 +225,7 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByRole('option',{name:'Pseudonyme'})).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.2.2').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.2.2')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.2.3').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.2.3')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard library is marked local and has no simulated saved queries outside Demo',()=>{
     open('templates'); expect(screen.getByText('local à ce navigateur')).toBeInTheDocument(); expect(screen.getByText('Aucune requête enregistrée.')).toBeInTheDocument();

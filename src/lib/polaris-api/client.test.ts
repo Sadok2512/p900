@@ -11,9 +11,9 @@ describe('POLARIS client', () => {
     expect(fetcher.mock.calls[0]?.[1].credentials).toBe('same-origin');
     expect(fetcher.mock.calls[0]?.[1].headers).not.toHaveProperty('Authorization');
   });
-  it('maps HTTP 403 to the role error', async () => {
+  it('maps HTTP 403 to a neutral inline-ready server error', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { code: 'FORBIDDEN' } }), { status: 403 })));
-    await expect(request('/probes')).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403, message: 'Accès refusé (rôle)' });
+    await expect(request('/probes')).rejects.toMatchObject({ code: 'FORBIDDEN', status: 403, message: 'Action refusée par le serveur (HTTP 403)' });
   });
   it('uses a distinct same-origin base for the Simulator topology', async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: { items: [] }, meta: {} })));
@@ -42,21 +42,20 @@ describe('POLARIS client', () => {
   it('masks every forbidden identity field, including name/value decoding pairs', () => {
     expect(redact({ imsi: subscriber(), supi: 'private', guti: 'private', tmsi: 'private', imei: 'private', pei:'private', gpsi:'private', K: 'private', OPc: 'private', pseudonym: 'ue-7f3a', decoded: [{ name: 'GUTI', value: 'private' }] })).toEqual({ imsi:'masqué', supi:'masqué', guti:'masqué', tmsi:'masqué', imei:'masqué', pei:'masqué', gpsi:'masqué', K:'masqué', OPc:'masqué', pseudonym:'ue-7f3a', decoded:[{name:'GUTI',value:'masqué'}] });
   });
-  it('admits clear identities only for an explicitly requested operator envelope', async () => {
+  it('admits clear identities whenever the caller requests the clear identity route', async () => {
     const clear=subscriber();
-    const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({data:{imsi:clear},meta:{identity_access:'operator'}})));
+    const fetcher=vi.fn().mockImplementation(async()=>new Response(JSON.stringify({data:{imsi:clear},meta:{}})));
     vi.stubGlobal('fetch',fetcher);
-    expect((await request<{imsi:string}>('/sessions/test/identities',{operatorIdentityResponse:true})).data.imsi).toBe(clear);
-    fetcher.mockResolvedValueOnce(new Response(JSON.stringify({data:{imsi:clear},meta:{}})));
-    expect((await request<{imsi:string}>('/sessions/test/identities',{operatorIdentityResponse:true})).data.imsi).toBe('masqué');
+    expect((await request<{imsi:string}>('/sessions/test/identities',{clearIdentityResponse:true})).data.imsi).toBe(clear);
+    expect((await request<{imsi:string}>('/sessions/test/identities')).data.imsi).toBe('masqué');
   });
   it('keeps opaque temporary-identity pseudonyms while masking clear TMSI fields', () => {
     expect(redact({ tmsi: 'private', tmsi_pseudonym: 'psn-temporary-a' })).toEqual({ tmsi: 'masqué', tmsi_pseudonym: 'psn-temporary-a' });
   });
-  it('requires the server operator envelope even for an operator-scoped request', async () => {
-    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: { imsi: 'test-value' }, meta: { identity_access: 'operator' } })));
+  it('does not require role metadata on an explicitly clear response', async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: { imsi: 'test-value' }, meta: {} })));
     vi.stubGlobal('fetch', fetcher);
-    expect((await request('/sessions/s/identities', { allowIdentityFields: true })).data).toEqual({ imsi: 'test-value' });
+    expect((await request('/sessions/s/identities', { clearIdentityResponse: true })).data).toEqual({ imsi: 'test-value' });
   });
 });
 

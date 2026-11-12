@@ -3,9 +3,7 @@ import { records, useManageProbe, useProbe, useProbeInterfaces } from '@/lib/pol
 import ProbeForm, { Field, FooterButton, PayloadPreview, ProbeDialog, Section } from './ProbeForm';
 import { emptyProbeDraft, probeDraftErrors, probeDraftFromRecord, probeUpdatePayload } from './probeRegistration';
 
-const permissionFor = { edit: 'probes.update', delete: 'probes.delete', software: 'probes.software_update' };
-
-export default function ProbeManagement({ mode, node, auth, onClose }) {
+export default function ProbeManagement({ mode, node, onClose }) {
   const id = String(node.id ?? node.raw?.probe_id ?? node.n);
   const probe = useProbe(id), probeInterfaces = useProbeInterfaces(id);
   const mutation = useManageProbe();
@@ -13,9 +11,6 @@ export default function ProbeManagement({ mode, node, auth, onClose }) {
   const [draft, setDraft] = useState(emptyProbeDraft);
   const [confirmation, setConfirmation] = useState('');
   const [targetVersion, setTargetVersion] = useState('');
-  const permissions = Array.isArray(auth?.permissions) ? auth.permissions : [];
-  const required = permissionFor[mode];
-  const canManage = ['operator', 'administrator'].includes(auth?.role) && (permissions.includes(required) || permissions.includes('probes.manage'));
   useEffect(() => {
     if (initialized.current || probe.isPending || probeInterfaces.isPending) return;
     const record = { ...(node.raw ?? {}), ...(probe.data?.data ?? {}) };
@@ -29,23 +24,22 @@ export default function ProbeManagement({ mode, node, auth, onClose }) {
   const ready = mode === 'edit' ? errors.length === 0 : confirmation === id && (mode !== 'software' || targetVersion.trim().length > 0);
   const submit = event => {
     event.preventDefault();
-    if (!canManage || !ready) return;
+    if (!ready) return;
     mutation.mutate({ action: mode, id, body }, { onSuccess: onClose });
   };
-  const permissionNote = canManage ? null : `Action verrouillée : \`/auth/me\` doit exposer \`${required}\`. Contrat attendu : ${endpoint}.`;
   const serverError = mutation.isError ? `${endpoint} → ${mutation.error?.status ? `HTTP ${mutation.error.status}` : mutation.error?.message}` : null;
   const footer = note => <>
     <span className="text-[12px] text-subtle">{note}</span>
     <span className="ml-auto flex items-center gap-2">
       <FooterButton onClick={onClose}>Annuler</FooterButton>
-      <FooterButton type="submit" primary={mode !== 'delete'} danger={mode === 'delete'} disabled={!canManage || !ready || mutation.isPending}>
+      <FooterButton type="submit" primary={mode !== 'delete'} danger={mode === 'delete'} disabled={!ready || mutation.isPending}>
         {mutation.isPending ? 'En cours…' : mode === 'edit' ? 'Enregistrer' : mode === 'delete' ? 'Supprimer' : 'Mettre à jour'}
       </FooterButton>
     </span>
   </>;
 
   if (mode === 'edit') return <ProbeForm mode="edit" draft={draft} patch={patch} payload={body} endpoint={endpoint} probeId={id}
-    canSubmit={canManage && ready} permissionNote={permissionNote} busy={mutation.isPending} serverError={serverError}
+    canSubmit={ready} permissionNote={null} busy={mutation.isPending} serverError={serverError}
     submitLabel="Enregistrer" title="Modifier la sonde" dialogLabel="Modifier la sonde"
     subtitle="Registre OIRAN · les valeurs renvoyées par le serveur sont conservées telles quelles"
     onClose={onClose} onSubmit={submit} footerNote="Toute réussite vient du serveur et rafraîchit `/probes`."/>;
@@ -72,7 +66,6 @@ export default function ProbeManagement({ mode, node, auth, onClose }) {
       <input aria-label={`Tapez ${id}`} value={confirmation} onChange={event => setConfirmation(event.target.value)} className="h-10 w-full rounded-md border border-border bg-white px-3 font-mono text-[13px] outline-none focus:border-[var(--app-accent)]"/>
     </Field>
 
-    {permissionNote && <div className="rounded-lg border border-warning-line bg-warning-soft px-3 py-2 text-[12px] text-warning">{permissionNote}</div>}
     {serverError && <div role="alert" className="rounded-lg border border-danger-line bg-danger-soft px-3 py-2 text-[12px] text-danger">{serverError}</div>}
   </ProbeDialog>;
 }

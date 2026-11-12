@@ -1,4 +1,3 @@
-export type Role = 'viewer' | 'operator' | 'administrator';
 export type RecordData = { [key: string]: unknown };
 export type Meta = RecordData & { total?: number; page?: number; page_size?: number };
 export type Envelope<T> = { data: T; meta: Meta };
@@ -70,7 +69,6 @@ export type Correlation = Evidence & {
   limitations?: unknown[];
   packet_references?: unknown[];
 };
-export type AuthMe = RecordData & { role?: Role };
 export type Health = RecordData & { status?: string; capture_state?: string; version?: string };
 export type Metrics = Evidence & { capture_state?: string; pending_segments?: number; segments_ingested?: number; ingestion_failures?: number; open_segments?: number; zero_event_segments?: number; dumpcap_active?: number; dumpcap_expected?: number; import_lag_seconds?: number; cpu?: RecordData; memory?: RecordData; disk?: RecordData; interfaces?: RecordData[]; bitrate_bps?: number };
 export type Safety = Evidence & { free_bytes?: number; total_bytes?: number; free_percent?: number; filesystem?: RecordData; policy?: RecordData; decision?: RecordData };

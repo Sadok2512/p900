@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.3
+
+- L’interface ne consulte plus le rôle pour afficher, masquer ou désactiver une action : capture, téléchargement PCAP, identités, dissection et gestion des sondes sont directement disponibles.
+- Le garde local `canCapture` et les permissions dérivées de `/auth/me` sont supprimés ; le serveur reste seul responsable d’accepter ou de refuser une requête.
+- Une réponse HTTP 403 produit le message en ligne neutre « Action refusée par le serveur (HTTP 403) », sans alerte navigateur liée au rôle.
+
 ## 2.2.2
 
 - Le proxy active `P900_OPEN_ACCESS=1` par défaut et injecte le jeton operator côté serveur pour toutes les requêtes HTTP, SSE et upgrade, sans demander d’authentification Basic au navigateur.

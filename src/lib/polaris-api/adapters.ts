@@ -133,4 +133,3 @@ export function filterBody(d: Draft) {
   if (d.scope) body['dataset_id'] = d.scope;
   return body;
 }
-export const canCapture = (role: unknown, open: unknown) => role === 'operator' && open === true;

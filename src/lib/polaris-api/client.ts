@@ -26,7 +26,7 @@ export function redact<T>(value: T): T {
   }
   return value;
 }
-type RequestOptions = { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal; operatorIdentityResponse?: boolean; allowIdentityFields?: boolean };
+type RequestOptions = { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal; clearIdentityResponse?: boolean };
 export async function requestFrom<T>(base: string, path: string, options: RequestOptions = {}): Promise<Envelope<T>> {
   const url = apiPath(path, options.params, base);
   let response: Response;
@@ -43,12 +43,11 @@ export async function requestFrom<T>(base: string, path: string, options: Reques
   if (!response.ok) {
     const error = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
     const detail = error['error'] && typeof error['error'] === 'object' ? error['error'] as Record<string, unknown> : error;
-    throw new PolarisApiError(typeof detail['code'] === 'string' ? detail['code'] : 'HTTP_ERROR', response.status === 403 ? 'Accès refusé (rôle)' : payload == null || response.status === 404 || response.status === 406 || response.status === 502 || response.status === 503 ? 'POLARIS non connecté' : typeof detail['message'] === 'string' ? redact(detail['message']) : 'Source POLARIS indisponible', response.status);
+    throw new PolarisApiError(typeof detail['code'] === 'string' ? detail['code'] : 'HTTP_ERROR', response.status === 403 ? 'Action refusée par le serveur (HTTP 403)' : payload == null || response.status === 404 || response.status === 406 || response.status === 502 || response.status === 503 ? 'POLARIS non connecté' : typeof detail['message'] === 'string' ? redact(detail['message']) : 'Source POLARIS indisponible', response.status);
   }
   if (!payload || typeof payload !== 'object' || !('data' in payload)) throw new PolarisApiError('INVALID_RESPONSE', 'POLARIS non connecté', response.status);
   const envelope = payload as { data: T; meta?: unknown };
-  const operatorIdentity = (options.operatorIdentityResponse || options.allowIdentityFields) && envelope.meta && typeof envelope.meta === 'object' && (envelope.meta as Record<string,unknown>)['identity_access'] === 'operator';
-  return { data: operatorIdentity ? envelope.data : redact(envelope.data), meta: envelope.meta && typeof envelope.meta === 'object' ? redact(envelope.meta) as Envelope<T>['meta'] : {} };
+  return { data: options.clearIdentityResponse ? envelope.data : redact(envelope.data), meta: envelope.meta && typeof envelope.meta === 'object' ? redact(envelope.meta) as Envelope<T>['meta'] : {} };
 }
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<Envelope<T>> {
   return requestFrom<T>(relativeBase(), path, options);
