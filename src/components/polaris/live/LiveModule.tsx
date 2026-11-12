@@ -6,11 +6,11 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 const fingerprint = (s) => { let h = 5381; for (const c of s) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return 'sha256:' + h.toString(16).padStart(8,'0') + '…'; };
 
 const useStore = (key, init) => { const [v,setV] = useState(init); useEffect(()=>{ try{ const s=localStorage.getItem(key); if(s) setV(JSON.parse(s)); }catch{} },[key]); const set=(x)=>setV(p=>{ const n=typeof x==='function'?x(p):x; try{localStorage.setItem(key,JSON.stringify(n));}catch{} return n; }); return [v,set]; };
-const card = 'bg-white rounded-xl border border-border';
-const Btn = ({ primary, on, children, className='', ...p }) => <button {...p} className={`h-8 px-3 rounded-md text-[12.5px] font-medium whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${primary?'bg-[var(--app-accent)] text-white hover:opacity-90':on?'bg-muted text-foreground border border-border':'border border-border bg-white text-foreground hover:bg-surface-2'} ${className}`}>{children}</button>;
-const Tag = ({ c='#666666', children }) => <span className="text-[11px] font-medium rounded px-1.5 py-[1px] border whitespace-nowrap" style={{ color:c, borderColor:c+'33', background:c+'0D' }}>{children}</span>;
-const IFC_C = { N2:'#0062A1', SBI:'#0F5B56', N4:'#A15C07', 'S1-MME':'#0062A1', S6a:'#7C3AED', S11:'#A15C07', S5:'#DB2777' };
-const RES_C = (r) => r==='Échec'?'#B42318':r==='Succès'||r==='Accepted'||/^2\d\d/.test(r)?'#15803D':'#8F8F8F';
+const card = 'bg-card rounded-xl border border-border';
+const Btn = ({ primary, on, children, className='', ...p }) => <button {...p} className={`h-8 px-3 rounded-md text-[12.5px] font-medium whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${primary?'bg-[var(--app-accent)] text-white hover:opacity-90':on?'bg-muted text-foreground border border-border':'border border-border bg-card text-foreground hover:bg-surface-2'} ${className}`}>{children}</button>;
+const Tag = ({ c='#9FB3C8', children }) => <span className="text-[11px] font-medium rounded px-1.5 py-[1px] border whitespace-nowrap" style={{ color:c, borderColor:c+'33', background:c+'0D' }}>{children}</span>;
+const IFC_C = { N2:'#4FA3E3', SBI:'#35B3A6', N4:'#E9B949', 'S1-MME':'#4FA3E3', S6a:'#A78BFA', S11:'#E9B949', S5:'#F472B6' };
+const RES_C = (r) => r==='Échec'?'#F87171':r==='Succès'||r==='Accepted'||/^2\d\d/.test(r)?'#4ADE80':'#A8BCCF';
 const fmtRate = (v) => v>=1000?(v/1000).toFixed(2)+' Gb/s':v>=1?v.toFixed(1)+' Mb/s':(v*1000).toFixed(0)+' kb/s';
 
 export default function LiveModule({ t, role, setPage }) {
@@ -69,12 +69,12 @@ export default function LiveModule({ t, role, setPage }) {
   useEffect(() => { const b = sigBox.current; if (b && mode === 'table' && atEnd.current) b.scrollTop = b.scrollHeight; }, [shown.length, mode]);
   const selM = msgs.find(m => m.seq === sel);
   const drag = (e, kind) => { e.preventDefault(); const x0=e.clientX, y0=e.clientY, w0=rightW, h0=ladH; const mv=(ev)=>{ if(kind==='w') setRightW(Math.max(280, Math.min(560, w0 - (ev.clientX-x0)))); else setLadH(Math.max(200, Math.min(800, h0 + ev.clientY-y0))); }; const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);}; addEventListener('pointermove',mv); addEventListener('pointerup',up); };
-  const ST_C = { 'Trouvé':'#15803D', 'OUVERT':'#A15C07', 'Non trouvé':'#666666', 'Invalide':'#B42318', 'Refusé':'#B42318', 'Indisponible':'#A15C07' };
+  const ST_C = { 'Trouvé':'#4ADE80', 'OUVERT':'#E9B949', 'Non trouvé':'#9FB3C8', 'Invalide':'#F87171', 'Refusé':'#F87171', 'Indisponible':'#E9B949' };
   const exportCsv = () => { const h='capture_id,seq,t_rel,interface,protocol,message,src,dst,procedure,result,cause\n'; const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([h+shown.map(m=>[m.cap,m.seq,m.rel,m.ifc,m.proto,m.name,m.from,m.to,m.proc,m.res,m.cause].map(x=>`"${x}"`).join(',')).join('\n')],{type:'text/csv'})); a.download='live-'+res.ue+'.csv'; a.click(); };
 
   const sig = <div className={card+' overflow-hidden flex flex-col'} style={full==='sig'?{height:'calc(100vh - 220px)'}:{}}>
     <div className="h-11 px-3 flex items-center gap-2 border-b border-border-subtle">
-      <div className="flex rounded-md border border-border p-0.5 bg-surface-2">{[['ladder','Flèches'],['table','Lignes']].map(([k,n])=><button key={k} onClick={()=>setMode(k)} className={`h-7 px-3 rounded text-[12px] ${mode===k?'bg-white shadow-sm font-semibold text-foreground':'text-muted-foreground'}`}>{t(n)}</button>)}</div>
+      <div className="flex rounded-md border border-border p-0.5 bg-surface-2">{[['ladder','Flèches'],['table','Lignes']].map(([k,n])=><button key={k} onClick={()=>setMode(k)} className={`h-7 px-3 rounded text-[12px] ${mode===k?'bg-card shadow-sm font-semibold text-foreground':'text-muted-foreground'}`}>{t(n)}</button>)}</div>
       <div className="flex gap-1 ml-1">{ifcs.map(i=>{const off=hide.includes(i);return <button key={i} onClick={()=>setHide(h=>off?h.filter(x=>x!==i):[...h,i])} className={`h-6 px-2 rounded-full text-[11px] font-medium border ${off?'border-border text-subtle line-through':'border-transparent text-white'}`} style={off?{}:{background:IFC_C[i]}}>{i}</button>;})}</div>
       <input value={fq} onChange={e=>setFq(e.target.value)} placeholder={t('Filtrer messages…')} className="h-7 w-44 px-2.5 rounded-md border border-border text-[12px] outline-none focus:border-[var(--app-accent)]"/>
       <span className="ml-auto text-[11px] text-subtle tabular-nums">{shown.length}/{msgs.length}</span>
@@ -83,13 +83,13 @@ export default function LiveModule({ t, role, setPage }) {
     </div>
     <div ref={sigBox} onScroll={onSigScroll} className="overflow-auto scroll-thin flex-1" style={full==='sig'?{}:{height:ladH}}>
       {!tracking ? <Empty t={t} demo={demo} res={res}/> : mode==='ladder' ? <Ladder t={t} msgs={shown} nodes={NODES[tech]} sel={sel} setSel={setSel} marks={marks} atEnd={atEnd}/> :
-        <table className="w-full text-[12px]"><thead className="sticky top-0 bg-white"><tr className="text-left text-[11px] text-subtle">{['Capture','Seq','t (s)','Interface','Protocole','Message','Source','Destination','Procédure','Résultat','Cause',''].map(h=><th key={h} className="px-2.5 py-2 font-medium border-b border-border-subtle whitespace-nowrap">{t(h)}</th>)}</tr></thead>
+        <table className="w-full text-[12px]"><thead className="sticky top-0 bg-card"><tr className="text-left text-[11px] text-subtle">{['Capture','Seq','t (s)','Interface','Protocole','Message','Source','Destination','Procédure','Résultat','Cause',''].map(h=><th key={h} className="px-2.5 py-2 font-medium border-b border-border-subtle whitespace-nowrap">{t(h)}</th>)}</tr></thead>
           <tbody>{shown.map(m=><tr key={m.seq} onClick={()=>setSel(m.seq)} className={`cursor-pointer whitespace-nowrap ${sel===m.seq?'bg-surface-2 shadow-[inset_2px_0_0_var(--app-accent)]':'hover:bg-surface-2'} ${marks.includes(m.seq)?'bg-warning-soft':''}`}>
             <td className="px-2.5 py-1.5 font-mono text-subtle">{m.cap}</td><td className="px-2.5 font-mono">{m.seq}</td><td className="px-2.5 font-mono text-subtle">{m.rel}</td><td className="px-2.5"><span className="font-medium" style={{color:IFC_C[m.ifc]}}>{m.ifc}</span></td><td className="px-2.5 text-muted-foreground">{m.proto}</td><td className="px-2.5 text-foreground">{m.name}</td><td className="px-2.5">{m.from}</td><td className="px-2.5">{m.to}</td><td className="px-2.5 text-muted-foreground">{m.proc}</td><td className="px-2.5" style={{color:RES_C(m.res)}}>{m.res}</td><td className="px-2.5 text-danger">{m.cause}</td>
-            <td className="px-2.5"><button onClick={e=>{e.stopPropagation();setSel(m.seq);setMode('ladder');}} className="text-[11px] text-[var(--app-accent)]">{t('→ ladder')}</button></td></tr>)}</tbody></table>}
+            <td className="px-2.5"><button onClick={e=>{e.stopPropagation();setSel(m.seq);setMode('ladder');}} className="text-[11px] text-[var(--app-accent-ink)]">{t('→ ladder')}</button></td></tr>)}</tbody></table>}
     </div>
     {selM && <div className="border-t border-border-subtle px-4 py-3 grid grid-cols-[1fr_auto] gap-3 text-[12px] bg-surface-2">
-      <div className="min-w-0"><div className="flex items-center gap-2"><b className="text-[13px]">{selM.name}</b><Tag c={IFC_C[selM.ifc]}>{selM.ifc}</Tag><Tag c={selM.corr==='EXACT'?'#15803D':'#A15C07'}>{selM.corr}</Tag>{selM.cause&&<Tag c="#B42318">{selM.cause}</Tag>}</div>
+      <div className="min-w-0"><div className="flex items-center gap-2"><b className="text-[13px]">{selM.name}</b><Tag c={IFC_C[selM.ifc]}>{selM.ifc}</Tag><Tag c={selM.corr==='EXACT'?'#4ADE80':'#E9B949'}>{selM.corr}</Tag>{selM.cause&&<Tag c="#F87171">{selM.cause}</Tag>}</div>
         <pre className="mt-2 font-mono text-[11px] text-ink-2 whitespace-pre-wrap">{`capture_id=${selM.cap}  seq=${selM.seq}  t_rel=${selM.rel}s\n${selM.proto.split('/').map((l,i)=>'  '.repeat(i)+'▸ '+l).join('\n')}\n${'  '.repeat(selM.proto.split('/').length)}▸ ${selM.name}  (${selM.from} → ${selM.to})`}</pre></div>
       <div className="flex flex-col gap-1.5"><Btn onClick={()=>setPage('sessions')}>{t('Décodage complet')} →</Btn><Btn onClick={()=>setPage('sessions')}>{t('Preuves')} →</Btn><Btn onClick={()=>setSel(null)}>✕</Btn></div>
     </div>}
@@ -98,24 +98,24 @@ export default function LiveModule({ t, role, setPage }) {
   return (
     <div className="flex-1 overflow-auto scroll-thin bg-surface-2">
       {/* Top zone */}
-      <div className="bg-white border-b border-border">
+      <div className="bg-card border-b border-border">
         <div className="max-w-[1600px] mx-auto px-6 py-4 flex flex-wrap items-center gap-3">
           <div className="mr-2"><div className="text-[12px] text-muted-foreground">POLARIS Live</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Live Trace</h1></div>
-          <form onSubmit={find} className="flex items-center h-9 rounded-lg border border-border bg-white focus-within:border-[var(--app-accent)] overflow-hidden">
+          <form onSubmit={find} className="flex items-center h-9 rounded-lg border border-border bg-card focus-within:border-[var(--app-accent)] overflow-hidden">
             <select value={ttype} onChange={e=>{setTtype(e.target.value);setQ('');}} className="h-full px-2 text-[12px] bg-surface-2 border-r border-border outline-none">
               <option value="pseudo">{t('Pseudonyme')}</option><option disabled value="imsi">IMSI / SUPI — Non disponible</option><option disabled value="guti">GUTI / TMSI — Non disponible</option><option value="cell">{t('Cellule')}</option><option value="run">Run</option>
             </select>
             <input value={q} onChange={e=>setQ(e.target.value)} type={ttype==='imsi'?'password':'text'} autoComplete="off" disabled={!demo} placeholder={{pseudo:'ue-7f3a',imsi:'masqué',guti:'masqué',cell:'0A1F',run:'482'}[ttype]} className="w-48 px-3 text-[13px] font-mono outline-none"/>
             <button disabled={!demo} title={!demo ? t('Non disponible : backend à venir') : ''} className="h-full px-3 bg-[var(--app-accent)] text-white text-[12.5px] font-medium hover:opacity-90">{ttype==='imsi'?'Find IMSI':t('Rechercher')}</button>
           </form>
-          {res && <span className="flex items-center gap-1.5 text-[12px]"><Tag c={ST_C[res.st]||'#666'}>{t(res.st)}</Tag>{res.ue && <span className="font-mono text-foreground">{res.ue}</span>}{res.err && <span className="text-danger">{res.err}</span>}</span>}
+          {res && <span className="flex items-center gap-1.5 text-[12px]"><Tag c={ST_C[res.st]||'#9FB3C8'}>{t(res.st)}</Tag>{res.ue && <span className="font-mono text-foreground">{res.ue}</span>}{res.err && <span className="text-danger">{res.err}</span>}</span>}
           <div className="ml-auto flex items-center gap-2">
             <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground"><span className={`w-[7px] h-[7px] rounded-full ${tracking&&running?'bg-success animate-pulse':'bg-track'}`}/>{tracking?(running?t('Live'):t('En pause')):t('Inactif')}</span>
             {tracking && <span className="text-[12px] text-warning bg-warning-soft border border-warning-line rounded px-1.5 h-6 grid place-items-center">{t('Retard import')} {delay} s</span>}
             <Btn disabled={!tracking} onClick={()=>running?setRunning(false):resume()}>{running?'❚❚ '+t('Pause'):'▶ '+t('Reprendre')+(buf.length?` (+${buf.length})`:'')}</Btn>
             <Btn disabled={!tracking||!msgs.length} onClick={()=>{const s=msgs[msgs.length-1].seq; setMarks(m=>[...m,s]);}}>⚑ {t('Marqueur')}</Btn>
             <Btn onClick={()=>setPage('sessions')}>Session Explorer →</Btn>
-            <button onClick={()=>setDemo(!demo)} className={`h-7 px-2.5 rounded-full text-[11.5px] font-medium border flex items-center gap-1.5 ${demo?'bg-warning-soft border-warning-line text-warning':'border-border text-muted-foreground'}`}><span className={`w-6 h-3.5 rounded-full relative ${demo?'bg-warning':'bg-track'}`}><span className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all ${demo?'left-[12px]':'left-[2px]'}`}/></span>{t('Démo')}</button>
+            <button onClick={()=>setDemo(!demo)} className={`h-7 px-2.5 rounded-full text-[11.5px] font-medium border flex items-center gap-1.5 ${demo?'bg-warning-soft border-warning-line text-warning':'border-border text-muted-foreground'}`}><span className={`w-6 h-3.5 rounded-full relative ${demo?'bg-warning':'bg-track'}`}><span className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-card transition-all ${demo?'left-[12px]':'left-[2px]'}`}/></span>{t('Démo')}</button>
           </div>
         </div>
         {/* compact counters */}
@@ -160,16 +160,16 @@ function Ladder({ t, msgs, nodes, sel, setSel, marks, atEnd }) {
   const box = useRef(null);
   useEffect(() => { const b = box.current?.parentElement; if (b && atEnd.current) b.scrollTop = b.scrollHeight; }, [msgs.length]);
   return <div ref={box}>
-    <div className="sticky top-0 z-10 bg-white grid border-b border-border-subtle" style={{ gridTemplateColumns: `repeat(${nodes.length},1fr)` }}>{nodes.map(n => <div key={n} className="text-center text-[11.5px] font-semibold text-ink-2 py-2">{n}</div>)}</div>
+    <div className="sticky top-0 z-10 bg-card grid border-b border-border-subtle" style={{ gridTemplateColumns: `repeat(${nodes.length},1fr)` }}>{nodes.map(n => <div key={n} className="text-center text-[11.5px] font-semibold text-ink-2 py-2">{n}</div>)}</div>
     <svg viewBox={`0 0 ${W} ${msgs.length * RH + 12}`} className="w-full block" style={{ height: msgs.length * RH + 12 }} preserveAspectRatio="none">
-      {nodes.map(n => <line key={n} x1={cx(n)} x2={cx(n)} y1={0} y2={msgs.length * RH + 12} stroke="#EFEFEF" />)}
-      {msgs.map((m, i) => { const y = i * RH + 22, a = cx(m.from), b = cx(m.to), c = IFC_C[m.ifc] || '#666', on = sel === m.seq, fail = m.res === 'Échec';
+      {nodes.map(n => <line key={n} x1={cx(n)} x2={cx(n)} y1={0} y2={msgs.length * RH + 12} stroke="#1E3A57" />)}
+      {msgs.map((m, i) => { const y = i * RH + 22, a = cx(m.from), b = cx(m.to), c = IFC_C[m.ifc] || '#9FB3C8', on = sel === m.seq, fail = m.res === 'Échec';
         return <g key={m.seq} onClick={() => setSel(m.seq)} className="cursor-pointer">
-          <rect x={0} y={y - 20} width={W} height={RH} fill={on ? '#F5F5F5' : marks.includes(m.seq) ? '#FFFBEB' : 'transparent'} />
+          <rect x={0} y={y - 20} width={W} height={RH} fill={on ? '#16344F' : marks.includes(m.seq) ? '#2B2110' : 'transparent'} />
           <line x1={a} x2={b} y1={y} y2={y} stroke={c} strokeWidth={on ? 2.4 : 1.5} strokeDasharray={m.proto.includes('NAS') && !m.proto.startsWith('NAS') ? '' : ''} />
           <path d={b > a ? `M${b},${y} l-7,-3.5 v7z` : `M${b},${y} l7,-3.5 v7z`} fill={c} />
-          <text x={(a + b) / 2} y={y - 6} fontSize="11" textAnchor="middle" fill={fail ? '#B42318' : '#171717'} fontWeight={on ? 600 : 400}>{m.name}{m.cause ? ' · ' + m.cause.split(' ').slice(0, 2).join(' ') : ''}</text>
-          <text x={6} y={y + 4} fontSize="9.5" fill="#A3A3A3" fontFamily="monospace">{m.seq}</text>
+          <text x={(a + b) / 2} y={y - 6} fontSize="11" textAnchor="middle" fill={fail ? '#F87171' : '#E8EEF5'} fontWeight={on ? 600 : 400}>{m.name}{m.cause ? ' · ' + m.cause.split(' ').slice(0, 2).join(' ') : ''}</text>
+          <text x={6} y={y + 4} fontSize="9.5" fill="#A8BCCF" fontFamily="monospace">{m.seq}</text>
           <text x={W - 6} y={y + 4} fontSize="9.5" textAnchor="end" fill={c}>{m.ifc}{m.corr !== 'EXACT' ? ' ·?' : ''}</text>
         </g>; })}
     </svg></div>;
@@ -190,7 +190,7 @@ function Throughput({ t, data, running, delay, tracking, onFull, full, ue }) {
   const path = k => pts.map((p, i) => `${i ? 'L' : 'M'}${X(p.ts).toFixed(1)},${Y(p[k]).toFixed(1)}`).join(' ');
   const stats = k => { const v = pts.map(p => p[k]); return v.length ? { cur: v[v.length - 1], min: Math.min(...v), max: Math.max(...v), avg: v.reduce((a, b) => a + b, 0) / v.length } : null; };
   const toTs = (e) => { const r = svg.current.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width * W; return lo + (x - L) / (W - L - R) * (hi - lo); };
-  const S = { dl: ['DL', 'var(--app-accent)'], ul: ['UL', '#A15C07'] };
+  const S = { dl: ['DL', 'var(--app-accent)'], ul: ['UL', '#E9B949'] };
   return <div className={card + ' overflow-hidden'}>
     <div className="h-11 px-4 flex items-center gap-3 border-b border-border-subtle">
       <h3 className="text-[13px] font-semibold">Throughput UL / DL</h3>
@@ -209,14 +209,14 @@ function Throughput({ t, data, running, delay, tracking, onFull, full, ue }) {
         <svg ref={svg} viewBox={`0 0 ${W} ${H}`} className="w-full select-none" style={{ height: H }} preserveAspectRatio="none"
           onPointerDown={e => setDragSel([toTs(e), toTs(e)])} onPointerMove={e => { const ts = toTs(e); if (dragSel) setDragSel([dragSel[0], ts]); const p = pts.reduce((a, b) => Math.abs(b.ts - ts) < Math.abs(a.ts - ts) ? b : a, pts[0]); setHover(p); }}
           onPointerUp={() => { if (dragSel && Math.abs(dragSel[1] - dragSel[0]) > 2000) setZoom([Math.min(...dragSel), Math.max(...dragSel)]); setDragSel(null); }} onPointerLeave={() => { setHover(null); setDragSel(null); }}>
-          {[0, 0.25, 0.5, 0.75, 1].map(f => <g key={f}><line x1={L} x2={W - R} y1={Y(ymax * f)} y2={Y(ymax * f)} stroke="#F2F2F2" /><text x={L - 6} y={Y(ymax * f) + 3} fontSize="10" textAnchor="end" fill="#A3A3A3">{fmtRate(ymax * f)}</text></g>)}
-          {[0, 0.25, 0.5, 0.75, 1].map(f => { const ts = lo + (hi - lo) * f; return <text key={f} x={X(ts)} y={H - 8} fontSize="10" textAnchor="middle" fill="#A3A3A3">{new Date(ts).toLocaleTimeString('fr-FR')}</text>; })}
-          {show.dl && <><path d={`${path('dl')} L${X(pts[pts.length - 1].ts)},${H - B} L${X(pts[0].ts)},${H - B} Z`} fill="var(--app-accent)" opacity="0.07" /><path d={path('dl')} fill="none" stroke="var(--app-accent)" strokeWidth="2" vectorEffect="non-scaling-stroke" /></>}
-          {show.ul && <path d={path('ul')} fill="none" stroke="#A15C07" strokeWidth="1.8" vectorEffect="non-scaling-stroke" />}
+          {[0, 0.25, 0.5, 0.75, 1].map(f => <g key={f}><line x1={L} x2={W - R} y1={Y(ymax * f)} y2={Y(ymax * f)} stroke="#1E3A57" /><text x={L - 6} y={Y(ymax * f) + 3} fontSize="10" textAnchor="end" fill="#A8BCCF">{fmtRate(ymax * f)}</text></g>)}
+          {[0, 0.25, 0.5, 0.75, 1].map(f => { const ts = lo + (hi - lo) * f; return <text key={f} x={X(ts)} y={H - 8} fontSize="10" textAnchor="middle" fill="#A8BCCF">{new Date(ts).toLocaleTimeString('fr-FR')}</text>; })}
+          {show.dl && <><path d={`${path('dl')} L${X(pts[pts.length - 1].ts)},${H - B} L${X(pts[0].ts)},${H - B} Z`} fill="var(--app-accent)" opacity="0.07" /><path d={path('dl')} fill="none" stroke="var(--app-accent-ink)" strokeWidth="2" vectorEffect="non-scaling-stroke" /></>}
+          {show.ul && <path d={path('ul')} fill="none" stroke="#E9B949" strokeWidth="1.8" vectorEffect="non-scaling-stroke" />}
           {dragSel && <rect x={Math.min(X(dragSel[0]), X(dragSel[1]))} y={T} width={Math.abs(X(dragSel[1]) - X(dragSel[0]))} height={H - T - B} fill="var(--app-accent)" opacity="0.1" />}
-          {hover && <line x1={X(hover.ts)} x2={X(hover.ts)} y1={T} y2={H - B} stroke="#A3A3A3" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />}
+          {hover && <line x1={X(hover.ts)} x2={X(hover.ts)} y1={T} y2={H - B} stroke="#A8BCCF" strokeDasharray="3 3" vectorEffect="non-scaling-stroke" />}
         </svg>}
-      {hover && tracking && <div className="absolute top-3 right-6 bg-white border border-border rounded-md shadow-sm px-3 py-2 text-[11.5px] pointer-events-none"><div className="font-mono text-subtle">{new Date(hover.ts).toLocaleTimeString('fr-FR')}</div><div><span style={{ color: 'var(--app-accent)' }}>DL</span> {fmtRate(hover.dl)}</div><div><span className="text-warning">UL</span> {fmtRate(hover.ul)}</div><div className="text-subtle">{t('source GTP-U, 1 s')}</div></div>}
+      {hover && tracking && <div className="absolute top-3 right-6 bg-card border border-border rounded-md shadow-sm px-3 py-2 text-[11.5px] pointer-events-none"><div className="font-mono text-subtle">{new Date(hover.ts).toLocaleTimeString('fr-FR')}</div><div><span style={{ color: 'var(--app-accent)' }}>DL</span> {fmtRate(hover.dl)}</div><div><span className="text-warning">UL</span> {fmtRate(hover.ul)}</div><div className="text-subtle">{t('source GTP-U, 1 s')}</div></div>}
       {tracking && <div className="px-2 text-[11px] text-subtle">{t('Glissez sur le graphique pour zoomer sur une plage.')}</div>}
     </div>
   </div>;
@@ -225,7 +225,7 @@ function Throughput({ t, data, running, delay, tracking, onFull, full, ue }) {
 function UeInfo({ t, ue, res, op, tracking, msgs, onHide }) {
   const last = msgs[msgs.length - 1]; const lastFail = [...msgs].reverse().find(m => m.res === 'Échec');
   const reg = msgs.find(m => /Registration Accept|Attach Accept/.test(m.name)); const pdu = [...msgs].reverse().find(m => /PDU Session Establishment (Accept|Reject)|Create Session Response/.test(m.name));
-  const Row = ({ n, v, s }) => <div className="flex items-baseline gap-2 py-[5px] text-[12px]"><span className="w-[120px] shrink-0 text-subtle">{n}</span>{v ? <span className="text-foreground font-mono text-[11.5px] truncate" title={s ? 'preuve : seq ' + s : ''}>{v}</span> : <span className="text-subtle italic">{t('Non disponible')}</span>}{v && s && <span className="ml-auto shrink-0 font-mono text-[11px] text-[var(--app-accent)]">#{s}</span>}</div>;
+  const Row = ({ n, v, s }) => <div className="flex items-baseline gap-2 py-[5px] text-[12px]"><span className="w-[120px] shrink-0 text-subtle">{n}</span>{v ? <span className="text-foreground font-mono text-[11.5px] truncate" title={s ? 'preuve : seq ' + s : ''}>{v}</span> : <span className="text-subtle italic">{t('Non disponible')}</span>}{v && s && <span className="ml-auto shrink-0 font-mono text-[11px] text-[var(--app-accent-ink)]">#{s}</span>}</div>;
   const Sec = ({ title, children }) => <div className="px-4 py-2.5 border-b border-border-subtle"><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle mb-1">{t(title)}</div>{children}</div>;
   const [proof, setProof] = useState(false);
   const I = ue?.info || {}; const has = (k) => { const v = I[k]; if (!tracking || !v || !v[0]) return [null, null]; if (v[1] == null) return v; const need = v[1] < 1000 ? v[1] + 400 : v[1]; return msgs.some(m => m.seq >= need) ? [v[0], need] : [null, null]; };
@@ -236,7 +236,7 @@ function UeInfo({ t, ue, res, op, tracking, msgs, onHide }) {
         <Row n={t('Pseudonyme')} v={res.ue} s={null} />
         <Row n="IMSI / SUPI" v={null} s={null} />
         {!op && <div className="text-[11px] text-subtle -mt-0.5 mb-1">{t('masqué en rôle viewer')}</div>}
-        <div className="flex items-center gap-2 py-1 text-[12px]"><span className="w-[120px] text-subtle">{t('Rattachement')}</span><Tag c={res.st === 'Trouvé' ? '#15803D' : '#A15C07'}>{res.st === 'Trouvé' ? 'EXACT' : 'OUVERT'}</Tag><button onClick={() => setProof(!proof)} className="ml-auto text-[11px] text-[var(--app-accent)]">{proof ? t('masquer') : t('preuve')}</button></div>
+        <div className="flex items-center gap-2 py-1 text-[12px]"><span className="w-[120px] text-subtle">{t('Rattachement')}</span><Tag c={res.st === 'Trouvé' ? '#4ADE80' : '#E9B949'}>{res.st === 'Trouvé' ? 'EXACT' : 'OUVERT'}</Tag><button onClick={() => setProof(!proof)} className="ml-auto text-[11px] text-[var(--app-accent-ink)]">{proof ? t('masquer') : t('preuve')}</button></div>
         {proof && <div className="text-[11px] text-ink-2 bg-surface-2 rounded p-2 mb-1">{ue.proof}</div>}
       </Sec>
       <Sec title="Réseau radio">{['Technologie', 'PLMN', 'Site', 'Cell Name', ue.tech === 'LTE' ? 'ECGI' : 'NR-CGI', 'TAC', ue.tech === 'LTE' ? 'eNB ID' : 'gNB ID'].map(k => { const [v, s] = has(k); return <Row key={k} n={k} v={v} s={s} />; })}</Sec>
@@ -257,7 +257,7 @@ function Procedures({ t, msgs, tracking, onGo }) {
     msgs.forEach(m => { let p = open[m.proc]; if (!p || m.kind === 'start' && p.status !== 'En cours') { p = { name: m.proc, start: m, status: 'En cours', last: m, cause: '' }; open[m.proc] = p; out.push(p); }
       p.last = m; if (m.res === 'Échec') { p.status = 'Échec'; p.cause = m.cause; } else if (m.kind === 'end' && p.status === 'En cours') p.status = 'Succès'; });
     return out.reverse(); }, [msgs]);
-  const C = { 'En cours': '#0062A1', 'Succès': '#15803D', 'Échec': '#B42318', 'Incomplète': '#8F8F8F' };
+  const C = { 'En cours': '#4FA3E3', 'Succès': '#4ADE80', 'Échec': '#F87171', 'Incomplète': '#A8BCCF' };
   return <div className={card + ' overflow-hidden'}>
     <div className="h-10 px-4 flex items-center border-b border-border-subtle"><h3 className="text-[13px] font-semibold">UE Procedure Updates</h3><span className="ml-auto text-[11px] text-subtle">{list.length}</span></div>
     <div className="max-h-[320px] overflow-auto scroll-thin">{!tracking || !list.length ? <div className="px-4 py-4 text-[12px] text-subtle">{t('Aucune procédure observée.')}</div> :

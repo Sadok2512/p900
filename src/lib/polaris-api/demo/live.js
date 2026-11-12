@@ -42,7 +42,7 @@ const SLTE = [
   ['S1-MME','S1AP/NAS-EMM','MME','UE','Tracking Area Update Reject','TAU','Échec','EMM #9 UE identity cannot be derived', 'end'],
 ];
 const NODES = { '5G': ['UE','gNB','AMF','AUSF','UDM','SMF','UPF'], 'LTE': ['UE','eNB','MME','HSS','SGW','PGW'] };
-const IFC_C = { N2:'#0062A1', SBI:'#0F5B56', N4:'#A15C07', 'S1-MME':'#0062A1', S6a:'#7C3AED', S11:'#A15C07', S5:'#DB2777' };
+const IFC_C = { N2:'#4FA3E3', SBI:'#35B3A6', N4:'#E9B949', 'S1-MME':'#4FA3E3', S6a:'#A78BFA', S11:'#E9B949', S5:'#F472B6' };
 /* Known identities (demo lookup table, stands in for the correlated identity chain API) */
 const DIR = {
   'ue-7f3a': { tech:'5G', st:'Trouvé', imsiMask:'masqué', proof:'Registration Request · SUCI→SUPI (SBI Nausf, capture 482 seq 1 204)', cap:482,
