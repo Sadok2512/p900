@@ -8,7 +8,7 @@ export const VerdictBadge = ({v}) => { const [c,b]=VERDICT_STYLE[v]||VERDICT_STY
 const H = ({children}) => <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-1.5">{children}</div>;
 const Row = ({k,v}) => <><dt className="text-muted-foreground">{k}</dt><dd className="text-foreground break-all" title={String(v)}>{v}</dd></>;
 
-export default function SessionAnalysis({s,role,width,onPick,onHide,loading,onOpenSession}) {
+export default function SessionAnalysis({s,width,onPick,onHide,loading,onOpenSession}) {
   const identities=useSessionIdentities(s.session_id,true);
   const ids=identities.data?.data??{};
   const flow = s.d;

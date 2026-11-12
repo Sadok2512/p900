@@ -24,7 +24,7 @@ export function OtherSessions({s, onOpen}) {
   </section>;
 }
 
-export default function SubscriberJourney({s, role, onOpen}) {
+export default function SubscriberJourney({s, onOpen}) {
   const [query,setQuery] = useState(''); const [submitted,setSubmitted] = useState('');
   const lookup = useIdentityLookup(submitted,true);
   const looked = lookup.data?.data?.subscriber_pseudonym;

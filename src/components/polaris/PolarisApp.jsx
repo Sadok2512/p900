@@ -92,10 +92,10 @@ function TopBar({page,setPage,onAnalyzer,accent,onSettings,metrics,version,demo,
         <div style={{background:accent}} className="w-8 h-8 rounded-[7px] grid place-items-center"><svg viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path d="M12 2 13.6 10.4 22 12 13.6 13.6 12 22 10.4 13.6 2 12 10.4 10.4Z" fill="#fff"/></svg></div>
         <TopBarVersion version={version}/>
       </div>
-      <nav className="flex h-full min-w-0 overflow-x-auto scroll-thin gap-1 lg:gap-2">
-        {[['home','Accueil'],['templates','Dashboard'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],...(TRAFFIC_ENABLED && demo ? [['trafic','Traffic']] : [])].filter(([k])=>isVisible(hidden,k)).map(([k,n]) => {
-          const on = page===k, ok = ['home','sessions','nodes','templates','kpi','live','trafic'].includes(k);
-          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative shrink-0 px-3 h-full flex items-center text-[14px] outline-none focus-visible:bg-muted rounded-sm transition-colors ${ok?'cursor-pointer':'cursor-default'} ${on?'text-foreground font-semibold':'text-muted-foreground font-medium hover:text-foreground'}`} aria-current={on?'page':undefined}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-sm"/>}</button>;
+      <nav aria-label="Navigation principale" className="flex h-full min-w-0 overflow-x-auto scroll-thin gap-1 lg:gap-2">
+        {[['home','Accueil'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],...(TRAFFIC_ENABLED && demo ? [['trafic','Traffic']] : [])].filter(([k])=>isVisible(hidden,k)).map(([k,n]) => {
+          const on = page===k, ok = ['home','sessions','nodes','kpi','live','trafic'].includes(k);
+          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if(k==='sessions' && onAnalyzer) onAnalyzer(); } }} className={`relative shrink-0 px-3 h-full flex items-center text-[14px] outline-none focus-visible:bg-muted rounded-sm transition-colors ${ok?'cursor-pointer':'cursor-default'} ${on?'text-foreground font-semibold':'text-muted-foreground font-medium hover:text-foreground'}`} aria-current={on?'page':undefined}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-sm"/>}</button>;
         })}
       </nav>
       <div className="ml-auto shrink-0 flex items-center gap-2 lg:gap-4 text-[13px]">
@@ -203,7 +203,7 @@ const GRID_COLS = [
   {k:'ex',l:'Liens EXACT',g:'correlation',w:90,v:r=>r.ex,mono:true},
   {k:'comp',l:'Compl.',g:'correlation',w:68,v:r=>r.comp==='—'?'—':`${r.comp} %`,sort:r=>Number(r.comp)||-1},
 ];
-function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
+function Grid({rows,sel,setSel,conds,setConds,onEdit,height}) {
   const { demo } = usePolarisMode(); const sessions = useSessions({ page:1, page_size:100, sort:'capture_id', order:'asc' },false);
   const [more,setMore] = useState(false);
   const [manageCols,setManageCols] = useState(false);
@@ -493,7 +493,7 @@ function DecodeTree({tree}) {
   </div>;
 }
 
-function Inspector({s,sel,role,lens,setLens,width,onHide}) {
+function Inspector({s,sel,lens,setLens,width,onHide}) {
   const [tab,setTab] = useState(()=>{ try { return localStorage.getItem('polaris-insp-tab')||'Décodage'; } catch(e) { return 'Décodage'; } });
   useEffect(()=>{ try { localStorage.setItem('polaris-insp-tab',tab); } catch(e) {} },[tab]);
   const d = s.d, m = d.msgs[Math.min(sel,d.msgs.length-1)];
@@ -908,7 +908,7 @@ function QSec({n,title,sub,children}) {
   );
 }
 
-function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]}) {
+function QueryEditor({draft,setDraft,dirty,run,save,cancel,sessionRows=[]}) {
   const { demo } = usePolarisMode(); const datasets = useDatasets(); const causes = useAvailableCauses();
   const scopes = records(datasets.data?.data, 'datasets');
   const fieldList = demo ? FIELDS : [['Message',[]],['Cause',Array.isArray(causes.data?.data) ? causes.data.data.map(x=>typeof x==='string'?x:String(x.cause ?? x.code ?? '—')) : []],['Interface',FIELDS.find(x=>x[0]==='Interface')[1]],['UE',sessionRows.map(x=>x.ue)]];
@@ -1114,7 +1114,7 @@ function MockChart({data,unit}){
 }
 
 function App() {
-  const { demo } = usePolarisMode(); const role = 'operator';
+  const { demo } = usePolarisMode();
   const version = useVersion(), metrics = useLiveMetrics();
   const kpis = useKpiCatalogue(); const demoLibrary = useDemoLibrary(); const sessionFilter = useSessionFilter();
   const [requestError,setRequestError] = useState('');
@@ -1129,9 +1129,9 @@ function App() {
   const navHidden = hiddenMods;
   const toggleMod = k => setHiddenMods(h=>{ const n=toggleHidden(h,k); saveHidden(n); return n; });
   const accent = accentOf(theme);
-    const readP = () => { const h=(location.hash||'').replace('#',''); return (h!=='trafic'||TRAFFIC_ENABLED) && ['sessions','nodes','settings','templates','kpi','live','trafic'].includes(h) ? h : 'home'; };
+    const readP = () => { const h=(location.hash||'').replace('#',''); if(h==='templates'){ try { localStorage.setItem('polaris-kpi-tab', JSON.stringify('dash')); location.hash = 'kpi'; } catch(e) {} return 'kpi'; } return (h!=='trafic'||TRAFFIC_ENABLED) && ['sessions','nodes','settings','kpi','live','trafic'].includes(h) ? h : 'home'; };
   const [page,setPageS] = useState(readP);
-  const setPage = p => { if(p==='trafic'&&!TRAFFIC_ENABLED) p='home'; try { location.hash = p; } catch(e) {} setPageS(p); };
+  const setPage = p => { if(p==='trafic'&&!TRAFFIC_ENABLED) p='home'; if(p==='templates'){ try { localStorage.setItem('polaris-kpi-tab', JSON.stringify('dash')); } catch(e) {} p='kpi'; } try { location.hash = p; } catch(e) {} setPageS(p); };
   useEffect(()=>{ const f=()=>setPageS(readP()); window.addEventListener('hashchange',f); return ()=>window.removeEventListener('hashchange',f); },[]);
   const [tabs,setTabs] = useState([]);
   const seededDemo = useRef(false);
@@ -1252,12 +1252,12 @@ function App() {
       <TopBar page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')} metrics={metrics} version={version} demo={demo} hidden={navHidden}/>
       <DataStatus t={t}/>
       {requestError && <div role="alert" className="shrink-0 border-b border-warning-line bg-warning-soft px-4 py-2 text-[12px] text-warning">{requestError}</div>}
-      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={navHidden} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : page==='templates' ? <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
+      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={navHidden} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV} DashboardView={<QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/>}/> : page==='live' ? <LiveModule t={t} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : <>
       {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
-      {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">
+      {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">
         <main ref={mainRef} className={`flex-1 min-w-0 flex-col ${geoMax && selected && !geoHidden && !full ? 'hidden' : 'flex'}`}>
           {!full && !gridHidden && <>
-            <Grid rows={rows} sel={s?.id} setSel={setSel} role={role} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`}/>
+            <Grid rows={rows} sel={s?.id} setSel={setSel} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`}/>
             <div onMouseDown={e=>drag(e,'h')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group h-2 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[2px] w-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
           </>}
           <div ref={lowRef} className="flex-1 min-h-0 flex">
@@ -1265,9 +1265,9 @@ function App() {
           </div>
         </main>
         {selected && !full && (geoHidden ? null : <>{!geoMax && <div onMouseDown={e=>drag(e,'geo')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div>}<aside style={geoMax?undefined:{width:`${geoPct}%`}} aria-label="Geolocating" className={`${geoMax?'flex-1':'shrink-0'} bg-white flex flex-col min-w-0 rounded-xl border border-border overflow-hidden`}><GeoPanel s={selected} msg={msg} setMsg={k=>setMsg(Math.max(0,k))} onHide={()=>{setGeoHidden(true); setGeoMax(false);}} max={geoMax} setMax={setGeoMax}/></aside></>)}
-        {selected && !full && (jouHidden ? null : <><div onMouseDown={e=>drag(e,'jou')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><aside style={{width:`${jouPct}%`}} aria-label="Parcours abonné" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-border overflow-hidden"><div className="h-[42px] shrink-0 px-4 flex items-center border-b border-border"><span className="text-[13px] font-semibold text-foreground">Parcours abonné</span><button onClick={()=>setJouHidden(true)} title="Masquer Parcours abonné" className="ml-auto w-7 h-7 rounded-md grid place-items-center text-muted-foreground hover:bg-muted">×</button></div><div className="flex-1 overflow-auto scroll-thin"><SubscriberJourney s={selected} role={role} onOpen={id=>{ if(id) setSel(id); }}/></div></aside></>)}
-        {selected && !full && (insHidden ? null : <><div onMouseDown={e=>drag(e,'ins')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><Inspector key={selected.id} s={selected} sel={msg} role={role} lens={lens} setLens={setLens} width={`${insPct}%`} onHide={()=>setInsHidden(true)}/></>)}
-        {selected && !full && (anaHidden ? null : <><div onMouseDown={e=>drag(e,'ana')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><SessionAnalysis role={role} onOpenSession={id=>setSel(id)} s={selected} width={`${anaPct}%`} loading={bundle.callflow.isFetching || bundle.events.isFetching} onPick={k=>setMsg(Math.max(0,k))} onHide={()=>setAnaHidden(true)}/></>)}
+        {selected && !full && (jouHidden ? null : <><div onMouseDown={e=>drag(e,'jou')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><aside style={{width:`${jouPct}%`}} aria-label="Parcours abonné" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-border overflow-hidden"><div className="h-[42px] shrink-0 px-4 flex items-center border-b border-border"><span className="text-[13px] font-semibold text-foreground">Parcours abonné</span><button onClick={()=>setJouHidden(true)} title="Masquer Parcours abonné" className="ml-auto w-7 h-7 rounded-md grid place-items-center text-muted-foreground hover:bg-muted">×</button></div><div className="flex-1 overflow-auto scroll-thin"><SubscriberJourney s={selected} onOpen={id=>{ if(id) setSel(id); }}/></div></aside></>)}
+        {selected && !full && (insHidden ? null : <><div onMouseDown={e=>drag(e,'ins')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><Inspector key={selected.id} s={selected} sel={msg} lens={lens} setLens={setLens} width={`${insPct}%`} onHide={()=>setInsHidden(true)}/></>)}
+        {selected && !full && (anaHidden ? null : <><div onMouseDown={e=>drag(e,'ana')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><SessionAnalysis onOpenSession={id=>setSel(id)} s={selected} width={`${anaPct}%`} loading={bundle.callflow.isFetching || bundle.events.isFetching} onPick={k=>setMsg(Math.max(0,k))} onHide={()=>setAnaHidden(true)}/></>)}
         {selected && !full && <nav aria-label="Panneaux" className="ml-2 w-10 shrink-0 self-stretch bg-white rounded-xl border border-border flex flex-col items-center py-2 gap-1">
           {[['Geolocating',geoHidden,v=>{setGeoHidden(v); if(v) setGeoMax(false);},'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5'],['Parcours abonné',jouHidden,setJouHidden,'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6'],['Décodage',insHidden,setInsHidden,'M8 6l-6 6 6 6M16 6l6 6-6 6'],['Analyse sessions',anaHidden,setAnaHidden,'M4 20V10M10 20V4M16 20v-7M22 20H2']].map(([l,h,set,d])=><button key={l} type="button" onClick={()=>set(!h)} aria-pressed={!h} title={`${h?'Afficher':'Masquer'} ${l}`} className={`w-8 rounded-lg flex flex-col items-center gap-2 py-2.5 transition ${!h?'bg-brand-soft text-[var(--app-accent)]':'text-muted-foreground hover:bg-muted hover:text-foreground'}`}><I d={d} c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[11.5px] font-medium">{l}</span></button>)}
         </nav>}

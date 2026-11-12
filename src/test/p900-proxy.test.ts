@@ -54,7 +54,7 @@ describe('p900 proxy request target validation', () => {
     const access=proxyAccess('/api/v1/sessions','GET',{});
     expect(access).toEqual({authenticated:true,status:200});
     const headers=forwardedHeaders({},targetFor('/api/v1/sessions')!,'GET',{operatorAuthenticated:access.authenticated,tokenOverride:'server-token'});
-    expect(headers.authorization).toBe('Bearer server-token');
+    expect(headers['authorization']).toBe('Bearer server-token');
   });
 
   it('opens identities, dissection, live streams, audit, and writes without Basic', () => {
@@ -70,7 +70,7 @@ describe('p900 proxy request target validation', () => {
     const access=proxyAccess('/api/v1/captures/start','POST',{});
     expect(access).toEqual({authenticated:true,status:200});
     const headers=forwardedHeaders({},targetFor('/api/v1/captures/start')!,'POST',{operatorAuthenticated:access.authenticated,tokenOverride:'server-token'});
-    expect(headers.authorization).toBe('Bearer server-token');
+    expect(headers['authorization']).toBe('Bearer server-token');
     expect(headers['x-csrf-token']).toBe(csrfForToken('server-token'));
   });
 

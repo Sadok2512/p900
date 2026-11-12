@@ -11,6 +11,9 @@
 - Le proxy active `P900_OPEN_ACCESS=1` par défaut et injecte le jeton operator côté serveur pour toutes les requêtes HTTP, SSE et upgrade, sans demander d’authentification Basic au navigateur.
 - Les identités observées, Live Trace, la dissection et les actions de capture sont directement accessibles ; l’interface ne présente plus de connexion, de rôle utilisateur ni de réglage de mot de passe.
 - L’accès fermé optionnel ne produit plus de challenge Basic : une requête restreinte est refusée avec HTTP 403.
+- « Dashboard » quitte le menu du haut : la page des requêtes (recherche, modèles, requêtes enregistrées) s'ouvre désormais dans l'onglet **Dashboard** de KPI, entre KPI Builder et Anomalies, y compris hors mode Démo.
+- Le menu du haut affiche Accueil · Analyzer · KPI · Live ; l'ancienne bibliothèque de dashboards de démo et l'action « + Dashboard » du catalogue sont retirées, l'onglet affichant la page déplacée.
+- Les liens `#templates` et l'action « Ouvrir un template » de l'accueil ouvrent KPI → Dashboard ; le module « templates » disparaît de la visibilité des modules.
 
 ## 2.2.1
 

@@ -14,8 +14,7 @@ const Tag = ({ c='#666666', children }) => <span className="text-[11px] font-med
 const RES_C = (r) => r==='Échec'?'#B42318':r==='Succès'||r==='Accepted'||/^2\d\d/.test(r)?'#15803D':'#8F8F8F';
 const fmtRate = (v) => v>=1000?(v/1000).toFixed(2)+' Gb/s':v>=1?v.toFixed(1)+' Mb/s':(v*1000).toFixed(0)+' kb/s';
 
-export default function LiveModule({ t, role, setPage }) {
-  const op = true;
+export default function LiveModule({ t, setPage }) {
   const { demo, setDemo } = usePolarisMode();
   const liveData = useLiveDemo(); const DIR = liveData.directory; const NODES = liveData.nodes; const IFC_C = liveData.colors;
   const [ttype, setTtype] = useState('pseudonym');
@@ -63,7 +62,7 @@ export default function LiveModule({ t, role, setPage }) {
     ['message','throughput','ue_info','procedure','marker','status'].forEach(k=>source.addEventListener(k,receive(k))); source.onerror=()=>setRes(r=>({...r,st:'Déconnecté',err:'Flux SSE interrompu'})); return()=>source.close(); },[traceId,demo]);
 
   const find = async (e) => { e?.preventDefault(); const v=q.trim(); if(!v){setRes({st:'Invalide',err:t('Identifiant requis.')});return;} if(!demo){try{const out=await request('/live/traces',{method:'POST',body:{key_type:ttype,value:v,duration_s:1800,interfaces:[]},clearIdentityResponse:true});setTraceId(out.data.trace_id);setTtl(Math.max(0,out.data.expires_at-Math.floor(Date.now()/1000)));setRes({st:out.data.armed?'ARMÉE':'OUVERT',ue:out.data.subscriber_pseudonyms?.[0],identities:out.data.identities??out.data});setJournal(j=>[{ts:new Date().toLocaleTimeString('fr-FR'),who:'SD',a:`trace ${ttype}`,c:'valeur protégée',r:out.data.armed?'ARMÉE':'OUVERT'},...j]);}catch(error){setRes({st:'Indisponible',err:error?.message||'API Live indisponible'});}return;} let r;
-    if (ttype === 'pseudo') { if (!/^ue-[0-9a-f]{4}$/.test(v)) r = { st:'Invalide', err:t('Format pseudonyme : ue-xxxx') }; else r = DIR[v] ? { st:DIR[v].st, ue:v } : { st:'Non trouvé' }; setJournal(j => [{ ts:new Date().toLocaleTimeString('fr-FR'), who:'SD', role, a:'recherche pseudo', c:v, r:r.st }, ...j]); }
+    if (ttype === 'pseudo') { if (!/^ue-[0-9a-f]{4}$/.test(v)) r = { st:'Invalide', err:t('Format pseudonyme : ue-xxxx') }; else r = DIR[v] ? { st:DIR[v].st, ue:v } : { st:'Non trouvé' }; setJournal(j => [{ ts:new Date().toLocaleTimeString('fr-FR'), who:'SD', a:'recherche pseudo', c:v, r:r.st }, ...j]); }
     else if (ttype === 'guti') { r = /^[0-9A-F-]{8,}$/i.test(v) ? (v.toUpperCase().includes('0A7E91F0') ? { st:'Trouvé', ue:'ue-7f3a' } : { st:'Non trouvé' }) : { st:'Invalide', err:t('Format GUTI/TMSI invalide.') }; }
     else if (ttype === 'cell') { r = ['0A1F','0B07'].includes(v.toUpperCase()) ? { st:'Trouvé', ue: v.toUpperCase()==='0A1F'?'ue-7f3a':'ue-21c0' } : { st:'Non trouvé' }; }
     else { r = /482/.test(v) ? { st:'Trouvé', ue:'ue-7f3a' } : /219/.test(v) ? { st:'Trouvé', ue:'ue-21c0' } : { st:'Non trouvé' }; }
@@ -144,7 +143,7 @@ export default function LiveModule({ t, role, setPage }) {
           {rightOpen ? <>
             <div onPointerDown={e=>drag(e,'w')} onDoubleClick={()=>setRightW(360)} className="w-3 self-stretch cursor-col-resize grid place-items-center group"><span className="w-1 h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)]"/></div>
             <div className="shrink-0 space-y-3" style={{width:rightW}}>
-              <UeInfo t={t} ue={ue} res={res} op={op} tracking={tracking} msgs={msgs} onHide={()=>setRightOpen(false)}/>
+              <UeInfo t={t} ue={ue} res={res} tracking={tracking} msgs={msgs} onHide={()=>setRightOpen(false)}/>
               <Procedures t={t} msgs={msgs} tracking={tracking} onGo={(s)=>{setSel(s);}}/>
               <div className={card+' overflow-hidden'}><div className="h-10 px-4 flex items-center border-b border-border-subtle text-[12.5px] font-semibold">{t('Journal des recherches')}</div>
                 {journal.length===0?<div className="px-4 py-3 text-[12px] text-subtle">{t('Aucune recherche dans cette session.')}</div>:journal.slice(0,6).map((j,i)=><div key={i} className="px-4 py-2 border-b border-border-subtle text-[11.5px] flex gap-2"><span className="font-mono text-subtle">{j.ts}</span><span>{t(j.a)}</span><span className="font-mono text-muted-foreground truncate">{j.c}</span><span className="ml-auto" style={{color:ST_C[j.r]}}>{t(j.r)}</span></div>)}</div>
@@ -229,7 +228,7 @@ function Throughput({ t, data, running, delay, tracking, onFull, full, ue }) {
   </div>;
 }
 
-function UeInfo({ t, ue, res, op, tracking, msgs, onHide }) {
+function UeInfo({ t, ue, res, tracking, msgs, onHide }) {
   const last = msgs[msgs.length - 1]; const lastFail = [...msgs].reverse().find(m => m.res === 'Échec');
   const reg = msgs.find(m => /Registration Accept|Attach Accept/.test(m.name)); const pdu = [...msgs].reverse().find(m => /PDU Session Establishment (Accept|Reject)|Create Session Response/.test(m.name));
   const Row = ({ n, v, s }) => <div className="flex items-baseline gap-2 py-[5px] text-[12px]"><span className="w-[120px] shrink-0 text-subtle">{n}</span>{v ? <span className="text-foreground font-mono text-[11.5px] break-all" title={s ? 'preuve : seq ' + s : ''}>{v}</span> : <span className="text-subtle italic">{t('Non disponible')}</span>}{v && s && <span className="ml-auto shrink-0 font-mono text-[11px] text-[var(--app-accent)]">#{s}</span>}</div>;
