@@ -17,7 +17,7 @@ export const INTERFACE_FAMILY: Record<string, InterfaceFamily> = {
   N2: 'blue', N3: 'green', N4: 'amber', SBI: 'purple',
   'S1-MME': 'blue', 'S1-U': 'green', S11: 'amber',
   'S5-C': 'amber', 'S5-U': 'green', S6a: 'purple', Sxab: 'purple',
-  IMS: 'pink', N6: 'teal',
+  IMS: 'pink', N6: 'teal', N9: 'pink', SGi: 'teal', N1: 'blue',
   /* Bare S5 is the GTP-C control plane, same family as S5-C. */
   S5: 'amber',
 };

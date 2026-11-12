@@ -762,10 +762,10 @@ function ProbeDetails({ node, onBack }) {
   );
 }
 
-function Nodes() {
+function Nodes({ initialOpen = null } = {}) {
   const { demo } = usePolarisMode(); const probes = useProbes(); const auth = useAuthMe();
   const metrics = useMetrics(); const safety = useStorageSafety(); const version = useVersion();
-  const [open,setOpen] = useState(null);
+  const [open,setOpen] = useState(initialOpen);
   const [registering,setRegistering] = useState(false);
   const [menu,setMenu] = useState(null);
   const [managing,setManaging] = useState(null);

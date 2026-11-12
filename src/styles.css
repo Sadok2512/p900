@@ -296,3 +296,32 @@
 .tabular-nums { font-variant-numeric: tabular-nums; }
 .scroll-thin::-webkit-scrollbar { width: 8px; height: 8px; }
 .scroll-thin::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 8px; }
+
+/* Network Topology canvas: its own Light/Dark scope, independent of the app theme. */
+.topo-light {
+  --topo-bg: oklch(0.985 0.004 250);
+  --topo-grid: oklch(0.935 0.006 250);
+  --topo-zone: oklch(1 0 0 / 0.8);
+  --topo-zone-line: oklch(0.89 0.012 250);
+  --topo-node: oklch(1 0 0);
+  --topo-node-line: oklch(0.84 0.014 250);
+  --topo-text: oklch(0.24 0.025 258);
+  --topo-muted: oklch(0.55 0.02 255);
+  --topo-probe: oklch(0.48 0.09 235);
+  --topo-select: oklch(0.5 0.15 245);
+  --topo-mix: black;
+}
+.topo-dark {
+  --topo-bg: oklch(0.2 0.032 262);
+  --topo-grid: oklch(0.255 0.035 262);
+  --topo-zone: oklch(0.24 0.035 262 / 0.85);
+  --topo-zone-line: oklch(0.34 0.04 262);
+  --topo-node: oklch(0.27 0.038 262);
+  --topo-node-line: oklch(0.4 0.045 262);
+  --topo-text: oklch(0.95 0.01 255);
+  --topo-muted: oklch(0.72 0.025 255);
+  --topo-probe: oklch(0.8 0.09 220);
+  --topo-select: oklch(0.78 0.13 230);
+  --topo-mix: white;
+}
+.topo-canvas { background-color: var(--topo-bg); color: var(--topo-text); transition: background-color .25s ease, color .25s ease; }

@@ -109,6 +109,8 @@ function Audit({Card}) {
 export default function Administration({Card, nodeManager, hidden, onToggle, onSettings}) {
   const [tab,setTab] = useState(()=>{ try { return sessionStorage.getItem('polaris-admin-tab') || TABS[0]; } catch { return TABS[0]; } });
   const pick = x => { setTab(x); try { sessionStorage.setItem('polaris-admin-tab',x); } catch { /* ignore */ } };
+  const [probeFocus,setProbeFocus] = useState(null);
+  const openProbe = name => { setProbeFocus(name); pick('Node Manager'); };
   return <div className="flex-1 overflow-auto scroll-thin">
     <div className="polaris-content-shell px-8 pt-6 pb-7">
       <div className="text-[12px] text-muted-foreground">POLARIS</div>
@@ -117,7 +119,7 @@ export default function Administration({Card, nodeManager, hidden, onToggle, onS
         {TABS.map(x=><button key={x} role="tab" aria-selected={tab===x} onClick={()=>pick(x)} className={`relative shrink-0 h-10 px-3 text-[13px] ${tab===x?'text-foreground font-semibold':'text-muted-foreground hover:text-foreground'}`}>{x}{tab===x && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-[#0062A1]"/>}</button>)}
       </div>
       <div role="tabpanel" aria-label={tab}>
-        {tab==='Node Manager' ? nodeManager : tab==='Network Topology' ? <NetworkTopology/> : tab==='Users & Roles' ? <Users Card={Card}/> : tab==='Modules Visibility' ? <Modules Card={Card} hidden={hidden} onToggle={onToggle}/> : tab==='System Settings' ? <System Card={Card} onSettings={onSettings}/> : <Audit Card={Card}/>}
+        {tab==='Node Manager' ? (React.isValidElement(nodeManager) && probeFocus ? React.cloneElement(nodeManager,{key:probeFocus,initialOpen:probeFocus}) : nodeManager) : tab==='Network Topology' ? <NetworkTopology onOpenProbe={openProbe}/> : tab==='Users & Roles' ? <Users Card={Card}/> : tab==='Modules Visibility' ? <Modules Card={Card} hidden={hidden} onToggle={onToggle}/> : tab==='System Settings' ? <System Card={Card} onSettings={onSettings}/> : <Audit Card={Card}/>}
       </div>
     </div>
   </div>;
