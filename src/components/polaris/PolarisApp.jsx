@@ -1,6 +1,6 @@
 import KpiModule from './kpi/KpiModule';
 import LiveModule from './live/LiveModule';
-import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionAnchors, useSessionFlows, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
+import { useAuthMe, useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionAnchors, useSessionFlows, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useSessionIdentityMap, useSessionIdentities, usePacketDissection, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, canCapture, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
 import Administration from './admin/Administration';
@@ -194,7 +194,12 @@ const GRID_COLS = [
   {k:'sub',l:'Abonné',g:'session',w:140,v:r=>r.subscriber_imsi ?? shortPseudo(r.subscriber_pseudonym),mono:true},
   {k:'rat',l:'RAT',g:'session',w:64,v:r=>r.rat},
   {k:'proc',l:'Procédure',g:'session',w:130,v:r=>r.proc},
-  {k:'imsi',l:'IMSI',g:'nas',w:78,v:()=>'masqué',lock:true},
+  {k:'imsi',l:'IMSI',g:'nas',w:132,v:r=>r.identities?.imsi??'—',identity:true,mono:true},
+  {k:'tmsi',l:'TMSI',g:'nas',w:140,v:r=>r.identities?.tmsi?.at(-1)?.value??'—',identity:true,proof:'tmsi',mono:true},
+  {k:'s_tmsi',l:'S-TMSI',g:'nas',w:140,v:r=>r.identities?.s_tmsi?.at(-1)?.value??'—',identity:true,proof:'s_tmsi',mono:true},
+  {k:'m_tmsi',l:'M-TMSI',g:'nas',w:112,v:r=>r.identities?.m_tmsi?.at(-1)?.value??'—',identity:true,proof:'m_tmsi',mono:true},
+  {k:'imei',l:'IMEI',g:'nas',w:132,v:r=>r.identities?.imei?.value??'—',identity:true,mono:true},
+  {k:'msisdn',l:'MSISDN',g:'nas',w:132,v:r=>r.identities?.msisdn??'—',identity:true,mono:true},
   {k:'cause',l:'Cause',g:'nas',w:120,v:r=>r.cause||'—'},
   {k:'pdu',l:'PDU Session',g:'nas',w:88,v:r=>r.pdu_session_id??'—',mono:true},
   {k:'cell',l:'Cellule',g:'ran',w:84,v:r=>r.cell??'—'},
@@ -206,6 +211,9 @@ const GRID_COLS = [
 ];
 function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
   const { demo } = usePolarisMode(); const sessions = useSessions({ page:1, page_size:100, sort:'capture_id', order:'asc' },false);
+  const operator=role==='operator'||role==='administrator';
+  const identityMap=useSessionIdentityMap(rows.map(row=>row.session_id),operator&&!demo);
+  const enrichedRows=useMemo(()=>rows.map(row=>({...row,identities:identityMap[row.session_id]})),[rows,identityMap]);
   const [more,setMore] = useState(false);
   const [manageCols,setManageCols] = useState(false);
   const [txt,setTxt] = useState('');
@@ -214,7 +222,7 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
   const [hiddenCols,setHiddenCols] = useState(()=>{ try { const value=JSON.parse(localStorage.getItem('polaris-grid-hidden-cols'))||[]; return Array.isArray(value)?value.filter(k=>GRID_COLS.some(c=>c.k===k&&!c.required)):[]; } catch(e) { return []; } });
   useEffect(()=>{ try { localStorage.setItem('polaris-grid-cols',JSON.stringify(widths)); } catch(e) {} },[widths]);
   useEffect(()=>{ try { localStorage.setItem('polaris-grid-hidden-cols',JSON.stringify(hiddenCols)); } catch(e) {} },[hiddenCols]);
-  const visibleCols = useMemo(()=>GRID_COLS.filter(c=>!hiddenCols.includes(c.k)),[hiddenCols]);
+  const visibleCols = useMemo(()=>GRID_COLS.filter(c=>!hiddenCols.includes(c.k)&&(!c.identity||operator)),[hiddenCols,operator]);
   const W = c => widths[c.k] ?? c.w;
   const closeMore = () => { setMore(false); setManageCols(false); };
   const resetCols = () => { setWidths({}); setHiddenCols([]); setSort(null); closeMore(); };
@@ -225,10 +233,10 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
     document.body.style.cursor='col-resize'; window.addEventListener('mousemove',mv); window.addEventListener('mouseup',up); };
   const q = txt.trim().toLowerCase();
   const shown = useMemo(()=>{
-    let out = q ? rows.filter(r=>GRID_COLS.some(c=>String(c.v(r)).toLowerCase().includes(q))) : rows;
+    let out = q ? enrichedRows.filter(r=>GRID_COLS.some(c=>(!c.identity||operator)&&String(c.v(r)).toLowerCase().includes(q))) : enrichedRows;
     if (sort) { const c=GRID_COLS.find(x=>x.k===sort[0]); const f=c.sort||c.v; out=[...out].sort((a,b)=>{const x=f(a),y=f(b); return (typeof x==='number'&&typeof y==='number'?x-y:String(x).localeCompare(String(y),undefined,{numeric:true}))*sort[1];}); }
     return out;
-  },[rows,q,sort]);
+  },[enrichedRows,q,sort,operator]);
   const [grouped,setGrouped] = useState(false); const [openGroups,setOpenGroups] = useState([]);
   const [size,setSize] = useState(25); const [page,setPage] = useState(1);
   const condKey = JSON.stringify(conds);
@@ -241,7 +249,7 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
     if (c.k==='res') return <VerdictBadge v={v}/>;
     if (c.k==='sub') return v==='—' ? <span className="text-subtle">—</span> : <span className="inline-flex items-center gap-1">{v}{r.subscriber_session_count!=null && <span className="rounded bg-brand-soft text-brand px-1 text-[11px] font-sans font-semibold">{r.subscriber_session_count} sessions</span>}</span>;
     if (c.k==='ifc') return <span className="flex gap-1">{[...new Set(r.interfaces ?? [])].map(i=><Tag key={i} i={i}/>)}</span>;
-    if (c.k==='imsi') return <span className="text-subtle">masqué</span>;
+    if (c.identity) { const values=c.proof ? (r.identities?.[c.proof]??[]) : []; const extra=Math.max(0,values.length-1); const title=values.map(x=>`${x.value} — ${x.role} — ${x.capture_id}·${x.packet_number}`).join('\n'); return <span className="font-mono" title={title||undefined}>{v}{extra>0&&<span className="ml-1 rounded bg-brand-soft text-brand px-1 font-sans text-[10px]">+{extra}</span>}</span>; }
     if (c.k==='cause') return <span className={verdict(r.res)==='FAILED'?'text-danger':'text-muted-foreground'}>{v}</span>;
     return v;
   };
@@ -266,7 +274,7 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
           {more && <><div className="fixed inset-0 z-30" onClick={closeMore}/>{manageCols ? <div role="dialog" aria-label="Gérer les colonnes" className="absolute right-0 top-8 z-40 w-72 bg-white border border-border rounded-lg shadow-lg text-[12.5px] overflow-hidden">
             <div className="h-9 px-3 flex items-center border-b border-border"><button onClick={()=>setManageCols(false)} aria-label="Retour aux actions" className="mr-2 text-muted-foreground hover:text-foreground">←</button><span className="font-semibold text-foreground">Gérer les colonnes</span><button onClick={()=>setHiddenCols([])} className="ml-auto text-[11.5px] text-[var(--app-accent)]">Tout afficher</button></div>
             <div className="max-h-[420px] overflow-auto scroll-thin p-2.5 space-y-3">
-              {GRID_GROUPS.map(group=><section key={group.k} aria-label={group.l}><div className="px-1 mb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{group.l}</div>{GRID_COLS.filter(c=>c.g===group.k).map(c=><label key={c.k} className={`h-7 px-1 flex items-center gap-2 rounded hover:bg-surface-2 ${c.required?'cursor-not-allowed':'cursor-pointer'}`}><input type="checkbox" aria-label={c.l} checked={!hiddenCols.includes(c.k)} disabled={c.required} onChange={()=>toggleCol(c)}/><span>{c.l}</span>{c.required&&<span className="ml-auto text-[11px] text-subtle">obligatoire</span>}</label>)}</section>)}
+              {GRID_GROUPS.map(group=><section key={group.k} aria-label={group.l}><div className="px-1 mb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{group.l}</div>{GRID_COLS.filter(c=>c.g===group.k&&(!c.identity||operator)).map(c=><label key={c.k} className={`h-7 px-1 flex items-center gap-2 rounded hover:bg-surface-2 ${c.required?'cursor-not-allowed':'cursor-pointer'}`}><input type="checkbox" aria-label={c.l} checked={!hiddenCols.includes(c.k)} disabled={c.required} onChange={()=>toggleCol(c)}/><span>{c.l}</span>{c.required&&<span className="ml-auto text-[11px] text-subtle">obligatoire</span>}</label>)}</section>)}
             </div>
             <div className="p-2 border-t border-border text-[11px] text-muted-foreground">Les choix sont enregistrés dans ce navigateur.</div>
           </div> : <div className="absolute right-0 top-8 z-40 w-52 bg-white border border-border rounded-lg shadow-lg py-1 text-[12.5px]">
@@ -497,8 +505,11 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
   useEffect(()=>{ try { localStorage.setItem('polaris-insp-tab',tab); } catch(e) {} },[tab]);
   const d = s.d, m = d.msgs[Math.min(sel,d.msgs.length-1)];
   const evidence = d.evidence?.[Math.min(sel,d.msgs.length-1)];
-  const eventQuery = useEvent(evidence?.event_id ?? evidence?.id); const provenance = useProvenance(evidence?.event_id ?? evidence?.id); const packets = usePackets({capture_id:provenance.data?.data?.capture_id,packet_number:provenance.data?.data?.packet_number}, provenance.data?.data?.capture_id!=null && provenance.data?.data?.packet_number!=null); const rules = useCorrelationRules(); const versions = useVersion();
+  const operator=role==='operator'||role==='administrator';
+  const identities=useSessionIdentities(s.session_id,operator);
+  const eventQuery = useEvent(evidence?.event_id ?? evidence?.id); const provenance = useProvenance(evidence?.event_id ?? evidence?.id); const packetRef=provenance.data?.data?.packet_references?.[0]??evidence?.packet_references?.[0]??{}; const packetCapture=provenance.data?.data?.capture_id??evidence?.capture_id; const packetNumber=packetRef.packet_number??evidence?.seq; const packets = usePackets({capture_id:packetCapture,packet_number:packetNumber}, packetCapture!=null && packetNumber!=null); const dissection=usePacketDissection(packetCapture,packetNumber,operator&&tab==='Hex'); const rules = useCorrelationRules(); const versions = useVersion();
   const proof = provenance.data?.data ?? evidence ?? {};
+  const ids=identities.data?.data??{};
   if (!m) return <aside className="p-4 text-muted-foreground">Non disponible</aside>;
   const shared = m[5] ? d.msgs.filter(x=>x[5]===m[5]).length : 0;
   return (
@@ -519,11 +530,11 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
             <div className="pl-4">▾ {m[1].split(' ').slice(1).join(' ')}</div>
             <div className="pl-8">ue : <span className="text-foreground">{s.ue}</span> <span className="text-subtle">(pseudonyme)</span></div>
             {m[3] && <><div className="pl-8">▾ NAS-PDU</div><div className="pl-12">message : <span className="text-foreground">{m[3]}</span></div>
-              <div className="pl-12">identité : {<span className="text-subtle">masquée</span>}</div></>}
+              <div className="pl-12">identité : <span className="text-subtle">{operator?(ids.imsi??'—'):'masquée'}</span></div></>}
             {m[4] && <div className="pl-8">{m[4]} : <span className="text-warning">{m[5]}</span></div>}
           </div>}
           <div><Lbl>Informations UE</Lbl><dl className="grid grid-cols-[100px_1fr] gap-y-0.5 text-[11.5px]">
-            {[['IMSI / SUPI','masqué'],['Identifiant UE',s.ue],['Technologie',s.rat],['Cellule',s.cell],['PCI',s.pci],['EARFCN / ARFCN',s.arfcn ?? s.earfcn ?? s.nr_arfcn],['MME / AMF',s.serving_node],['PDU Session ID',s.pdu_session_id],['ID temporaires',s.guti ?? s['5g_guti'] ?? s.ue_context_id]].map(([k,v])=><React.Fragment key={k}><dt className="text-muted-foreground">{k}</dt><dd className="font-mono truncate" title={String(available(v))}>{available(v)}</dd></React.Fragment>)}
+            {[['IMSI / SUPI',operator?ids.imsi:'masqué'],['Identifiant UE',s.ue],['Technologie',s.rat],['Cellule',s.cell],['PCI',s.pci],['EARFCN / ARFCN',s.arfcn ?? s.earfcn ?? s.nr_arfcn],['MME / AMF',s.serving_node],['PDU Session ID',s.pdu_session_id],['ID temporaires',operator?(ids.tmsi?.at(-1)?.value??ids.s_tmsi?.at(-1)?.value):'masqué']].map(([k,v])=><React.Fragment key={k}><dt className="text-muted-foreground">{k}</dt><dd className="font-mono truncate" title={String(available(v))}>{available(v)}</dd></React.Fragment>)}
           </dl></div>
           <details className="rounded-md border border-border"><summary className="px-2 h-7 flex items-center cursor-pointer text-[11.5px] font-medium text-ink-2">Métadonnées techniques</summary>
             <dl className="grid grid-cols-[110px_1fr] gap-y-1 font-mono text-[11.5px] p-2 pt-0">
@@ -543,8 +554,8 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
         {tab==='Preuves' && <div className="space-y-2"><div>event_id : {available(proof.event_id ?? evidence?.id)} · seq : {available(proof.seq)}</div>{provenance.isError && <div>{provenance.error.message}</div>}{packets.data && <div>Paquets : {records(packets.data.data,'packets').length}</div>}<div>Règles : {rules.isError ? rules.error.message : JSON.stringify(rules.data?.data ?? [])}</div>{d.links.map((l,k)=>(
           <div key={k} className="rounded-md border border-border p-3"><div className="flex items-center gap-2"><Tag i={l[2]}/><span className="text-subtle">→</span><Tag i={l[3]}/><span className="ml-auto"><Stat s={l[5]}/></span></div>
           <div className="font-mono text-[11.5px] mt-2 text-ink-2">{l[4]}</div><div className="text-[11.5px] text-subtle mt-0.5">messages {l[0]===null?'—':l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun message N4'} · matched_rules : {JSON.stringify(l[6] ?? [])}</div></div>))}</div>}
-        {tab==='Hex' && <div>Non disponible : backend à venir (octets masqués)</div>}
-        {tab==='Identité' && <div><Lbl>Pseudonyme</Lbl><span className="font-mono">{s.ue}</span><div>Identités masquées</div></div>}
+        {tab==='Hex' && (!operator?<div>Rôle operator requis.</div>:dissection.isPending?<div>Chargement de la dissection tshark…</div>:dissection.isError?<div role="alert">Échec GET /packets/:capture_id/:packet_number/dissect → {dissection.error.status||'réseau'}</div>:<pre className="font-mono text-[11px] whitespace-pre-wrap">{dissection.data?.data?.dissection??'—'}</pre>)}
+        {tab==='Identité' && <div><Lbl>Pseudonyme</Lbl><span className="font-mono">{s.ue}</span>{!operator?<div>Identités cachées pour le rôle viewer.</div>:<dl className="mt-3 grid grid-cols-[90px_1fr] gap-1">{[['IMSI',ids.imsi],['TMSI',ids.tmsi?.at(-1)?.value],['S-TMSI',ids.s_tmsi?.at(-1)?.value],['M-TMSI',ids.m_tmsi?.at(-1)?.value],['IMEI',ids.imei?.value],['MSISDN',ids.msisdn]].map(([k,v])=><React.Fragment key={k}><dt className="text-muted-foreground">{k}</dt><dd className="font-mono">{v??'—'}</dd></React.Fragment>)}</dl>}</div>}
       </div>
     </aside>
   );
@@ -1237,7 +1248,7 @@ function App() {
     <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-surface-2 text-foreground text-base">
       <TopBar role={role} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')} metrics={metrics} version={version} demo={demo} hidden={navHidden}/>
       <DataStatus t={t}/>
-      {role==='operator' && <div className="h-7 shrink-0 bg-warning-soft border-b border-warning-line text-warning text-[12px] flex items-center px-4">Rôle operator actif · identités masquées · actions soumises au proxy</div>}
+      {(role==='operator'||role==='administrator') && <div className="h-7 shrink-0 bg-warning-soft border-b border-warning-line text-warning text-[12px] flex items-center px-4">Rôle operator actif · identités en clair · actions soumises au proxy</div>}
       {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={navHidden} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : page==='templates' ? <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
       {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
       {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">
@@ -1252,7 +1263,7 @@ function App() {
         </main>
         {selected && !full && (jouHidden ? null : <><div onMouseDown={e=>drag(e,'jou')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><aside style={{width:`${jouPct}%`}} aria-label="Parcours abonné" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-border overflow-hidden"><div className="h-[42px] shrink-0 px-4 flex items-center border-b border-border"><span className="text-[13px] font-semibold text-foreground">Parcours abonné</span><button onClick={()=>setJouHidden(true)} title="Masquer Parcours abonné" className="ml-auto w-7 h-7 rounded-md grid place-items-center text-muted-foreground hover:bg-muted">×</button></div><div className="flex-1 overflow-auto scroll-thin"><SubscriberJourney s={selected} role={role} onOpen={id=>{ if(id) setSel(id); }}/></div></aside></>)}
         {selected && !full && (insHidden ? null : <><div onMouseDown={e=>drag(e,'ins')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><Inspector key={selected.id} s={selected} sel={msg} role={role} lens={lens} setLens={setLens} width={`${insPct}%`} onHide={()=>setInsHidden(true)}/></>)}
-        {selected && !full && (anaHidden ? null : <><div onMouseDown={e=>drag(e,'ana')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><SessionAnalysis onOpenSession={id=>setSel(id)} s={selected} width={`${anaPct}%`} loading={bundle.callflow.isFetching || bundle.events.isFetching} onPick={k=>setMsg(Math.max(0,k))} onHide={()=>setAnaHidden(true)}/></>)}
+        {selected && !full && (anaHidden ? null : <><div onMouseDown={e=>drag(e,'ana')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><SessionAnalysis role={role} onOpenSession={id=>setSel(id)} s={selected} width={`${anaPct}%`} loading={bundle.callflow.isFetching || bundle.events.isFetching} onPick={k=>setMsg(Math.max(0,k))} onHide={()=>setAnaHidden(true)}/></>)}
         {selected && !full && <nav aria-label="Panneaux" className="ml-2 w-10 shrink-0 self-stretch bg-white rounded-xl border border-border flex flex-col items-center py-2 gap-1">
           {[['Parcours abonné',jouHidden,setJouHidden,'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6'],['Décodage',insHidden,setInsHidden,'M8 6l-6 6 6 6M16 6l6 6-6 6'],['Analyse sessions',anaHidden,setAnaHidden,'M4 20V10M10 20V4M16 20v-7M22 20H2']].map(([l,h,set,d])=><button key={l} type="button" onClick={()=>set(!h)} aria-pressed={!h} title={`${h?'Afficher':'Masquer'} ${l}`} className={`w-8 rounded-lg flex flex-col items-center gap-2 py-2.5 transition ${!h?'bg-brand-soft text-[var(--app-accent)]':'text-muted-foreground hover:bg-muted hover:text-foreground'}`}><I d={d} c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[11.5px] font-medium">{l}</span></button>)}
         </nav>}

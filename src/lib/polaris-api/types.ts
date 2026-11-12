@@ -82,3 +82,5 @@ export type Version = RecordData & {
   decoders?: unknown;
 };
 export type QueryParams = Record<string, string | number | boolean | undefined>;
+export type IdentityProof = { value?: string; type?: string; role?: 'assigned' | 'presented'; event_id?: string; capture_id?: string; packet_number?: number; cap_seq?: string };
+export type SessionIdentities = RecordData & { imsi?: string; imsi_proof?: IdentityProof; msisdn?: string; msisdn_proof?: IdentityProof; imei?: IdentityProof; tmsi?: IdentityProof[]; s_tmsi?: IdentityProof[]; m_tmsi?: IdentityProof[]; subscriber_pseudonym?: string };

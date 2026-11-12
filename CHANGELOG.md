@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.15.1
+
+- Authentification Basic du proxy 8091 avec mot de passe lu depuis un fichier hors Git ; le navigateur ne reçoit jamais le jeton OIRAN operator.
+- Analyzer operator : colonnes IMSI, TMSI, S-TMSI, M-TMSI, IMEI et MSISDN, bloc Abonné et recherche raccordés au coffre 2.12.0. Les colonnes sont absentes pour viewer.
+- Décodage complet : l'onglet Hex appelle la route operator `tshark -V` par `(capture_id, packet_number)`.
+
 ## 0.15.0
 
 - Node Manager : la colonne « Détails » devient un menu `⋯` avec Détails, Modifier, Mettre à jour le logiciel et Supprimer.

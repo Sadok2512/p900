@@ -33,6 +33,11 @@ export default function SubscriberJourney({s, role, onOpen}) {
   const journeyQ = useSubscriberJourney(pseudo), idQ = useSessionIdentities(s.session_id, operator);
   const j = useMemo(()=>toJourney(journeyQ.data?.data),[journeyQ.data]);
   const ids = idQ.data?.data ?? {};
+  const identityRows = [
+    ['IMSI',ids.imsi,ids.imsi_proof],['TMSI',ids.tmsi?.at(-1)?.value,ids.tmsi?.at(-1)],
+    ['S-TMSI',ids.s_tmsi?.at(-1)?.value,ids.s_tmsi?.at(-1)],['M-TMSI',ids.m_tmsi?.at(-1)?.value,ids.m_tmsi?.at(-1)],
+    ['IMEI(SV)',ids.imei?.value,ids.imei],['MSISDN',ids.msisdn,ids.msisdn_proof],
+  ];
   return <div className="p-4 space-y-4 text-[12.5px]">
     <form onSubmit={e=>{e.preventDefault(); setSubmitted(query.trim());}} className="flex gap-2">
       <input aria-label="Rechercher un abonné" value={query} onChange={e=>setQuery(e.target.value)} placeholder="IMSI, TMSI, IMEI ou MSISDN" className="flex-1 h-8 rounded-md border border-border px-2 outline-none focus:border-[var(--app-accent)]"/>
@@ -44,7 +49,7 @@ export default function SubscriberJourney({s, role, onOpen}) {
     <section><H>Identités</H>
       <dl className="grid grid-cols-[110px_1fr] gap-y-0.5 text-[12px]">
         <dt className="text-muted-foreground">Abonné</dt><dd className="font-mono">{shortPseudo(pseudo)}</dd>
-        {[['IMSI','imsi'],['MSISDN','msisdn'],['IMEI(SV)','imeisv']].map(([l,k])=><React.Fragment key={k}><dt className="text-muted-foreground">{l}</dt><dd className="font-mono">{operator ? available(ids[k] ?? (k==='imeisv'?ids['imei']:undefined)) : 'masqué'}</dd></React.Fragment>)}
+        {identityRows.map(([label,value,proof])=><React.Fragment key={label}><dt className="text-muted-foreground">{label}</dt><dd className="font-mono" title={proof?.capture_id?`preuve ${proof.capture_id}·${proof.packet_number}`:undefined}>{operator ? available(value) : '—'}{operator&&proof?.event_id&&<span className="ml-1 text-[10px] text-[var(--app-accent)]">#{proof.packet_number}</span>}</dd></React.Fragment>)}
       </dl>
       {operator && <div className="mt-1"><Fail q={idQ} path={`/sessions/${s.session_id}/identities`}/></div>}
     </section>

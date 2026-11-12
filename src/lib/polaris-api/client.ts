@@ -25,7 +25,8 @@ export function redact<T>(value: T): T {
   }
   return value;
 }
-export async function requestFrom<T>(base: string, path: string, options: { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal } = {}): Promise<Envelope<T>> {
+type RequestOptions = { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal; operatorIdentityResponse?: boolean };
+export async function requestFrom<T>(base: string, path: string, options: RequestOptions = {}): Promise<Envelope<T>> {
   const url = apiPath(path, options.params, base);
   let response: Response;
   const timeout = new AbortController();
@@ -45,8 +46,9 @@ export async function requestFrom<T>(base: string, path: string, options: { para
   }
   if (!payload || typeof payload !== 'object' || !('data' in payload)) throw new PolarisApiError('INVALID_RESPONSE', 'POLARIS non connecté', response.status);
   const envelope = payload as { data: T; meta?: unknown };
-  return { data: redact(envelope.data), meta: envelope.meta && typeof envelope.meta === 'object' ? redact(envelope.meta) as Envelope<T>['meta'] : {} };
+  const operatorIdentity = options.operatorIdentityResponse && envelope.meta && typeof envelope.meta === 'object' && (envelope.meta as Record<string,unknown>)['identity_access'] === 'operator';
+  return { data: operatorIdentity ? envelope.data : redact(envelope.data), meta: envelope.meta && typeof envelope.meta === 'object' ? redact(envelope.meta) as Envelope<T>['meta'] : {} };
 }
-export async function request<T>(path: string, options: { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal } = {}): Promise<Envelope<T>> {
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<Envelope<T>> {
   return requestFrom<T>(relativeBase(), path, options);
 }

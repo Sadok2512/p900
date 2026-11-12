@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { csrfForToken, forwardedHeaders, targetFor } from '../../ops/p900-proxy.mjs';
+import { basicAuthorized, csrfForToken, forwardedHeaders, targetFor } from '../../ops/p900-proxy.mjs';
 
 describe('p900 proxy request target validation', () => {
   it('rejects an invalid authority-form target instead of crashing the process', () => {
@@ -26,5 +26,13 @@ describe('p900 proxy request target validation', () => {
     expect(headers['authorization']).toBe('Bearer server-token');
     expect(headers['x-csrf-token']).toBe(csrfForToken('server-token'));
     expect(headers['x-csrf-token']).not.toBe('browser-proof');
+  });
+
+  it('accepts only the configured Basic account without exposing the password', () => {
+    const good=`Basic ${Buffer.from('sadok:test-password').toString('base64')}`;
+    const bad=`Basic ${Buffer.from('sadok:wrong').toString('base64')}`;
+    expect(basicAuthorized({authorization:good},'sadok','test-password')).toBe(true);
+    expect(basicAuthorized({authorization:bad},'sadok','test-password')).toBe(false);
+    expect(basicAuthorized({},'sadok','test-password')).toBe(false);
   });
 });

@@ -1,7 +1,7 @@
 import http from 'node:http';
 import { readFileSync, readdirSync, statfsSync, statSync } from 'node:fs';
 import { basename, join } from 'node:path';
-import { createHash } from 'node:crypto';
+import { createHash, timingSafeEqual } from 'node:crypto';
 
 const listenHost = process.env.P900_PROXY_HOST ?? '127.0.0.1';
 const listenPort = Number(process.env.P900_PROXY_PORT ?? 8091);
@@ -13,6 +13,8 @@ function secretFromFile(name) {
   try { return readFileSync(path, 'utf8').trim() || null; } catch { return null; }
 }
 const tokens = { oiran: secretFromFile('OIRAN_OPERATOR_TOKEN_FILE'), polaris: secretFromFile('POLARIS_OPERATOR_TOKEN_FILE') };
+const basicUser = process.env.P900_BASIC_USER ?? 'sadok';
+const basicPassword = secretFromFile('P900_BASIC_PASSWORD_FILE');
 const cpuSample = { at: 0, usage: 0, percent: null };
 const byteSamples = new Map();
 
@@ -30,6 +32,29 @@ export function targetFor(rawUrl = '/') {
 }
 
 export function csrfForToken(token) { return createHash('sha256').update(`oiran-csrf-v1:${token}`).digest('hex'); }
+
+function sameSecret(left, right) {
+  const a=Buffer.from(String(left)), b=Buffer.from(String(right));
+  return a.length===b.length && timingSafeEqual(a,b);
+}
+
+export function basicAuthorized(headers, user=basicUser, password=basicPassword) {
+  if (!password) return false;
+  const value=headers?.authorization;
+  if (typeof value!=='string' || !value.startsWith('Basic ')) return false;
+  let decoded; try { decoded=Buffer.from(value.slice(6),'base64').toString('utf8'); } catch { return false; }
+  const separator=decoded.indexOf(':');
+  if(separator<0) return false;
+  return sameSecret(decoded.slice(0,separator),user) && sameSecret(decoded.slice(separator+1),password);
+}
+
+function requireBasic(request,response) {
+  if (!basicPassword) { sendJson(response,503,{error:{code:'BASIC_AUTH_NOT_CONFIGURED',message:'Proxy authentication is not configured'}}); return false; }
+  if (basicAuthorized(request.headers)) return true;
+  response.writeHead(401,{'www-authenticate':'Basic realm="POLARIS", charset="UTF-8"','content-type':'application/json; charset=utf-8','cache-control':'no-store'});
+  response.end(JSON.stringify({error:{code:'AUTHENTICATION_REQUIRED',message:'Authentication required'}}));
+  return false;
+}
 
 export function forwardedHeaders(headers, target, method = 'GET', tokenOverride) {
   const forwarded = { ...headers };
@@ -121,6 +146,7 @@ function proxy(request,response,target) {
 
 export function createServer() {
   const server=http.createServer((request,response)=>{
+    if(!requireBasic(request,response)) return;
     const parsed=parsedUrl(request.url);
     if(!parsed) return sendJson(response,400,{error:{code:'INVALID_URL',message:'Invalid request target'}});
     const pathname=parsed.pathname;
@@ -131,6 +157,7 @@ export function createServer() {
     proxy(request,response,targetFor(request.url));
   });
   server.on('upgrade',(request,socket,head)=>{
+    if(!basicAuthorized(request.headers)) { socket.end('HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm="POLARIS"\r\nConnection: close\r\n\r\n'); return; }
     const target=targetFor(request.url);
     if(!target) { socket.end('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n'); return; }
     const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target,request.method)});

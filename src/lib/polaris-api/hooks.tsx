@@ -7,7 +7,7 @@ import { TR_CATS, TR_APPS, TR_CELLS, TR_V, TR_FLOWS } from './demo/traffic';
 import { SYS_DASH, ANOMS } from './demo/kpi';
 import { DIR, S5G, SLTE, NODES, IFC_C } from './demo/live';
 import { records, toLegacyCallflow, filterBody, querySupport, canCapture, type Draft } from './adapters';
-import type { AuthMe, Health, Version, Metrics, Safety, Session, Event, Probe, RecordData, QueryParams, Envelope, Correlation } from './types';
+import type { AuthMe, Health, Version, Metrics, Safety, Session, Event, Probe, RecordData, QueryParams, Envelope, Correlation, SessionIdentities } from './types';
 const Mode = createContext({ demo: false, setDemo: (_value: boolean) => {} });
 export function PolarisDataProvider({ children }: { children: ReactNode }) { const [demo, setDemo] = useState(false); return <Mode.Provider value={{ demo, setDemo }}>{children}</Mode.Provider>; }
 export const usePolarisMode = () => useContext(Mode);
@@ -105,8 +105,14 @@ export function useKpiDemo() { const { demo } = usePolarisMode(); return { dashb
 const pseudoPath = (p?: string | null) => encodeURIComponent(String(p ?? ''));
 export const useSubscriberJourney = (p?: string | null) => useResource<RecordData>(`/subscribers/${pseudoPath(p)}/journey`, {}, !!p, true);
 export const useSubscriberTmsi = (p?: string | null) => useResource<RecordData[]>(`/subscribers/${pseudoPath(p)}/tmsi`, {}, !!p, true);
-export const useSessionIdentities = (id?: string | null, enabled = true) => useResource<RecordData>(`/sessions/${idPath(id)}/identities`, {}, !!id && enabled, true);
-export const useIdentityLookup = (q: string) => useResource<RecordData>('/identities', { q }, q.trim().length >= 4, true);
+export const useSessionIdentities = (id?: string | null, enabled = true) => useQuery({ queryKey:['polaris','api','identity',id], queryFn:({signal})=>request<SessionIdentities>(`/sessions/${idPath(id)}/identities`,{signal,operatorIdentityResponse:true}), enabled:!!id&&enabled, retry:false, refetchOnWindowFocus:false });
+export function useSessionIdentityMap(ids: Array<string | null | undefined>, enabled=true): Record<string,SessionIdentities|undefined> {
+  const unique=[...new Set(ids.filter((id):id is string=>!!id))];
+  const queries=useQueries({queries:unique.map(id=>({queryKey:['polaris','api','identity',id],queryFn:({signal}:{signal:AbortSignal})=>request<SessionIdentities>(`/sessions/${idPath(id)}/identities`,{signal,operatorIdentityResponse:true}),enabled,retry:false,refetchOnWindowFocus:false}))});
+  return Object.fromEntries(unique.map((id,index)=>[id,queries[index]?.data?.data]));
+}
+export const useIdentityLookup = (q: string) => useQuery({ queryKey:['polaris','api','identity-lookup',q], queryFn:({signal})=>request<RecordData>('/identities',{params:{q},signal,operatorIdentityResponse:true}), enabled:q.trim().length>=4, retry:false, refetchOnWindowFocus:false });
+export const usePacketDissection = (captureId?: string | null, packetNumber?: number | null, enabled=true) => useQuery({ queryKey:['polaris','api','dissect',captureId,packetNumber], queryFn:({signal})=>request<RecordData>(`/packets/${idPath(captureId)}/${packetNumber}/dissect`,{signal,operatorIdentityResponse:true}), enabled:enabled&&!!captureId&&packetNumber!=null, retry:false, refetchOnWindowFocus:false });
 // Administration (no demo): users, roles and audit come only from the lab server, which enforces permissions.
 export const useAdminUsers = () => useResource<RecordData[]>('/users', {}, true, false);
 export const useAdminRoles = () => useResource<RecordData[]>('/roles', {}, true, false);
