@@ -72,38 +72,38 @@ function TopBarLive({metrics,demo,onOpen}) {
   const indicator=topBarLiveIndicator({demo,apiReachable:!(metrics.isError||metrics.isRefetchError)&&!!data,captureState:data?.capture_state,pendingHistory});
   const sampledAt=metrics.dataUpdatedAt ? new Date(metrics.dataUpdatedAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false}) : '—';
   const title=`capture_state: ${available(data?.capture_state)}\nsegments ingérés: ${available(data?.segments_ingested)}\npending: ${available(data?.pending_segments)}\ndernier relevé: ${sampledAt}`;
-  return <button type="button" onClick={onOpen} title={title} aria-label={`État capture : ${indicator.label}`} className="h-8 px-2 flex items-center gap-1.5 rounded-md hover:bg-muted font-semibold text-[11.5px] tracking-wide" style={{color:indicator.color}}><span aria-hidden="true" className={`w-2 h-2 rounded-full shrink-0 ${indicator.pulse?'polaris-live-pulse':''}`} style={{backgroundColor:indicator.color}}/><span>{indicator.label}</span></button>;
+  return <button type="button" onClick={onOpen} title={title} aria-label={`État capture : ${indicator.label}`} className="h-9 px-2.5 flex items-center gap-2 rounded-md hover:bg-muted font-semibold text-[12.5px] tracking-wide" style={{color:indicator.color}}><span aria-hidden="true" className={`w-2 h-2 rounded-full shrink-0 ${indicator.pulse?'polaris-live-pulse':''}`} style={{backgroundColor:indicator.color}}/><span>{indicator.label}</span></button>;
 }
 
 function TopBarVersion({version}) {
   const data=version.data?.data;
   const title=`backend_api: ${available(data?.backend_api)}\nsession_engine: ${available(data?.session_engine)}\ncorrelation_engine: ${available(data?.correlation_engine)}\nevent_schema: ${available(data?.event_schema)}\ndecoders: ${decoderVersions(data?.decoders)}`;
-  return <div title={title} className="flex items-baseline gap-1.5 whitespace-nowrap"><span className="text-[14px] font-semibold tracking-tight text-foreground">POLARIS</span><span className="hidden xl:inline text-[11.5px] text-muted-foreground font-mono">{available(data?.platform_core)} · UI {UI_VERSION}</span></div>;
+  return <div title={title} className="flex flex-col justify-center leading-none whitespace-nowrap"><span className="text-[17px] font-semibold tracking-tight text-foreground leading-[20px]">POLARIS</span><span className="text-[10.5px] text-muted-foreground font-mono leading-[14px] mt-0.5">{available(data?.platform_core)} · UI {UI_VERSION}</span></div>;
 }
 
 function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,demo,hidden=[]}) {
   const [menu,setMenu] = useState(false);
   return (
-    <header className="h-12 shrink-0 bg-white border-b border-border flex items-center px-3 lg:px-4 gap-3 lg:gap-6 min-w-0">
-      <div className="flex items-center gap-2">
-        <div style={{background:accent}} className="w-6 h-6 rounded-[5px] grid place-items-center"><svg viewBox="0 0 24 24" className="w-3.5 h-3.5"><path d="M12 2 13.6 10.4 22 12 13.6 13.6 12 22 10.4 13.6 2 12 10.4 10.4Z" fill="#fff"/></svg></div>
+    <header className="h-14 shrink-0 bg-white border-b border-border flex items-center px-4 lg:px-5 gap-4 lg:gap-8 min-w-0">
+      <div className="flex items-center gap-2.5 shrink-0">
+        <div style={{background:accent}} className="w-8 h-8 rounded-[7px] grid place-items-center"><svg viewBox="0 0 24 24" className="w-[18px] h-[18px]"><path d="M12 2 13.6 10.4 22 12 13.6 13.6 12 22 10.4 13.6 2 12 10.4 10.4Z" fill="#fff"/></svg></div>
         <TopBarVersion version={version}/>
       </div>
-      <nav className="flex h-full min-w-0 overflow-x-auto scroll-thin">
+      <nav className="flex h-full min-w-0 overflow-x-auto scroll-thin gap-1 lg:gap-2">
         {[['home','Accueil'],['templates','Dashboard'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],...(TRAFFIC_ENABLED ? [['trafic','Traffic']] : [])].filter(([k])=>isVisible(hidden,k)).map(([k,n]) => {
           const on = page===k, ok = ['home','sessions','nodes','templates','kpi','live','trafic'].includes(k);
-          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative shrink-0 px-2 lg:px-3 h-full flex items-center text-[13px] ${ok?'cursor-pointer':'cursor-default'} ${on?'text-foreground font-semibold':'text-muted-foreground hover:text-foreground'}`}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[2px]"/>}</button>;
+          return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative shrink-0 px-3 h-full flex items-center text-[14px] outline-none focus-visible:bg-muted rounded-sm transition-colors ${ok?'cursor-pointer':'cursor-default'} ${on?'text-foreground font-semibold':'text-muted-foreground font-medium hover:text-foreground'}`} aria-current={on?'page':undefined}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-sm"/>}</button>;
         })}
       </nav>
-      <div className="ml-auto shrink-0 flex items-center gap-2 lg:gap-4 text-[12.5px]">
+      <div className="ml-auto shrink-0 flex items-center gap-2 lg:gap-4 text-[13px]">
         <TopBarLive metrics={metrics} demo={demo} onOpen={()=>setPage('live')}/>
         <span className="hidden lg:inline text-muted-foreground" aria-label="Rôle">{role || '—'}</span>
-        <button type="button" title={t("Notifications")} className="w-8 h-8 rounded-md grid place-items-center text-muted-foreground hover:bg-muted hover:text-foreground"><I d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" c="w-4 h-4"/></button>
+        <button type="button" title={t("Notifications")} className="w-9 h-9 rounded-md grid place-items-center text-muted-foreground hover:bg-muted hover:text-foreground"><I d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" c="w-[18px] h-[18px]"/></button>
         <div className="relative">
-          <button type="button" onClick={()=>setMenu(m=>!m)} title={t("Compte")} style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white hover:opacity-90">SD</button>
+          <button type="button" onClick={()=>setMenu(m=>!m)} title={t("Compte")} style={{background:accent}} className="w-8 h-8 rounded-full grid place-items-center text-[12px] font-semibold text-white hover:opacity-90">SD</button>
           {menu && <>
             <div className="fixed inset-0 z-40" onClick={()=>setMenu(false)}/>
-            <div className="absolute right-0 top-9 z-50 w-48 bg-white border border-border rounded-md shadow-lg py-1 text-[13px]">
+            <div className="absolute right-0 top-10 z-50 w-48 bg-white border border-border rounded-md shadow-lg py-1 text-[13px]">
               <div className="px-3 py-2 border-b border-border"><div className="font-semibold text-foreground">SD</div><div className="text-[11.5px] text-subtle">{role}</div></div>
               <button type="button" onClick={()=>{setMenu(false);onSettings();}} className="w-full text-left px-3 py-2 hover:bg-surface-2 text-foreground">{t("Paramètres")}</button>
             </div></>}
