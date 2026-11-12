@@ -105,8 +105,8 @@ export function useKpiDemo() { const { demo } = usePolarisMode(); return { dashb
 const pseudoPath = (p?: string | null) => encodeURIComponent(String(p ?? ''));
 export const useSubscriberJourney = (p?: string | null) => useResource<RecordData>(`/subscribers/${pseudoPath(p)}/journey`, {}, !!p, true);
 export const useSubscriberTmsi = (p?: string | null) => useResource<RecordData[]>(`/subscribers/${pseudoPath(p)}/tmsi`, {}, !!p, true);
-export const useSessionIdentities = (id?: string | null, enabled = true) => useResource<RecordData>(`/sessions/${idPath(id)}/identities`, {}, !!id && enabled, true);
-export const useIdentityLookup = (q: string) => useResource<RecordData>('/identities', { q }, q.trim().length >= 4, true);
+export const useSessionIdentities = (id?: string | null, enabled = true) => useQuery({ queryKey:['polaris','operator-identities','session',id], queryFn:({signal})=>request<RecordData>(`/sessions/${idPath(id)}/identities`,{signal,allowIdentityFields:true}), enabled:!!id&&enabled, retry:false, refetchOnWindowFocus:false });
+export const useIdentityLookup = (q: string) => useQuery({ queryKey:['polaris','operator-identities','lookup',q], queryFn:({signal})=>request<RecordData>('/identities',{params:{q},signal,allowIdentityFields:true}), enabled:q.trim().length>=4, retry:false, refetchOnWindowFocus:false });
 // Administration (no demo): users, roles and audit come only from the lab server, which enforces permissions.
 export const useAdminUsers = () => useResource<RecordData[]>('/users', {}, true, false);
 export const useAdminRoles = () => useResource<RecordData[]>('/roles', {}, true, false);

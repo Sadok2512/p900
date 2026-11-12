@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { useSubscriberJourney, useSessionIdentities, useIdentityLookup, apiPath, available } from '@/lib/polaris-api';
-import { toJourney, shortPseudo, refLabel } from './subscriber';
+import { useSubscriberJourney, useSubscriberTmsi, useSessionIdentities, useIdentityLookup, apiPath, available } from '@/lib/polaris-api';
+import { toJourney, toTmsiList, shortPseudo, refLabel } from './subscriber';
 
 // Procedure colours (light mode only).
 export const KIND = { attach:['#0062A1','Attach / Registration'], pdu:['#0F5B56','PDU / PDN'], release:['#64748B','Idle / Release'], service:['#7C3AED','Service Request'], tau:['#D97706','TAU'], handover:['#DB2777','Handover'], detach:['#DC2626','Detach'], other:['#94A3B8','Autre'] };
@@ -30,9 +30,11 @@ export default function SubscriberJourney({s, role, onOpen}) {
   const looked = lookup.data?.data?.subscriber_pseudonym;
   const pseudo = looked ?? s.subscriber_pseudonym ?? null;
   const operator = role === 'operator' || role === 'administrator';
-  const journeyQ = useSubscriberJourney(pseudo), idQ = useSessionIdentities(s.session_id, operator);
+  const journeyQ = useSubscriberJourney(pseudo), tmsiQ = useSubscriberTmsi(pseudo), idQ = useSessionIdentities(s.session_id, operator);
   const j = useMemo(()=>toJourney(journeyQ.data?.data),[journeyQ.data]);
   const ids = idQ.data?.data ?? {};
+  const clearTmsi = operator && Array.isArray(ids.tmsi) ? ids.tmsi.map(x=>x?.value).filter(Boolean) : [];
+  const tmsi = useMemo(()=>toTmsiList(tmsiQ.data?.data,false),[tmsiQ.data]);
   return <div className="p-4 space-y-4 text-[12.5px]">
     <form onSubmit={e=>{e.preventDefault(); setSubmitted(query.trim());}} className="flex gap-2">
       <input aria-label="Rechercher un abonné" value={query} onChange={e=>setQuery(e.target.value)} placeholder="IMSI, TMSI, IMEI ou MSISDN" className="flex-1 h-8 rounded-md border border-border px-2 outline-none focus:border-[var(--app-accent)]"/>
@@ -45,6 +47,7 @@ export default function SubscriberJourney({s, role, onOpen}) {
       <dl className="grid grid-cols-[110px_1fr] gap-y-0.5 text-[12px]">
         <dt className="text-muted-foreground">Abonné</dt><dd className="font-mono">{shortPseudo(pseudo)}</dd>
         {[['IMSI','imsi'],['MSISDN','msisdn'],['IMEI(SV)','imeisv']].map(([l,k])=><React.Fragment key={k}><dt className="text-muted-foreground">{l}</dt><dd className="font-mono">{operator ? available(ids[k] ?? (k==='imeisv'?ids['imei']:undefined)) : 'masqué'}</dd></React.Fragment>)}
+        <dt className="text-muted-foreground">TMSI</dt><dd className="font-mono">{operator ? available(clearTmsi.join(', ')) : 'masqué'}</dd>
       </dl>
       {operator && <div className="mt-1"><Fail q={idQ} path={`/sessions/${s.session_id}/identities`}/></div>}
     </section>
@@ -62,6 +65,16 @@ export default function SubscriberJourney({s, role, onOpen}) {
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">{x.procedures.map((p,k)=><span key={k} className="inline-flex items-center gap-1 text-[11.5px] text-ink-2"><span className="w-2 h-2 rounded-sm" style={{background:KIND[p.kind][0]}}/>{p.name}</span>)}</div>
               </button></li>; })}
         </ol>)}
+      </section>
+      <section><H>Chaîne TMSI</H>
+        <Fail q={tmsiQ} path={`/subscribers/${pseudo}/tmsi`}/>
+        {tmsiQ.isPending && <div className="text-muted-foreground">Chargement des attributions…</div>}
+        {tmsiQ.data && (tmsi.length===0 ? <div className="text-muted-foreground">Aucune identité temporaire observée.</div> : <ul className="space-y-1.5">
+          {tmsi.map((item,index)=><li key={`${item.label}-${index}`} className="rounded-md border border-border px-2 py-1.5">
+            <div className="flex items-center gap-2"><span className="font-mono text-[11.5px]">{item.label}</span><span className={`ml-auto text-[11px] ${item.status==='attribution non capturée'?'text-warning':'text-muted-foreground'}`}>{item.status}</span></div>
+            <div className="mt-0.5 text-[11px] text-muted-foreground">Attribué : {item.assigned ? refLabel(item.assigned) : '—'} · Présenté : {item.presented.length ? item.presented.map(refLabel).join(', ') : '—'}</div>
+          </li>)}
+        </ul>)}
       </section>
     </>}
   </div>;

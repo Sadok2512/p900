@@ -41,6 +41,14 @@ describe('POLARIS client', () => {
   it('masks every forbidden identity field, including name/value decoding pairs', () => {
     expect(redact({ imsi: '001010000000101', supi: 'private', guti: 'private', tmsi: 'private', imei: 'private', K: 'private', OPc: 'private', pseudonym: 'ue-7f3a', decoded: [{ name: 'GUTI', value: 'private' }] })).toEqual({ imsi:'masqué', supi:'masqué', guti:'masqué', tmsi:'masqué', imei:'masqué', K:'masqué', OPc:'masqué', pseudonym:'ue-7f3a', decoded:[{name:'GUTI',value:'masqué'}] });
   });
+  it('keeps opaque temporary-identity pseudonyms while masking clear TMSI fields', () => {
+    expect(redact({ tmsi: 'private', tmsi_pseudonym: 'psn-temporary-a' })).toEqual({ tmsi: 'masqué', tmsi_pseudonym: 'psn-temporary-a' });
+  });
+  it('passes identity fields only for an explicitly operator-scoped request', async () => {
+    const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: { imsi: 'test-value' }, meta: {} })));
+    vi.stubGlobal('fetch', fetcher);
+    expect((await request('/sessions/s/identities', { allowIdentityFields: true })).data).toEqual({ imsi: 'test-value' });
+  });
 });
 
 import { it as itU, expect as expectU, vi as viU } from 'vitest';

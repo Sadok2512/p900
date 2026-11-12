@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.17.0
+
+- Le Parcours abonné est raccordé aux routes OIRAN 2.13.0 : frise Abonné → Contextes UE → Sessions PDN/PDU → Procédures, liens `EXACT` ou `OUVERT`, et chaîne TMSI ordonnée par références paquet.
+- La colonne Abonné affiche `subscriber_pseudonym` et le badge `subscriber_session_count`; le tableau peut grouper les sessions par abonné et la fiche expose les sessions précédente/suivante.
+- La recherche d'identité et les valeurs en clair restent limitées au rôle operator via les routes `/identities` existantes. Le viewer ne reçoit et n'affiche que des pseudonymes.
+- Les événements et sessions conservent l'ordre de l'API ; aucun lien n'est inféré depuis l'heure, la cellule, l'IMEI ou l'adresse IP.
+
 ## 0.16.0
 
 - Formulaire de sonde unifié : la création et l'édition partagent le même composant `ProbeForm` (mêmes dimensions, même typographie, même aperçu de charge utile, mêmes boutons).

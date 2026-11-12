@@ -12,6 +12,10 @@ export type Session = Evidence & {
   procedure?: string;
   state?: string;
   ue_pseudonym?: string;
+  subscriber_pseudonym?: string;
+  subscriber_session_count?: number;
+  previous_session_id?: string;
+  next_session_id?: string;
   ue_context_id?: string;
   pdu_session_id?: string;
   interfaces?: string[];
