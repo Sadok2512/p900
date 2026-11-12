@@ -208,12 +208,12 @@ describe('main screens with simulated REST responses',()=>{
     open('kpi'); await screen.findByText('50.0 %'); fireEvent.click(screen.getByRole('button',{name:'KPI Builder'}));
     expect(screen.getByText('Non disponible : backend à venir')).toBeInTheDocument();
   });
-  it('Live stays unavailable without Demo and disables identity search', async()=>{
-    open('live'); expect(screen.getByRole('button',{name:'Rechercher'})).toBeDisabled();
-    expect(screen.getByText('Non disponible : backend à venir — Live (WebSocket)')).toBeInTheDocument();
+  it('Live exposes the real trace search without enabling Demo', async()=>{
+    open('live'); expect(screen.getByRole('button',{name:'Rechercher'})).toBeEnabled();
+    expect(screen.getByRole('option',{name:'Pseudonyme'})).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getByText('0.15.1')).toBeInTheDocument(); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.11.6 · API 2.11.6 · UI 0.15.1')).toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getByText('0.16.0')).toBeInTheDocument(); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.11.6 · API 2.11.6 · UI 0.16.0')).toBeInTheDocument();
   });
   it('Dashboard library is marked local and has no simulated saved queries outside Demo',()=>{
     open('templates'); expect(screen.getByText('local à ce navigateur')).toBeInTheDocument(); expect(screen.getByText('Aucune requête.')).toBeInTheDocument();

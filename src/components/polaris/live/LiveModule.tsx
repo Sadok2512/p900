@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { useLiveDemo, usePolarisMode } from '@/lib/polaris-api';
+import { apiPath, request } from '@/lib/polaris-api/client';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 
 /* ---------- Scripts (demo) : [ifc, proto, from, to, message, procedure, result, cause, kind] ---------- */
@@ -17,9 +18,11 @@ export default function LiveModule({ t, role, setPage }) {
   const op = role === 'operator';
   const { demo, setDemo } = usePolarisMode();
   const liveData = useLiveDemo(); const DIR = liveData.directory; const NODES = liveData.nodes; const IFC_C = liveData.colors;
-  const [ttype, setTtype] = useState('pseudo');
+  const [ttype, setTtype] = useState('pseudonym');
   const [q, setQ] = useState('');
   const [res, setRes] = useState(null); // {st, ue, err}
+  const [traceId, setTraceId] = useState(null);
+  const [realUe, setRealUe] = useState(null);
   const [journal, setJournal] = useState([]);
   const [msgs, setMsgs] = useState([]); const [buf, setBuf] = useState([]);
   const [running, setRunning] = useState(true);
@@ -35,15 +38,17 @@ export default function LiveModule({ t, role, setPage }) {
   const [full, setFull] = useState(null); // 'sig' | 'thr'
   const [thr, setThr] = useState([]); // {ts, dl, ul}
   const seq = useRef(0);
+  const runningRef = useRef(true);
   const sigBox = useRef(null); const atEnd = useRef(true);
   const onSigScroll = (e) => { const b = e.currentTarget; atEnd.current = b.scrollTop + b.clientHeight >= b.scrollHeight - 40; };
-  const ue = res?.ue && DIR[res.ue];
+  const ue = demo ? (res?.ue && DIR[res.ue]) : realUe;
   const tech = ue?.tech || '5G';
-  const tracking = demo && ue && (res.st === 'Trouvé' || res.st === 'OUVERT');
+  const tracking = demo ? !!(ue && (res?.st === 'Trouvé' || res?.st === 'OUVERT')) : !!traceId;
 
-  useEffect(() => { if (ttype === 'imsi' && !op) setTtype('pseudo'); }, [op]);
+  useEffect(() => { if (ttype !== 'pseudonym' && !op) setTtype('pseudonym'); }, [op]);
   useEffect(() => { setMsgs([]); setBuf([]); setThr([]); seq.current = 0; setSel(null); setTtl(30*60); }, [res?.ue, demo]);
-  useEffect(() => { if (!tracking) return; const script = liveData.scripts[tech]; const t0 = Date.now();
+  useEffect(() => { runningRef.current=running; },[running]);
+  useEffect(() => { if (!tracking || !demo) return; const script = liveData.scripts[tech]; const t0 = Date.now();
     const id = setInterval(() => {
       const s = script[seq.current % script.length]; seq.current++;
       const m = { cap: ue.cap, seq: 1200 + seq.current, ts: new Date().toLocaleTimeString('fr-FR'), rel: ((Date.now()-t0)/1000).toFixed(3), ifc:s[0], proto:s[1], from:s[2], to:s[3], name:s[4], proc:s[5], res:s[6], cause:s[7], kind:s[8], corr: res.st==='Trouvé'?'EXACT':'OUVERT' };
@@ -54,7 +59,11 @@ export default function LiveModule({ t, role, setPage }) {
     }, 1000); return () => clearInterval(id); }, [tracking, running, tech, res?.st]);
   const resume = () => { setMsgs(x => [...x, ...buf.map(b=>b.m)].slice(-400)); setThr(x => [...x, ...buf.map(b=>b.p)]); setBuf([]); setRunning(true); };
 
-  const find = (e) => { e?.preventDefault(); if(!demo) { setRes({st:'Indisponible',err:t('Non disponible : backend à venir')}); return; } const v = q.trim(); let r;
+  useEffect(()=>{ if(demo||!traceId)return; const source=new EventSource(apiPath(`/live/traces/${encodeURIComponent(traceId)}/stream`),{withCredentials:true});
+    const receive=(kind)=>(event)=>{let data;try{data=JSON.parse(event.data)}catch{return} if(kind==='message'){const m={cap:data.capture_id,seq:data.packet_number,eventId:data.event_id,ts:new Date().toLocaleTimeString('fr-FR'),rel:'—',ifc:data.interface,proto:data.protocol,from:data.source,to:data.destination,name:data.message_name,proc:data.procedure||data.message_name,res:data.result||'En cours',cause:data.cause||'',kind:data.phase||'message',corr:'LIVE',decoded:data.decoded_ie_tree};if(runningRef.current)setMsgs(x=>[...x,m].slice(-2000));else setBuf(x=>[...x,{m}].slice(-2000));} else if(kind==='throughput'){const p={ts:Date.now(),dl:Number(data.dl_bytes_s||0)*8/1e6,ul:Number(data.ul_bytes_s||0)*8/1e6};if(runningRef.current)setThr(x=>[...x,p].filter(z=>Date.now()-z.ts<1800000));else setBuf(x=>[...x,{p}].slice(-2000));}else if(kind==='ue_info'){setRealUe({tech:data.technology||'5G',info:data});}else if(kind==='status'){setTtl(Math.max(0,Number(data.expires_at||0)-Math.floor(Date.now()/1000)));}};
+    ['message','throughput','ue_info','procedure','marker','status'].forEach(k=>source.addEventListener(k,receive(k))); source.onerror=()=>setRes(r=>({...r,st:'Déconnecté',err:'Flux SSE interrompu'})); return()=>source.close(); },[traceId,demo]);
+
+  const find = async (e) => { e?.preventDefault(); const v=q.trim(); if(!v){setRes({st:'Invalide',err:t('Identifiant requis.')});return;} if(!demo){try{const out=await request('/live/traces',{method:'POST',body:{key_type:ttype,value:v,duration_s:1800,interfaces:[]}});setTraceId(out.data.trace_id);setTtl(Math.max(0,out.data.expires_at-Math.floor(Date.now()/1000)));setRes({st:out.data.armed?'ARMÉE':'OUVERT',ue:out.data.subscriber_pseudonyms?.[0]});setJournal(j=>[{ts:new Date().toLocaleTimeString('fr-FR'),who:'SD',role,a:`trace ${ttype}`,c:'valeur protégée',r:out.data.armed?'ARMÉE':'OUVERT'},...j]);}catch(error){setRes({st:'Indisponible',err:error?.message||'API Live indisponible'});}return;} let r;
     if (!v) r = { st:'Invalide', err:t('Identifiant requis.') };
     else if (ttype === 'imsi' || ttype === 'guti') r = {st:'Indisponible',err:t('Non disponible : backend à venir')};
     else if (ttype === 'pseudo') { if (!/^ue-[0-9a-f]{4}$/.test(v)) r = { st:'Invalide', err:t('Format pseudonyme : ue-xxxx') }; else r = DIR[v] ? { st:DIR[v].st, ue:v } : { st:'Non trouvé' }; setJournal(j => [{ ts:new Date().toLocaleTimeString('fr-FR'), who:'SD', role, a:'recherche pseudo', c:v, r:r.st }, ...j]); }
@@ -63,6 +72,7 @@ export default function LiveModule({ t, role, setPage }) {
     else { r = /482/.test(v) ? { st:'Trouvé', ue:'ue-7f3a' } : /219/.test(v) ? { st:'Trouvé', ue:'ue-21c0' } : { st:'Non trouvé' }; }
     if (!demo && r.ue) r = { st:'Indisponible', err:t('API de recherche POLARIS non connectée.') };
     setRes(r); };
+  const addMarker=async()=>{if(!traceId)return;await request(`/live/traces/${encodeURIComponent(traceId)}/markers`,{method:'POST',body:{label:`Marqueur ${marks.length+1}`}});const s=msgs.at(-1)?.seq;if(s!=null)setMarks(m=>[...m,s]);};
 
   const shown = useMemo(() => msgs.filter(m => !hide.includes(m.ifc) && (!fq || (m.name+' '+m.proc+' '+m.cause+' '+m.proto).toLowerCase().includes(fq.toLowerCase()))), [msgs, hide, fq]);
   const ifcs = tech==='LTE' ? ['S1-MME','S6a','S11','S5'] : ['N2','SBI','N4'];
@@ -103,24 +113,24 @@ export default function LiveModule({ t, role, setPage }) {
           <div className="mr-2"><div className="text-[12px] text-muted-foreground">POLARIS Live</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Live Trace</h1></div>
           <form onSubmit={find} className="flex items-center h-9 rounded-lg border border-border bg-white focus-within:border-[var(--app-accent)] overflow-hidden">
             <select value={ttype} onChange={e=>{setTtype(e.target.value);setQ('');}} className="h-full px-2 text-[12px] bg-surface-2 border-r border-border outline-none">
-              <option value="pseudo">{t('Pseudonyme')}</option><option disabled value="imsi">IMSI / SUPI — Non disponible</option><option disabled value="guti">GUTI / TMSI — Non disponible</option><option value="cell">{t('Cellule')}</option><option value="run">Run</option>
+              <option value="pseudonym">{t('Pseudonyme')}</option>{op&&<><option value="imsi">IMSI / SUPI</option><option value="tmsi">TMSI / GUTI</option><option value="s_tmsi">S-TMSI</option><option value="m_tmsi">M-TMSI</option><option value="imei">IMEI</option><option value="msisdn">MSISDN</option></>}
             </select>
-            <input value={q} onChange={e=>setQ(e.target.value)} type={ttype==='imsi'?'password':'text'} autoComplete="off" disabled={!demo} placeholder={{pseudo:'ue-7f3a',imsi:'masqué',guti:'masqué',cell:'0A1F',run:'482'}[ttype]} className="w-48 px-3 text-[13px] font-mono outline-none"/>
-            <button disabled={!demo} title={!demo ? t('Non disponible : backend à venir') : ''} className="h-full px-3 bg-[var(--app-accent)] text-white text-[12.5px] font-medium hover:opacity-90">{ttype==='imsi'?'Find IMSI':t('Rechercher')}</button>
+            <input value={q} onChange={e=>setQ(e.target.value)} type={ttype==='pseudonym'?'text':'password'} autoComplete="off" placeholder={ttype==='pseudonym'?'UE-…':'identité protégée'} className="w-48 px-3 text-[13px] font-mono outline-none"/>
+            <button className="h-full px-3 bg-[var(--app-accent)] text-white text-[12.5px] font-medium hover:opacity-90">{t('Rechercher')}</button>
           </form>
           {res && <span className="flex items-center gap-1.5 text-[12px]"><Tag c={ST_C[res.st]||'#666'}>{t(res.st)}</Tag>{res.ue && <span className="font-mono text-foreground">{res.ue}</span>}{res.err && <span className="text-danger">{res.err}</span>}</span>}
           <div className="ml-auto flex items-center gap-2">
             <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground"><span className={`w-[7px] h-[7px] rounded-full ${tracking&&running?'bg-success animate-pulse':'bg-track'}`}/>{tracking?(running?t('Live'):t('En pause')):t('Inactif')}</span>
             {tracking && <span className="text-[12px] text-warning bg-warning-soft border border-warning-line rounded px-1.5 h-6 grid place-items-center">{t('Retard import')} {delay} s</span>}
             <Btn disabled={!tracking} onClick={()=>running?setRunning(false):resume()}>{running?'❚❚ '+t('Pause'):'▶ '+t('Reprendre')+(buf.length?` (+${buf.length})`:'')}</Btn>
-            <Btn disabled={!tracking||!msgs.length} onClick={()=>{const s=msgs[msgs.length-1].seq; setMarks(m=>[...m,s]);}}>⚑ {t('Marqueur')}</Btn>
+            <Btn disabled={!tracking||(!msgs.length&&!traceId)} onClick={demo?()=>{const s=msgs[msgs.length-1].seq;setMarks(m=>[...m,s]);}:addMarker}>⚑ {t('Marqueur')}</Btn>
             <Btn onClick={()=>setPage('sessions')}>Session Explorer →</Btn>
             <button onClick={()=>setDemo(!demo)} className={`h-7 px-2.5 rounded-full text-[11.5px] font-medium border flex items-center gap-1.5 ${demo?'bg-warning-soft border-warning-line text-warning':'border-border text-muted-foreground'}`}><span className={`w-6 h-3.5 rounded-full relative ${demo?'bg-warning':'bg-track'}`}><span className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all ${demo?'left-[12px]':'left-[2px]'}`}/></span>{t('Démo')}</button>
           </div>
         </div>
         {/* compact counters */}
         <div className="max-w-[1600px] mx-auto px-6 h-8 flex items-center gap-5 text-[11.5px] text-muted-foreground border-t border-border-subtle">
-          {[['Traces actives', tracking?'2 / 5':'—'],['Expiration', tracking?`${Math.floor(ttl/60)}:${String(ttl%60).padStart(2,'0')}`:'—'],['Messages', demo ? msgs.length : '—'],['Tampon', demo ? buf.length : '—'],['Marqueurs', demo ? marks.length : '—'],['Techno', ue?(ue.tech==='LTE'?'LTE':'5G SA'):'—']].map(([n,v])=><span key={n}>{t(n)} <b className="text-foreground tabular-nums">{v}</b></span>)}
+          {[['Traces actives', tracking?'1 / 10':'—'],['Expiration', tracking?`${Math.floor(ttl/60)}:${String(ttl%60).padStart(2,'0')}`:'—'],['Messages',msgs.length],['Tampon',buf.length],['Marqueurs',marks.length],['Techno',ue?(ue.tech==='LTE'?'LTE':'5G SA'):'—']].map(([n,v])=><span key={n}>{t(n)} <b className="text-foreground tabular-nums">{v}</b></span>)}
           {!op && <span className="text-subtle">· {t('viewer : recherche IMSI masquée, pseudonymes uniquement')}</span>}
           {demo && <span className="ml-auto text-warning">{t('Données de démo — API live POLARIS (WebSocket) non connectée')}</span>}
         </div>
@@ -151,7 +161,7 @@ export default function LiveModule({ t, role, setPage }) {
 function Empty({ t, demo, res }) {
   return <div className="h-full min-h-[240px] grid place-items-center text-center px-6"><div>
     <div className="mx-auto w-9 h-9 rounded-full bg-muted grid place-items-center text-subtle">⌕</div>
-    <div className="mt-3 text-[13px] font-medium text-foreground">{!demo?t('Non disponible : backend à venir — Live (WebSocket)'):res?.st==='Non trouvé'?t('Aucun abonné rattaché à cet identifiant'):t('Recherchez un UE pour démarrer le suivi')}</div>
+    <div className="mt-3 text-[13px] font-medium text-foreground">{res?.st==='Non trouvé'?t('Aucun abonné rattaché à cet identifiant'):t('Recherchez un UE pour démarrer le suivi')}</div>
     <div className="mt-1 text-[12.5px] text-muted-foreground">{!demo?t('Aucune donnée simulée n’est affichée. Activez « Démo » pour un aperçu.'):t('Exemples : ue-7f3a (5G, EXACT) · ue-21c0 (LTE, OUVERT) · cellule 0A1F · run 482')}</div></div></div>;
 }
 

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.16.0
+
+- Live Trace raccordé aux traces OIRAN 2.14.0 et au flux SSE reprenable : recherche armée, messages, débit, informations UE, pause avec tampon client et marqueurs.
+- Les recherches d'identités claires restent réservées à operator ; viewer ne voit que le pseudonyme et aucune valeur de recherche n'est journalisée.
+
 ## 0.15.1
 
 - Authentification Basic du proxy 8091 avec mot de passe lu depuis un fichier hors Git ; le navigateur ne reçoit jamais le jeton OIRAN operator.

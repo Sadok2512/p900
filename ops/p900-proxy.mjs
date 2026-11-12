@@ -132,7 +132,15 @@ function proxy(request,response,target) {
   const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target,request.method)}, upstreamResponse=>{
     const pathname=parsedUrl(request.url)?.pathname ?? '/';
     const transform=target.scope==='polaris'||pathname==='/api/v1/probes';
-    if (!transform) { response.writeHead(upstreamResponse.statusCode??502,upstreamResponse.headers); upstreamResponse.pipe(response); return; }
+    if (!transform) {
+      const headers={...upstreamResponse.headers};
+      if(String(headers['content-type']??'').startsWith('text/event-stream')) {
+        delete headers['content-encoding']; delete headers['content-length'];
+        headers['x-accel-buffering']='no'; headers['cache-control']='no-cache, no-transform';
+        response.socket?.setNoDelay(true);
+      }
+      response.writeHead(upstreamResponse.statusCode??502,headers); upstreamResponse.pipe(response); return;
+    }
     const chunks=[]; upstreamResponse.on('data',chunk=>chunks.push(chunk)); upstreamResponse.on('end',()=>{
       let payload; try { payload=JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { sendJson(response,502,{error:{code:'INVALID_UPSTREAM_RESPONSE',message:'Invalid upstream response'}}); return; }
       if (target.scope==='polaris' && !('data' in payload)) payload={data:payload,meta:{}};

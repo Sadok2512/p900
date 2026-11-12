@@ -35,7 +35,7 @@ All endpoint paths below are relative to `/api/v1`. “Branché” means code an
 | KPI Builder / Dashboards / Anomalies | No current endpoint | existing demo-only local definitions | Non disponible outside Demo |
 | Identités operator | GET `/sessions/:id/identities`, GET `/identities?q=…` | IMSI, TMSI, S-TMSI, M-TMSI, IMEI/IMEISV, MSISDN et preuves paquet | Branché; champs absents du cache viewer, enveloppe `identity_access=operator` requise pour accepter le clair |
 | Dissection complète | GET `/packets/:capture_id/:packet_number/dissect` | sortie `tshark -V` du paquet référencé | Branché, operator uniquement |
-| Live / IMSI | No current endpoint | pseudonym-only demo generator | Non disponible; attendu par p900 0.16.0 via SSE |
+| Live Trace | `/live/traces`, `/live/traces/:id/markers`, SSE `/live/traces/:id/stream` | recherche armée, messages, UE, procédures et débit | Câblé en 0.16.0; SSE sans buffer ni compression via 8091 |
 | Templates / saved queries | Local browser storage | names, template, conditions, scope | Local à ce navigateur; no backend publication or sharing claim |
 | Traffic | No N6 source | existing demo implementation isolated in adapter | Hidden by default and gated by feature flag + Demo |
 | UE / UE sessions | GET `/ues`, `/ues/:id`, `/ues/:id/sessions` | tolerant records | Partiel: resource hooks supplied, no dedicated UE view wired |
