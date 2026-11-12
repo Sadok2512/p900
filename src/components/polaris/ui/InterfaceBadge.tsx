@@ -20,6 +20,7 @@ const FAMILY_CLASS = {
   amber: 'text-ifc-amber-fg bg-ifc-amber-bg border-ifc-amber-line',
   purple: 'text-ifc-purple-fg bg-ifc-purple-bg border-ifc-purple-line',
   pink: 'text-ifc-pink-fg bg-ifc-pink-bg border-ifc-pink-line',
+  rose: 'text-ifc-rose-fg bg-ifc-rose-bg border-ifc-rose-line',
   teal: 'text-ifc-teal-fg bg-ifc-teal-bg border-ifc-teal-line',
   gray: 'text-ifc-gray-fg bg-ifc-gray-bg border-ifc-gray-line',
 } as const;
