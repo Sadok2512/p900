@@ -45,12 +45,12 @@ describe("top bar live indicator", () => {
       pulse,
       color:
         state === "live"
-          ? "#15803D"
+          ? "#4ADE80"
           : state === "blocked"
-            ? "#B42318"
+            ? "#F87171"
             : state === "delayed"
-              ? "#A15C07"
-              : "#8F8F8F",
+              ? "#E9B949"
+              : "#A8BCCF",
     });
   });
 });

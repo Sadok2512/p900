@@ -15,8 +15,8 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 /* Données fictives — PLMN de test 001/01. Tri canonique (capture_id, seq). */
 const IFC = {
-  'N2':['#1D4ED8','#EFF4FF'],'SBI':['#6D28D9','#F4F0FF'],'N4':['#A15C07','#FDF6E7'],'N3':['#15803D','#ECF8F0'],
-  'S1-MME':['#1D4ED8','#EFF4FF'],'S6a':['#BE185D','#FDEEF5'],'S11':['#A15C07','#FDF6E7'],'S5-C':['#A15C07','#FDF6E7'],'S1-U':['#15803D','#ECF8F0'],
+  'N2':['#7DA2F0','#12304A'],'SBI':['#A78BFA','#1B1F3A'],'N4':['#E9B949','#2B2110'],'N3':['#4ADE80','#0F2A20'],
+  'S1-MME':['#7DA2F0','#12304A'],'S6a':['#F472B6','#2B1220'],'S11':['#E9B949','#2B2110'],'S5-C':['#E9B949','#2B2110'],'S1-U':['#4ADE80','#0F2A20'],
 };
 const nodeIdx = (nodes, n) => nodes.indexOf(n==='AUSF'||n==='UDM' ? 'AUSF/UDM' : n);
 const fmtV = (v,u) => u==='%'?v.toFixed(1)+' %':u==='ms'?Math.round(v)+' ms':u==='s'?v.toFixed(1)+' s':String(Math.round(v));
@@ -78,7 +78,7 @@ function TopBarVersion({version}) {
 function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,demo,hidden=[]}) {
   const [menu,setMenu] = useState(false);
   return (
-    <header className="h-12 shrink-0 bg-white border-b border-border flex items-center px-3 lg:px-4 gap-3 lg:gap-6 min-w-0">
+    <header className="h-12 shrink-0 bg-card border-b border-border flex items-center px-3 lg:px-4 gap-3 lg:gap-6 min-w-0">
       <div className="flex items-center gap-2">
         <div style={{background:accent}} className="w-6 h-6 rounded-[5px] grid place-items-center"><svg viewBox="0 0 24 24" className="w-3.5 h-3.5"><path d="M12 2 13.6 10.4 22 12 13.6 13.6 12 22 10.4 13.6 2 12 10.4 10.4Z" fill="#fff"/></svg></div>
         <TopBarVersion version={version}/>
@@ -97,7 +97,7 @@ function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,
           <button type="button" onClick={()=>setMenu(m=>!m)} title={t("Compte")} style={{background:accent}} className="w-7 h-7 rounded-full grid place-items-center text-[11px] font-semibold text-white hover:opacity-90">SD</button>
           {menu && <>
             <div className="fixed inset-0 z-40" onClick={()=>setMenu(false)}/>
-            <div className="absolute right-0 top-9 z-50 w-48 bg-white border border-border rounded-md shadow-lg py-1 text-[13px]">
+            <div className="absolute right-0 top-9 z-50 w-48 bg-card border border-border rounded-md shadow-lg py-1 text-[13px]">
               <div className="px-3 py-2 border-b border-border"><div className="font-semibold text-foreground">SD</div><div className="text-[11.5px] text-subtle">{role}</div></div>
               <button type="button" onClick={()=>{setMenu(false);onSettings();}} className="w-full text-left px-3 py-2 hover:bg-surface-2 text-foreground">{t("Paramètres")}</button>
             </div></>}
@@ -109,11 +109,11 @@ function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,
 
 function Tabs({tabs,active,home,onPick,onClose,onHome,onNew}) {
   return (
-    <div className="h-10 shrink-0 bg-white border-b border-border flex items-end px-3 gap-px overflow-x-auto scroll-thin">
-      <button onClick={onHome} title={t("Requêtes")} className={`shrink-0 h-8 px-3 flex items-center gap-1.5 text-[12.5px] rounded-t-md border border-b-0 ${home?'bg-white border-border text-foreground font-medium shadow-[inset_0_2px_0_var(--app-accent)]':'border-transparent text-muted-foreground hover:text-foreground hover:bg-white/60'}`}><I d={ic.cols} c="w-3.5 h-3.5"/>{t("Requêtes")}</button>
+    <div className="h-10 shrink-0 bg-card border-b border-border flex items-end px-3 gap-px overflow-x-auto scroll-thin">
+      <button onClick={onHome} title={t("Requêtes")} className={`shrink-0 h-8 px-3 flex items-center gap-1.5 text-[12.5px] rounded-t-md border border-b-0 ${home?'bg-card border-border text-foreground font-medium shadow-[inset_0_2px_0_var(--app-accent)]':'border-transparent text-muted-foreground hover:text-foreground hover:bg-card/60'}`}><I d={ic.cols} c="w-3.5 h-3.5"/>{t("Requêtes")}</button>
       <span className="w-px h-4 bg-muted mb-2 mx-1 shrink-0"/>
       {tabs.map(tb => (
-        <div key={tb.id} onClick={()=>onPick(tb.id)} className={`group shrink-0 h-8 pl-3 pr-1.5 flex items-center gap-2 text-[12.5px] rounded-t-md border border-b-0 cursor-pointer max-w-[300px] ${tb.id===active?'bg-white border-border text-foreground shadow-[inset_0_2px_0_var(--app-accent)]':'border-transparent text-muted-foreground hover:bg-white/60'}`}>
+        <div key={tb.id} onClick={()=>onPick(tb.id)} className={`group shrink-0 h-8 pl-3 pr-1.5 flex items-center gap-2 text-[12.5px] rounded-t-md border border-b-0 cursor-pointer max-w-[300px] ${tb.id===active?'bg-card border-border text-foreground shadow-[inset_0_2px_0_var(--app-accent)]':'border-transparent text-muted-foreground hover:bg-card/60'}`}>
           {tb.live && <span className="w-[6px] h-[6px] rounded-full bg-success shrink-0"/>}
           <span className="text-[11px] text-subtle shrink-0">{t(tb.k)}</span>
           <span className={`${tb.id===active?'font-medium':''} truncate`}>{tb.n}</span>{tb.dirty && <span title="Modifications non enregistrées" className="w-[7px] h-[7px] rounded-full bg-warning shrink-0"/>}{tb.mode==='edit' && <span className="text-[11px] text-subtle shrink-0">édition</span>}
@@ -133,11 +133,11 @@ function QueryPanel({conds,setConds}) {
   const [v,setV] = useState(FIELDS[0][1][0]);
   const vals = (FIELDS.find(x=>x[0]===f)||FIELDS[0])[1];
   return (
-    <aside className="w-[264px] shrink-0 bg-white border-r border-border flex flex-col">
+    <aside className="w-[264px] shrink-0 bg-card border-r border-border flex flex-col">
       <div className="p-4 space-y-5 overflow-auto scroll-thin flex-1">
         <div><Lbl>Gabarit</Lbl>
           <div className="grid grid-cols-4 rounded-md border border-border p-[2px] bg-surface-2">
-            {['Trace','Parcourir','Inspecter','Capture'].map(t => <button key={t} onClick={()=>setTpl(t)} className={`h-6 rounded-[4px] text-[11.5px] ${tpl===t?'bg-white text-foreground shadow-sm font-medium':'text-muted-foreground'}`}>{t}</button>)}
+            {['Trace','Parcourir','Inspecter','Capture'].map(t => <button key={t} onClick={()=>setTpl(t)} className={`h-6 rounded-[4px] text-[11.5px] ${tpl===t?'bg-card text-foreground shadow-sm font-medium':'text-muted-foreground'}`}>{t}</button>)}
           </div>
         </div>
         <div><Lbl>Portée</Lbl>
@@ -155,9 +155,9 @@ function QueryPanel({conds,setConds}) {
             ))}
             {adding ? (
               <div className="rounded-md border border-foreground p-2 space-y-1.5 bg-surface-2">
-                <select value={f} onChange={e=>{setF(e.target.value); setV(FIELDS.find(x=>x[0]===e.target.value)[1][0]);}} className="w-full h-7 rounded border border-border text-[12.5px] px-1.5 bg-white">{FIELDS.map(x=><option key={x[0]}>{x[0]}</option>)}</select>
-                <select value={v} onChange={e=>setV(e.target.value)} className="w-full h-7 rounded border border-border text-[12.5px] px-1.5 bg-white">{vals.map(x=><option key={x}>{x}</option>)}</select>
-                <div className="flex gap-1.5"><button onClick={()=>{setConds([...conds,[f,v]]); setAdding(false);}} className="flex-1 h-7 rounded bg-[var(--app-accent)] text-white text-[12px] font-medium">Ajouter</button><button onClick={()=>setAdding(false)} className="h-7 px-2 rounded border border-border text-[12px] bg-white">Annuler</button></div>
+                <select value={f} onChange={e=>{setF(e.target.value); setV(FIELDS.find(x=>x[0]===e.target.value)[1][0]);}} className="w-full h-7 rounded border border-border text-[12.5px] px-1.5 bg-card">{FIELDS.map(x=><option key={x[0]}>{x[0]}</option>)}</select>
+                <select value={v} onChange={e=>setV(e.target.value)} className="w-full h-7 rounded border border-border text-[12.5px] px-1.5 bg-card">{vals.map(x=><option key={x}>{x}</option>)}</select>
+                <div className="flex gap-1.5"><button onClick={()=>{setConds([...conds,[f,v]]); setAdding(false);}} className="flex-1 h-7 rounded bg-[var(--app-accent)] text-white text-[12px] font-medium">Ajouter</button><button onClick={()=>setAdding(false)} className="h-7 px-2 rounded border border-border text-[12px] bg-card">Annuler</button></div>
               </div>
             ) : <button onClick={()=>setAdding(true)} className="w-full h-8 rounded-md border border-dashed border-border-strong text-[12.5px] text-muted-foreground hover:border-foreground hover:text-foreground flex items-center justify-center gap-1.5"><I d={ic.plus} c="w-3.5 h-3.5"/>Ajouter une condition</button>}
             <div className="flex items-center gap-1.5 pt-1 text-[11.5px] text-subtle"><I d={ic.lock} c="w-3 h-3"/>Identités : rôle operator uniquement</div>
@@ -246,7 +246,7 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
     return v;
   };
   return (
-    <section className="flex flex-col min-h-0 bg-white shrink-0 rounded-xl border border-border overflow-hidden" style={{height}}>
+    <section className="flex flex-col min-h-0 bg-card shrink-0 rounded-xl border border-border overflow-hidden" style={{height}}>
       <div className="h-10 shrink-0 flex items-center gap-3 px-3 border-b border-border">
         <span className="text-[13px] font-semibold text-foreground">Sessions</span>
         <div className="flex-1 h-7 rounded-md border border-border flex items-center gap-1.5 px-2 focus-within:border-[var(--app-accent)]">
@@ -257,19 +257,19 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
         </div>
         <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
           <span className="font-semibold text-foreground tabular-nums">{demo || sessions.data || rows.length ? shown.length : '—'}</span> sessions
-          <div className="w-14 h-1.5 rounded-full bg-muted overflow-hidden flex"><div className="bg-[#16A34A]" style={{width:`${rows.length?(rows.length-ko)/rows.length*100:0}%`}}/><div className="bg-danger" style={{width:`${rows.length?ko/rows.length*100:0}%`}}/></div>
+          <div className="w-14 h-1.5 rounded-full bg-muted overflow-hidden flex"><div className="bg-[#4ADE80]" style={{width:`${rows.length?(rows.length-ko)/rows.length*100:0}%`}}/><div className="bg-danger" style={{width:`${rows.length?ko/rows.length*100:0}%`}}/></div>
           <span className="tabular-nums">{demo || sessions.data || rows.length ? ko : '—'} échecs</span>
         </div>
         <button onClick={onEdit} className="h-7 px-2.5 rounded-md border border-border text-[12px] flex items-center gap-1.5 text-ink-2 hover:bg-surface-2"><I d={ic.search} c="w-3.5 h-3.5"/>Modifier la requête</button>
         <div className="relative">
           <button onClick={()=>{setMore(m=>!m);setManageCols(false);}} title="Plus d'actions" aria-expanded={more} className="h-7 w-7 rounded-md border border-border grid place-items-center text-ink-2 hover:bg-surface-2">⋯</button>
-          {more && <><div className="fixed inset-0 z-30" onClick={closeMore}/>{manageCols ? <div role="dialog" aria-label="Gérer les colonnes" className="absolute right-0 top-8 z-40 w-72 bg-white border border-border rounded-lg shadow-lg text-[12.5px] overflow-hidden">
-            <div className="h-9 px-3 flex items-center border-b border-border"><button onClick={()=>setManageCols(false)} aria-label="Retour aux actions" className="mr-2 text-muted-foreground hover:text-foreground">←</button><span className="font-semibold text-foreground">Gérer les colonnes</span><button onClick={()=>setHiddenCols([])} className="ml-auto text-[11.5px] text-[var(--app-accent)]">Tout afficher</button></div>
+          {more && <><div className="fixed inset-0 z-30" onClick={closeMore}/>{manageCols ? <div role="dialog" aria-label="Gérer les colonnes" className="absolute right-0 top-8 z-40 w-72 bg-card border border-border rounded-lg shadow-lg text-[12.5px] overflow-hidden">
+            <div className="h-9 px-3 flex items-center border-b border-border"><button onClick={()=>setManageCols(false)} aria-label="Retour aux actions" className="mr-2 text-muted-foreground hover:text-foreground">←</button><span className="font-semibold text-foreground">Gérer les colonnes</span><button onClick={()=>setHiddenCols([])} className="ml-auto text-[11.5px] text-[var(--app-accent-ink)]">Tout afficher</button></div>
             <div className="max-h-[420px] overflow-auto scroll-thin p-2.5 space-y-3">
               {GRID_GROUPS.map(group=><section key={group.k} aria-label={group.l}><div className="px-1 mb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{group.l}</div>{GRID_COLS.filter(c=>c.g===group.k).map(c=><label key={c.k} className={`h-7 px-1 flex items-center gap-2 rounded hover:bg-surface-2 ${c.required?'cursor-not-allowed':'cursor-pointer'}`}><input type="checkbox" aria-label={c.l} checked={!hiddenCols.includes(c.k)} disabled={c.required} onChange={()=>toggleCol(c)}/><span>{c.l}</span>{c.required&&<span className="ml-auto text-[11px] text-subtle">obligatoire</span>}</label>)}</section>)}
             </div>
             <div className="p-2 border-t border-border text-[11px] text-muted-foreground">Les choix sont enregistrés dans ce navigateur.</div>
-          </div> : <div className="absolute right-0 top-8 z-40 w-52 bg-white border border-border rounded-lg shadow-lg py-1 text-[12.5px]">
+          </div> : <div className="absolute right-0 top-8 z-40 w-52 bg-card border border-border rounded-lg shadow-lg py-1 text-[12.5px]">
             <button onClick={()=>setManageCols(true)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.cols} c="w-3.5 h-3.5 text-muted-foreground"/>Gérer les colonnes</button>
             <button onClick={()=>{setGrouped(g=>!g);closeMore();}} aria-pressed={grouped} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.cols} c="w-3.5 h-3.5 text-muted-foreground"/>{grouped?'Ne plus grouper':'Grouper par abonné'}</button>
             <button onClick={resetCols} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.cols} c="w-3.5 h-3.5 text-muted-foreground"/>Réinitialiser les colonnes</button>
@@ -292,7 +292,7 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
               const clickable = r.id != null;
               return (
                 <tr key={r.id ?? `missing-session-${rowIndex}`} onClick={()=>{if(clickable)setSel(r.id);}} aria-selected={on} aria-disabled={!clickable} className={`group ${clickable?'cursor-pointer':'cursor-default opacity-70'}`}>
-                  {visibleCols.map((c,k)=>{ const v=c.v(r); return <td key={c.k} title={String(v)} className={`h-7 px-2 border-b border-border-subtle overflow-hidden text-ellipsis ${c.mono?'font-mono text-[11.5px]':''} ${k===0?'sticky left-0 z-10 border-r border-r-[#E2E8F0] text-muted-foreground':'text-foreground'} ${on?'bg-[color-mix(in_oklab,var(--app-accent)_8%,white)]':'bg-white group-hover:bg-surface-2'} ${on&&k===0?'shadow-[inset_3px_0_0_var(--app-accent)]':''}`}>{cell(c,r)}</td>; })}
+                  {visibleCols.map((c,k)=>{ const v=c.v(r); return <td key={c.k} title={String(v)} className={`h-7 px-2 border-b border-border-subtle overflow-hidden text-ellipsis ${c.mono?'font-mono text-[11.5px]':''} ${k===0?'sticky left-0 z-10 border-r border-r-[#24425F] text-muted-foreground':'text-foreground'} ${on?'bg-[color-mix(in_oklab,var(--app-accent)_16%,var(--card))]':'bg-card group-hover:bg-surface-2'} ${on&&k===0?'shadow-[inset_3px_0_0_var(--app-accent)]':''}`}>{cell(c,r)}</td>; })}
                 </tr>
               );
             })}
@@ -300,10 +300,10 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
           </tbody>
         </table>
       </div>
-      <div className="h-9 shrink-0 flex items-center gap-3 px-3 border-t border-border bg-white text-[12px] text-ink-2 whitespace-nowrap overflow-hidden">
+      <div className="h-9 shrink-0 flex items-center gap-3 px-3 border-t border-border bg-card text-[12px] text-ink-2 whitespace-nowrap overflow-hidden">
         <span className="tabular-nums">{shown.length ? `${(cur-1)*size+1}–${Math.min(cur*size,shown.length)}` : '0'} sur <b>{shown.length}</b> sessions</span>
         <label className="ml-auto flex items-center gap-1.5 text-muted-foreground">Lignes par page
-          <select aria-label="Lignes par page" value={size} onChange={e=>setSize(Number(e.target.value))} className="h-6 px-1 rounded border border-border bg-white text-foreground outline-none">{[10,25,50,100].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
+          <select aria-label="Lignes par page" value={size} onChange={e=>setSize(Number(e.target.value))} className="h-6 px-1 rounded border border-border bg-card text-foreground outline-none">{[10,25,50,100].map(n=><option key={n} value={n}>{n}</option>)}</select></label>
         <nav aria-label="Pagination des sessions" className="flex items-center gap-0.5">
           {[['|<',1,'Première page'],['<',cur-1,'Page précédente']].map(([l,p,a])=><button key={a} aria-label={a} disabled={cur<=1} onClick={()=>setPage(p)} className="h-6 min-w-6 px-1 rounded text-ink-2 hover:bg-muted disabled:opacity-30 disabled:hover:bg-transparent">{l}</button>)}
           {pages>1 && pageItems(cur,pages).map((p,i)=>p==='…'?<span key={'g'+i} className="px-1 text-subtle">…</span>:<button key={p} aria-current={p===cur?'page':undefined} onClick={()=>setPage(p)} className={`h-6 min-w-6 px-1.5 rounded tabular-nums ${p===cur?'bg-[var(--app-accent)] text-white font-medium':'hover:bg-muted'}`}>{p}</button>)}
@@ -331,8 +331,8 @@ function Ladder({d,sel,setSel,lens,hidden,collapsed,width,zoom=1,timers=false,al
   const lensCause = lens && d.msgs.some(m=>m[5]===lens && isCause(m));
   return (
     <svg width={W} height={H} className="block select-none">
-      {d.nodes.map((nd,k) => <g key={nd}><line x1={x(k)} x2={x(k)} y1="34" y2={H} stroke="#EDEDED" strokeDasharray="0"/><rect x={x(k)-48} y="8" width="96" height="24" rx="6" fill="#fff" stroke="#E5E5E5"/><text x={x(k)} y="24" textAnchor="middle" fontSize="11.5" fontWeight="600" fill="#171717">{nd}</text></g>)}
-      {vis.length===0 && <text x={W/2} y={TOP+20} textAnchor="middle" fontSize="12" fill="#8F8F8F">Aucun message visible — réaffiche une interface ou déplie une procédure.</text>}
+      {d.nodes.map((nd,k) => <g key={nd}><line x1={x(k)} x2={x(k)} y1="34" y2={H} stroke="#1E3A57" strokeDasharray="0"/><rect x={x(k)-48} y="8" width="96" height="24" rx="6" fill="var(--surface-2)" stroke="var(--border)"/><text x={x(k)} y="24" textAnchor="middle" fontSize="11.5" fontWeight="600" fill="#E8EEF5">{nd}</text></g>)}
+      {vis.length===0 && <text x={W/2} y={TOP+20} textAnchor="middle" fontSize="12" fill="#A8BCCF">Aucun message visible — réaffiche une interface ou déplie une procédure.</text>}
       {vis.map((k,row) => {
         const m = d.msgs[k];
         const [a,b] = m[2].split(' → ').map(s=>nodeIdx(d.nodes,s));
@@ -345,17 +345,17 @@ function Ladder({d,sel,setSel,lens,hidden,collapsed,width,zoom=1,timers=false,al
         return (
           <g key={k} onClick={()=>setSel(k)} className="cursor-pointer">
             <title>{`${k+1}. ${m[0]} · ${full} · ${m[2]}${m[4]?` · ${m[4]} ${m[5]}`:''}`}</title>
-            <rect x="0" y={y-18} width={W} height={ROW} fill={on?'color-mix(in oklab, var(--app-accent) 9%, white)':lit?(lensCause?'#FDEFEE':'#FDF6E7'):'transparent'}/>
+            <rect x="0" y={y-18} width={W} height={ROW} fill={on?'color-mix(in oklab, var(--app-accent) 16%, var(--card))':lit?(lensCause?'#2E1518':'#2B2110'):'transparent'}/>
             {on && <rect x="0" y={y-18} width="3" height={ROW} fill="var(--app-accent)"/>}
             <text x="12" y={y+4} fontSize="10.5" fill="#94A3B8" fontFamily="Geist Mono">{String(d.evidence?.[k]?.seq ?? k+1).padStart(2,'0')}</text>
-            <text x="40" y={y+4} fontSize="10.5" fill="#64748B" fontFamily="Geist Mono">{fmtUtc(timeOf(d.evidence?.[k]))}</text>
+            <text x="40" y={y+4} fontSize="10.5" fill="#8FA5BB" fontFamily="Geist Mono">{fmtUtc(timeOf(d.evidence?.[k]))}</text>
             <rect x="128" y={y-7} width="34" height="14" rx="3" fill={(IFC[m[0]]||IFC.N2)[1]}/><text x="145" y={y+3.5} textAnchor="middle" fontSize="9.5" fontWeight="600" fill={c} fontFamily="Geist Mono">{String(m[0]).slice(0,6)}</text>
-            {pstart && <text x="168" y={y+4} fontSize="10.5" fill="#334155" fontWeight="600">{String(pstart[0]).slice(0,7)}</text>}
+            {pstart && <text x="168" y={y+4} fontSize="10.5" fill="#C3D0DE" fontWeight="600">{String(pstart[0]).slice(0,7)}</text>}
             {timers && row>0 && (()=>{const a=timeOf(d.evidence?.[vis[row-1]]), b=timeOf(d.evidence?.[k]); return a!=null&&b!=null ? <text x={W-8} y={y+4} textAnchor="end" fontSize="10" fill="#94A3B8" fontFamily="Geist Mono">+{fmtDuration(b-a)}</text> : null;})()}
             <line x1={x1} x2={x2 - dir*7} y1={y} y2={y} stroke={c} strokeWidth={on?2.5:1.2}/>
             <path d={`M${x2},${y} l${-dir*7},-3.5 l0,7 z`} fill={c}/>
-            <text x={Math.min(x1,x2)+7} y={y-5} fontSize="11.5" fill={on?'#171717':'#333'} fontWeight={on?600:450}>{label}</text>
-            {cause && <g><rect x={Math.max(x1,x2)+8} y={y-9} width={(m[5].length+7)*6.4} height="17" rx="4" fill="#FDEFEE" stroke="#F5C6C2"/><text x={Math.max(x1,x2)+14} y={y+3} fontSize="10.5" fill="#B42318" fontWeight="600">{m[4].replace(/^cause /,'')} {m[5]}</text></g>}
+            <text x={Math.min(x1,x2)+7} y={y-5} fontSize="11.5" fill={on?'#E8EEF5':'#C3D0DE'} fontWeight={on?600:450}>{label}</text>
+            {cause && <g><rect x={Math.max(x1,x2)+8} y={y-9} width={(m[5].length+7)*6.4} height="17" rx="4" fill="#2E1518" stroke="#5C2429"/><text x={Math.max(x1,x2)+14} y={y+3} fontSize="10.5" fill="#F87171" fontWeight="600">{m[4].replace(/^cause /,'')} {m[5]}</text></g>}
           </g>
         );
       })}
@@ -379,15 +379,15 @@ function LadderFilter({flow,value,onApply}) {
   const toggle = (key,v) => setDraft(d=>({...d,[key]:d[key].includes(v)?d[key].filter(x=>x!==v):[...d[key],v]}));
   const active = filterActive(value);
   const H = ({children}) => <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-1">{children}</div>;
-  const sel = "h-7 w-full px-1.5 rounded border border-border bg-white text-[12px] outline-none focus:border-[var(--app-accent)]";
+  const sel = "h-7 w-full px-1.5 rounded border border-border bg-card text-[12px] outline-none focus:border-[var(--app-accent)]";
   return <div ref={ref} className="relative shrink-0">
-    <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} className={`h-7 px-2 rounded-md border text-[12px] flex items-center gap-1.5 ${active?'border-[var(--app-accent)] text-[var(--app-accent)]':'border-border text-ink-2 hover:bg-surface-2'}`}>
+    <button onClick={()=>setOpen(o=>!o)} aria-expanded={open} className={`h-7 px-2 rounded-md border text-[12px] flex items-center gap-1.5 ${active?'border-[var(--app-accent)] text-[var(--app-accent-ink)]':'border-border text-ink-2 hover:bg-surface-2'}`}>
       <I d="M3 5h18l-7 8v5l-4 2v-7z" c="w-3.5 h-3.5"/>Filter{active && <span aria-label="Filtres actifs" className="w-1.5 h-1.5 rounded-full bg-[var(--app-accent)]"/>}</button>
-    {open && <div role="dialog" aria-label="Filtres du Ladder" className="absolute right-0 top-8 z-40 w-[300px] bg-white border border-border rounded-lg shadow-lg flex flex-col max-h-[420px] text-[12px] text-foreground">
+    {open && <div role="dialog" aria-label="Filtres du Ladder" className="absolute right-0 top-8 z-40 w-[300px] bg-card border border-border rounded-lg shadow-lg flex flex-col max-h-[420px] text-[12px] text-foreground">
       <div className="flex-1 overflow-auto scroll-thin p-3 space-y-3">
         <section><H>Procédures</H>
           <input aria-label="Rechercher une procédure" value={pq} onChange={e=>setPq(e.target.value)} placeholder="Rechercher…" className={sel+" mb-1.5"}/>
-          <div className="flex gap-3 mb-1 text-[11.5px]"><button onClick={()=>setDraft(d=>({...d,procs:[]}))} className="text-[var(--app-accent)]">Tout sélectionner</button><button onClick={()=>setDraft(d=>({...d,procs:opts.procs}))} className="text-[var(--app-accent)]">Tout désélectionner</button></div>
+          <div className="flex gap-3 mb-1 text-[11.5px]"><button onClick={()=>setDraft(d=>({...d,procs:[]}))} className="text-[var(--app-accent-ink)]">Tout sélectionner</button><button onClick={()=>setDraft(d=>({...d,procs:opts.procs}))} className="text-[var(--app-accent-ink)]">Tout désélectionner</button></div>
           {opts.procs.filter(p=>p.toLowerCase().includes(pq.toLowerCase())).map(p=><label key={p} className="flex items-center gap-2 h-6 cursor-pointer"><input type="checkbox" checked={!draft.procs.includes(p)} onChange={()=>toggle('procs',p)}/><span className="truncate">{p}</span></label>)}
           {opts.procs.length===0 && <div className="text-muted-foreground">Aucune procédure.</div>}
         </section>
@@ -423,20 +423,20 @@ function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
   const tb = "h-7 px-2 rounded-md text-[12px] flex items-center gap-1.5 border transition";
   const d = s.d, ex = d.links.filter(l=>l[5]==='EXACT').length;
   return (
-    <section className="flex-1 min-h-0 flex flex-col bg-white rounded-xl border border-border overflow-hidden">
+    <section className="flex-1 min-h-0 flex flex-col bg-card rounded-xl border border-border overflow-hidden">
       <div className="px-3 border-b border-border">
         {s.detailErrors?.map(error => <div key={error.endpoint} role="alert" className="pt-1.5 text-[12px] text-danger">Détail indisponible · {error.endpoint} · HTTP {error.status}</div>)}
         <div className="min-h-[42px] flex flex-wrap items-center gap-x-4 gap-y-1 min-w-0">
           {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-[42px] shrink-0 whitespace-nowrap text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-foreground font-medium':'border-transparent text-muted-foreground hover:text-foreground'}`}>{t}</button>)}
           <div className="ml-auto flex items-center gap-1 shrink-0">
-            {ifs.map(i=>{const off=hidden.includes(i); return <button key={i} aria-pressed={!off} onClick={()=>setHidden(off?hidden.filter(x=>x!==i):[...hidden,i])} title={off?`Afficher ${i}`:`Masquer ${i}`} className={`h-6 px-0.5 rounded-md border transition ${off?'opacity-35 border-transparent':'border-border bg-white'}`}><Tag i={i}/></button>;})}
+            {ifs.map(i=>{const off=hidden.includes(i); return <button key={i} aria-pressed={!off} onClick={()=>setHidden(off?hidden.filter(x=>x!==i):[...hidden,i])} title={off?`Afficher ${i}`:`Masquer ${i}`} className={`h-6 px-0.5 rounded-md border transition ${off?'opacity-35 border-transparent':'border-border bg-card'}`}><Tag i={i}/></button>;})}
           </div>
           <LadderFilter flow={d} value={mf} onApply={setMf}/>
           <LadderMore><button disabled={demo} onClick={()=>{window.location.href=apiPath(`/exports/callflow/${encodeURIComponent(s.id)}`);}} className={tb+" border-border"}>Exporter</button>{auth.data?.data?.role==='operator' && <button disabled={demo || s.cap==='—'} onClick={()=>{if(window.confirm('Télécharger cet extrait pcap ?')) window.location.href=apiPath(`/captures/${encodeURIComponent(s.cap)}/download`);}} className={tb+" border-border"}>PCAP</button>}
           <button onClick={()=>setZoom(z=>Math.max(0.6,+(z-0.2).toFixed(1)))} title="Zoom arrière" className={`${tb} border-border text-ink-2`}>−</button>
           <button onClick={()=>setZoom(1)} title="Ajuster à la largeur" className={`${tb} border-border text-ink-2 tabular-nums`}>{zoom===1?'Ajusté':`${Math.round(zoom*100)} %`}</button>
           <button onClick={()=>setZoom(z=>Math.min(3,+(z+0.2).toFixed(1)))} title="Zoom avant" className={`${tb} border-border text-ink-2`}>+</button>
-          <button onClick={()=>setTimers(v=>!v)} aria-pressed={timers} title="Afficher les délais entre messages" className={`${tb} ${timers?'border-[var(--app-accent)] text-[var(--app-accent)]':'border-border text-ink-2'}`}>Timers</button>
+          <button onClick={()=>setTimers(v=>!v)} aria-pressed={timers} title="Afficher les délais entre messages" className={`${tb} ${timers?'border-[var(--app-accent)] text-[var(--app-accent-ink)]':'border-border text-ink-2'}`}>Timers</button>
           <button onClick={()=>step(-1)} title="Message précédent (↑)" className={`${tb} border-border text-ink-2 hover:bg-surface-2`}>↑</button>
           <button onClick={()=>step(1)} title="Message suivant (↓)" className={`${tb} border-border text-ink-2 hover:bg-surface-2`}>↓</button>
           {!ui.full && <button onClick={()=>ui.setGridHidden(v=>!v)} className={`${tb} border-border text-ink-2 hover:bg-surface-2`}>{ui.gridHidden?'Afficher le tableau':'Masquer le tableau'}</button>}
@@ -448,7 +448,7 @@ function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
       <div ref={ref} className="flex-1 overflow-auto scroll-thin">
         {tab==='Ladder' && <Ladder d={d} sel={sel} setSel={setSel} lens={lens} hidden={hidden} collapsed={collapsed} width={width} zoom={zoom} timers={timers} allowed={shownSet}/>}
         {tab==='Messages' && <table className="w-full text-[12.5px]"><tbody>{d.msgs.map((m,k)=>[m,k]).filter(([,k])=>shownSet.has(k)).map(([m,k])=>(
-          <tr key={k} onClick={()=>setSel(k)} className={`cursor-pointer ${sel===k?'bg-[color-mix(in_oklab,var(--app-accent)_9%,white)]':'hover:bg-surface-2'}`}>
+          <tr key={k} onClick={()=>setSel(k)} className={`cursor-pointer ${sel===k?'bg-[color-mix(in_oklab,var(--app-accent)_16%,var(--card))]':'hover:bg-surface-2'}`}>
             <td className="h-7 px-4 border-b border-border-subtle font-mono text-[11.5px] text-subtle w-12">{available(d.evidence?.[k]?.seq ?? (demoMessageNumber(d,k)))}</td><td className="px-2 border-b border-border-subtle w-20"><Tag i={m[0]}/></td>
             <td className="px-2 border-b border-border-subtle">{m[1]}{m[3]&&<span className="text-muted-foreground"> · {m[3]}</span>}</td><td className="px-2 border-b border-border-subtle text-muted-foreground">{m[2]}</td>
             <td className="px-4 border-b border-border-subtle font-mono text-[11.5px] text-muted-foreground">{m[4]?`${m[4]} ${m[5]}`:''}</td></tr>))}</tbody></table>}
@@ -502,7 +502,7 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
   if (!m) return <aside className="p-4 text-muted-foreground">Non disponible</aside>;
   const shared = m[5] ? d.msgs.filter(x=>x[5]===m[5]).length : 0;
   return (
-    <aside style={{width}} aria-label="Décodage" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-border overflow-hidden">
+    <aside style={{width}} aria-label="Décodage" className="shrink-0 bg-card flex flex-col min-w-0 rounded-xl border border-border overflow-hidden">
       <div className="h-10 shrink-0 flex items-end gap-5 px-4 border-b border-border">
         {['Décodage','Preuves','Hex','Identité'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-9 text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-foreground font-medium':'border-transparent text-muted-foreground hover:text-foreground'}`}>{t}</button>)}
         <button onClick={onHide} title="Masquer le panneau" className="ml-auto mb-2 w-7 h-7 rounded-md grid place-items-center text-subtle hover:bg-muted hover:text-foreground"><I d="M15 4v16M4 4h16v16H4z" c="w-3.5 h-3.5"/></button>
@@ -557,7 +557,7 @@ const Dot = ({st}) => <span className={`w-[8px] h-[8px] rounded-full ${st==='ok'
 const Bar = ({v,warn=70,crit=85}) => <div className="flex items-center gap-2"><div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden"><div className={`h-full ${v>=crit?'bg-danger':v>=warn?'bg-warning':'bg-[var(--app-accent)]'}`} style={{width:`${v}%`}}/></div><span className="tabular-nums text-[12px] text-ink-2 w-9">{v} %</span></div>;
 const fmtBytes = v => typeof v!=='number'?'—':v>=1024**3?`${(v/1024**3).toFixed(2)} GiB`:v>=1024**2?`${(v/1024**2).toFixed(1)} MiB`:v>=1024?`${(v/1024).toFixed(1)} KiB`:`${v} B`;
 const Card = ({title,action,children,className=''}) => (
-  <section className={`bg-white rounded-lg border border-border ${className}`}>
+  <section className={`bg-card rounded-lg border border-border ${className}`}>
     <div className="h-11 px-4 flex items-center border-b border-border-subtle"><h3 className="text-[13px] font-semibold text-foreground">{title}</h3>{action && <span className="ml-auto text-[12px] text-foreground font-medium cursor-pointer">{action}</span>}</div>
     {children}
   </section>
@@ -584,7 +584,7 @@ function Home({setPage,onNew,hidden=[]}) {
 
   const go = t => t && setPage(t);
   return (
-    <div className="flex-1 overflow-auto scroll-thin bg-white">
+    <div className="flex-1 overflow-auto scroll-thin bg-card">
       <div className="polaris-content-shell px-8 pt-14 pb-16">
         <header className="flex flex-wrap items-end justify-between gap-6">
           <div className="min-w-0">
@@ -595,7 +595,7 @@ function Home({setPage,onNew,hidden=[]}) {
         </header>
         <div className="mt-6 flex flex-wrap gap-2">
           {HOME_ACTIONS.map(([k,n,d,tg])=>(
-            <button key={k} disabled={!tg} onClick={()=>go(tg)} className="h-9 px-3.5 rounded-lg border border-border bg-white text-[13px] text-foreground flex items-center gap-2 hover:border-border-strong hover:bg-surface-2 transition disabled:text-subtle disabled:hover:bg-white disabled:cursor-not-allowed">
+            <button key={k} disabled={!tg} onClick={()=>go(tg)} className="h-9 px-3.5 rounded-lg border border-border bg-card text-[13px] text-foreground flex items-center gap-2 hover:border-border-strong hover:bg-surface-2 transition disabled:text-subtle disabled:hover:bg-card disabled:cursor-not-allowed">
               <I d={d} c="w-4 h-4 text-muted-foreground"/>{t(n)}{!tg && <Soon/>}</button>))}
         </div>
 
@@ -603,7 +603,7 @@ function Home({setPage,onNew,hidden=[]}) {
           <h2 className="text-[13px] font-semibold text-foreground mb-4">{t("Modules")}</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {MODULES.filter(x=>(x[3]!=='trafic'||TRAFFIC_ENABLED) && isVisible(hidden,x[3])).map(([n,desc,d,tg,adm])=>(
-              <button key={n} disabled={!tg} onClick={()=>go(tg)} className="group text-left h-full rounded-xl border border-border bg-white p-4 flex flex-col transition hover:border-border-strong hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:border-border">
+              <button key={n} disabled={!tg} onClick={()=>go(tg)} className="group text-left h-full rounded-xl border border-border bg-card p-4 flex flex-col transition hover:border-border-strong hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)] disabled:cursor-not-allowed disabled:hover:shadow-none disabled:hover:border-border">
                 <span className={`w-8 h-8 rounded-lg grid place-items-center ${tg?'bg-[var(--app-accent)] text-white':'bg-muted text-subtle'}`}><I d={d} c="w-4 h-4"/></span>
                 <span className={`mt-4 text-[14px] font-semibold flex items-center gap-1.5 flex-wrap ${tg?'text-foreground':'text-muted-foreground'}`}>{t(n)}{adm && <span className="text-[11px] font-semibold uppercase tracking-wide rounded px-1.5 py-[1px] bg-[var(--app-accent)] text-white">{t("Administrateur")}</span>}</span>
                 <span className="mt-1 text-[12.5px] leading-[1.45] text-muted-foreground flex-1">{t(desc)}</span>
@@ -615,7 +615,7 @@ function Home({setPage,onNew,hidden=[]}) {
         <div className="mt-14 grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-10">
           <section>
             <div className="flex items-center mb-4"><h2 className="text-[13px] font-semibold text-foreground">{t("Activité récente")}</h2><button disabled className="ml-auto text-[12.5px] text-subtle cursor-not-allowed">{t("Voir tout")}</button></div>
-            <div className="rounded-xl border border-border bg-white divide-y divide-border-subtle">
+            <div className="rounded-xl border border-border bg-card divide-y divide-border-subtle">
               {(demo ? [['Analyse','Run 5G #482 · Registration','il y a 3 min','sessions'],['KPI','Succès PDU Session · 15 min','il y a 12 min','kpi'],['Template','Échecs Attach par cellule','il y a 40 min','templates'],['Analyse','Run 4G #219 · E-RAB Setup','il y a 2 h','sessions']] : []).map(([ty,n,w,tg])=>(
                 <button key={n} onClick={()=>setPage(tg)} className="w-full text-left px-4 py-3 flex items-center gap-3 hover:bg-surface-2"><span className="text-[11px] font-medium text-muted-foreground bg-muted rounded px-1.5 py-[1px] w-16 text-center">{t(ty)}</span><span className="text-[13px] text-foreground truncate">{n}</span><span className="ml-auto text-[12px] text-subtle shrink-0">{t(w)}</span></button>))}
             </div>
@@ -684,7 +684,7 @@ function ProbeDetails({ node, onBack }) {
   return (
     <div className="space-y-5">
       <div className="flex items-start gap-3 flex-wrap">
-        <button type="button" onClick={onBack} className="h-8 px-3 rounded-md border border-border bg-white text-[12.5px] text-ink-2 hover:bg-surface-2">← Sondes</button>
+        <button type="button" onClick={onBack} className="h-8 px-3 rounded-md border border-border bg-card text-[12.5px] text-ink-2 hover:bg-surface-2">← Sondes</button>
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">
             <h2 className="font-mono text-[15px] font-semibold text-foreground truncate">{node.n}</h2>
@@ -740,9 +740,9 @@ function ProbeDetails({ node, onBack }) {
               <Lbl>Capture</Lbl>
               <div className="flex items-center gap-2 flex-wrap">
                 <input aria-label="Cible de capture" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)} value={target} onChange={e=>setTarget(e.target.value)} placeholder="Cible de capture" className="h-8 px-3 border border-border rounded-md text-[12.5px]"/>
-                <button type="button" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('validate')} className="h-8 px-3 rounded-md border border-border bg-white text-[12.5px] text-ink-2 disabled:opacity-50">Valider la capture</button>
+                <button type="button" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('validate')} className="h-8 px-3 rounded-md border border-border bg-card text-[12.5px] text-ink-2 disabled:opacity-50">Valider la capture</button>
                 <button type="button" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('start')} className="h-8 px-3 rounded-md bg-[var(--app-accent)] text-white text-[12.5px] font-medium disabled:opacity-50">Démarrer la capture</button>
-                <button type="button" disabled={!running||capture.isPending} onClick={()=>doCapture('stop',running?.id ?? running?.capture_id)} className="h-8 px-3 rounded-md border border-danger-line bg-white text-[12.5px] text-danger disabled:opacity-50">Arrêter la capture</button>
+                <button type="button" disabled={!running||capture.isPending} onClick={()=>doCapture('stop',running?.id ?? running?.capture_id)} className="h-8 px-3 rounded-md border border-danger-line bg-card text-[12.5px] text-danger disabled:opacity-50">Arrêter la capture</button>
               </div>
               {actionError && <div role="alert" className="text-[12px] text-danger">{actionError}</div>}
               {!health.data?.data?.coordination_open && <div className="text-[11.5px] text-warning">coordination_open absent de /health : actions de capture désactivées.</div>}
@@ -789,7 +789,7 @@ function Nodes() {
                 <td className="px-4 border-b border-border-subtle">{n.memoryBytes==null?<span className="text-faint">—</span>:<div><div className="font-mono text-[11.5px]">{fmtBytes(n.memoryBytes)}</div><div className="text-[11px] text-subtle mt-0.5">anon {fmtBytes(n.memoryAnonBytes)} · file {fmtBytes(n.memoryFileBytes)}</div></div>}</td>
                 <td className="px-4 border-b border-border-subtle">{n.disk==null?<span className="text-faint">—</span>:<div><Bar v={Math.round(n.disk)} warn={95} crit={99}/><div className="text-[11px] text-subtle mt-0.5">{fmtBytes(n.diskFreeBytes)} libres · seuils 95 / 99 %</div></div>}</td>
                 <td className="px-4 border-b border-border-subtle text-muted-foreground">{n.seen}</td>
-                <td className="relative px-4 border-b border-border-subtle text-right"><button type="button" aria-label={`Actions ${n.n}`} onClick={event=>{event.stopPropagation();setMenu(menu===n.n?null:n.n);}} className="h-8 w-8 rounded-md text-[18px] leading-none hover:bg-muted">⋯</button>{menu===n.n&&<><button type="button" aria-label="Fermer le menu" onClick={event=>{event.stopPropagation();setMenu(null);}} className="fixed inset-0 z-40 cursor-default"/><div className="absolute right-3 top-9 z-50 w-52 rounded-md border border-border bg-white py-1 text-left shadow-lg"><button type="button" onClick={event=>{event.stopPropagation();setOpen(n.n);setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Détails</button><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'edit',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Modifier</button><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'software',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Mettre à jour le logiciel</button><div className="my-1 border-t border-border"/><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'delete',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] text-danger hover:bg-danger-soft">Supprimer</button></div></>}</td>
+                <td className="relative px-4 border-b border-border-subtle text-right"><button type="button" aria-label={`Actions ${n.n}`} onClick={event=>{event.stopPropagation();setMenu(menu===n.n?null:n.n);}} className="h-8 w-8 rounded-md text-[18px] leading-none hover:bg-muted">⋯</button>{menu===n.n&&<><button type="button" aria-label="Fermer le menu" onClick={event=>{event.stopPropagation();setMenu(null);}} className="fixed inset-0 z-40 cursor-default"/><div className="absolute right-3 top-9 z-50 w-52 rounded-md border border-border bg-card py-1 text-left shadow-lg"><button type="button" onClick={event=>{event.stopPropagation();setOpen(n.n);setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Détails</button><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'edit',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Modifier</button><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'software',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Mettre à jour le logiciel</button><div className="my-1 border-t border-border"/><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'delete',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] text-danger hover:bg-danger-soft">Supprimer</button></div></>}</td>
               </tr>
             ))}
             {!nodes.length && <tr><td colSpan="9" className="px-4 py-8 text-center text-subtle">{probes.isPending ? 'Connexion au Node Manager…' : failure(probes,'/probes') ? `${failure(probes,'/probes')} · nouvelle tentative dans 5 s` : 'Aucune sonde renvoyée par /probes'}</td></tr>}
@@ -825,25 +825,25 @@ function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
         <div className="flex items-end gap-4">
           <div><div className="text-[12px] text-muted-foreground">POLARIS Analyzer</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Requêtes</h1>
             <div className="text-[13px] text-muted-foreground mt-1">Consulte et lance tes requêtes. La création s’ouvre dans un nouvel onglet.</div></div>
-          {onDisplayAll && <button onClick={onDisplayAll} disabled={displayingAll} className="ml-auto h-10 px-5 rounded-lg border border-border bg-white text-foreground text-[14px] font-medium hover:border-[var(--app-accent)] disabled:opacity-50">{t("Afficher toutes les sessions")}</button>}
+          {onDisplayAll && <button onClick={onDisplayAll} disabled={displayingAll} className="ml-auto h-10 px-5 rounded-lg border border-border bg-card text-foreground text-[14px] font-medium hover:border-[var(--app-accent)] disabled:opacity-50">{t("Afficher toutes les sessions")}</button>}
           <button onClick={()=>onNew()} className={`${onDisplayAll?'':'ml-auto'} h-10 px-5 rounded-lg bg-[var(--app-accent)] text-white text-[14px] font-medium flex items-center gap-2 hover:opacity-90`}><I d={ic.plus} c="w-4 h-4"/>Nouvelle requête</button>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex-1 h-9 rounded-md border border-border bg-white flex items-center gap-2 px-3 focus-within:border-[var(--app-accent)]"><I d={ic.search} c="w-4 h-4 text-subtle"/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher une requête…" className="flex-1 outline-none text-[13px] bg-transparent"/></div>
-          <div className="flex rounded-md border border-border p-[2px] bg-white">{['Toutes','Favoris','Partagées'].map(f=><button key={f} onClick={()=>setFlt(f)} className={`h-8 px-3 rounded-[4px] text-[12.5px] ${flt===f?'bg-[var(--app-accent)] text-white font-medium':'text-muted-foreground'}`}>{f}</button>)}</div>
+          <div className="flex-1 h-9 rounded-md border border-border bg-card flex items-center gap-2 px-3 focus-within:border-[var(--app-accent)]"><I d={ic.search} c="w-4 h-4 text-subtle"/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher une requête…" className="flex-1 outline-none text-[13px] bg-transparent"/></div>
+          <div className="flex rounded-md border border-border p-[2px] bg-card">{['Toutes','Favoris','Partagées'].map(f=><button key={f} onClick={()=>setFlt(f)} className={`h-8 px-3 rounded-[4px] text-[12.5px] ${flt===f?'bg-[var(--app-accent)] text-white font-medium':'text-muted-foreground'}`}>{f}</button>)}</div>
         </div>
         <div>
           <div className="text-[13px] font-semibold mb-3">Démarrer depuis un modèle</div>
           <div className="grid grid-cols-4 gap-3">
             {STARTERS.map(([tt,d,c]) => (
-              <button key={tt} onClick={()=>onNew(mkDraft({tpl:'Parcourir',conds:c.map(x=>[x[0],x[1],'=']),name:tt,group:c[0][0]==='Résultat'?'Cause':'Résultat'}),tt)} className="text-left bg-white rounded-lg border border-border hover:border-[var(--app-accent)] p-4 transition">
+              <button key={tt} onClick={()=>onNew(mkDraft({tpl:'Parcourir',conds:c.map(x=>[x[0],x[1],'=']),name:tt,group:c[0][0]==='Résultat'?'Cause':'Résultat'}),tt)} className="text-left bg-card rounded-lg border border-border hover:border-[var(--app-accent)] p-4 transition">
                 <div className="text-[13px] font-medium">{tt}</div><div className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{d}</div>
                 <div className="flex flex-wrap gap-1 mt-3">{c.map(x=><span key={x[1]} className="text-[11px] rounded border border-border px-1.5 py-0.5 text-ink-2">{x[0]} = {x[1]}</span>)}</div>
               </button>
             ))}
           </div>
         </div>
-        <section className="bg-white rounded-lg border border-border overflow-hidden">
+        <section className="bg-card rounded-lg border border-border overflow-hidden">
           <div className="px-5 h-12 flex items-center border-b border-border-subtle"><h3 className="text-[14px] font-semibold">Requêtes enregistrées</h3><span className="ml-auto text-[12px] text-muted-foreground">{list.length} requêtes</span></div>
           <table className="w-full text-[12.5px]">
             <thead><tr>{['','Nom','Gabarit','Portée','Conditions','Dernière exécution','Résultats',''].map((h,k)=><th key={k} className="h-9 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border">{h}</th>)}</tr></thead>
@@ -873,7 +873,7 @@ function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
 function QSec({n,title,sub,children}) {
   const [open,setOpen] = useState(true);
   return (
-    <section className="bg-white rounded-lg border border-border">
+    <section className="bg-card rounded-lg border border-border">
       <button onClick={()=>setOpen(!open)} className="w-full px-5 h-11 flex items-center gap-3 text-left">
         <span className="w-5 h-5 rounded-full bg-muted text-[11px] font-semibold grid place-items-center text-ink-2">{n}</span>
         <span className="text-[13px] font-semibold">{title}</span><span className="text-[11.5px] text-subtle">{sub}</span>
@@ -927,9 +927,9 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]})
               {draft.conds.map((c,i) => <span key={i} className="inline-flex items-center h-8 rounded-md border border-border text-[12.5px] overflow-hidden">{i>0 && <span className="px-2 h-full flex items-center text-[11px] font-semibold text-subtle border-r border-border">{draft.join}</span>}<span className="px-2.5 h-full flex items-center bg-surface-2 border-r border-border text-muted-foreground">{c[0]}</span><span className="px-2 text-subtle">{c[2]||'='}</span><span className="pr-2.5 font-medium">{c[1]}</span><button onClick={()=>up({conds:draft.conds.filter((_,j)=>j!==i)})} aria-label="Retirer" className="w-7 h-full grid place-items-center text-subtle hover:text-danger border-l border-border"><I d={ic.x} c="w-3.5 h-3.5"/></button></span>)}
             </div>
             <div className="flex items-center gap-2">
-              <select value={f} onChange={e=>{setF(e.target.value); setV(fieldList.find(x=>x[0]===e.target.value)[1][0] || '');}} className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-white">{fieldList.map(x=><option key={x[0]} disabled={idField(x[0]) && x[0]==='IMSI' && role!=='operator'}>{x[0]}</option>)}</select>
-              <select value={op} onChange={e=>setOp(e.target.value)} className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-white"><option>=</option><option>≠</option></select>
-              <input value={v} onChange={e=>setV(e.target.value)} list="polaris-filter-values" className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-white min-w-[180px]"/><datalist id="polaris-filter-values">{vals.map(x=><option key={x} value={x}/>)}</datalist>
+              <select value={f} onChange={e=>{setF(e.target.value); setV(fieldList.find(x=>x[0]===e.target.value)[1][0] || '');}} className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-card">{fieldList.map(x=><option key={x[0]} disabled={idField(x[0]) && x[0]==='IMSI' && role!=='operator'}>{x[0]}</option>)}</select>
+              <select value={op} onChange={e=>setOp(e.target.value)} className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-card"><option>=</option><option>≠</option></select>
+              <input value={v} onChange={e=>setV(e.target.value)} list="polaris-filter-values" className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-card min-w-[180px]"/><datalist id="polaris-filter-values">{vals.map(x=><option key={x} value={x}/>)}</datalist>
               <button onClick={()=>up({conds:[...draft.conds,[f,v,op]]})} className="h-8 px-3 rounded-md border border-border text-[12.5px] hover:bg-surface-2 flex items-center gap-1.5"><I d={ic.plus} c="w-3.5 h-3.5"/>Ajouter</button>
               <span className="ml-2 inline-flex items-center gap-1.5 text-[11.5px] text-subtle"><I d={ic.lock} c="w-3 h-3"/>Identités : rôle operator</span>
             </div>
@@ -938,11 +938,11 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]})
         <QSec n={4} title="Regrouper par" sub="facultatif">
           <div className="flex flex-wrap gap-2">{!demo && <span>Non disponible : backend à venir</span>}{GROUPS.map(g=><button disabled={!demo && g!=='Aucun'} key={g} onClick={()=>up({group:g})} className={`h-8 px-3 rounded-md border text-[12.5px] ${draft.group===g?'border-[var(--app-accent)] text-foreground ring-1 ring-[var(--app-accent)]':'border-border text-muted-foreground hover:border-border-strong'}`}>{g}</button>)}</div>
         </QSec>
-        <section className="bg-white rounded-lg border border-border px-5 h-14 flex items-center gap-2">
+        <section className="bg-card rounded-lg border border-border px-5 h-14 flex items-center gap-2">
           <span className="w-5 h-5 rounded-full bg-muted text-[11px] font-semibold grid place-items-center text-ink-2">5</span><span className="text-[13px] font-semibold mr-3">Actions</span>
           {err && <span className="text-[12px] text-danger">{err}</span>}
-          <button onClick={cancel} className="ml-auto h-9 px-3 rounded-md border border-border bg-white text-[12.5px] text-ink-2 hover:bg-muted">Annuler</button>
-          <button onClick={save} className="h-9 px-3 rounded-md border border-border bg-white text-[12.5px] text-ink-2 hover:bg-muted">Enregistrer</button>
+          <button onClick={cancel} className="ml-auto h-9 px-3 rounded-md border border-border bg-card text-[12.5px] text-ink-2 hover:bg-muted">Annuler</button>
+          <button onClick={save} className="h-9 px-3 rounded-md border border-border bg-card text-[12.5px] text-ink-2 hover:bg-muted">Enregistrer</button>
           <button onClick={exec} className="h-9 px-5 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[13px] font-medium flex items-center gap-2"><I d={ic.play} c="w-3.5 h-3.5"/>Exécuter la requête</button>
         </section>
       </div>
@@ -951,6 +951,15 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]})
 }
 
 const THEMES = [['blue','Bleu','#0062A1'],['black','Noir','#171717'],['green','Vert','#0F5B56']];
+/* The accent is also used as text and thin lines on a navy surface, so it is lightened to stay readable. */
+const accentInk = hex => {
+  const h = hex.replace('#',''); const n = h.length === 3 ? h.split('').map(c=>c+c).join('') : h;
+  const [r,g,b] = [0,2,4].map(i => parseInt(n.slice(i,i+2),16));
+  const lum = (0.2126*r + 0.7152*g + 0.0722*b) / 255;
+  const share = lum < 0.18 ? 0.3 : 0.6;
+  const mix = v => Math.round(v*share + 255*(1-share));
+  return `#${[mix(r),mix(g),mix(b)].map(v=>v.toString(16).padStart(2,'0')).join('')}`;
+};
 function Settings({theme,setTheme,lang,setLang,onClose}) {
   const version = useVersion();
   const [sec,setSec]=useState('apparence');
@@ -958,16 +967,16 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
   const accent = THEMES.find(t=>t[0]===theme)[2];
   const save = e => { e.preventDefault(); if(!cur||nw.length<8) return setPm(['err',t("Mot de passe actuel requis et 8 caractères minimum.")]); if(nw!==cf) return setPm(['err',t("Les mots de passe ne correspondent pas.")]); setPm(['err',t("Non disponible : backend à venir — authentification gérée par le proxy.")]); setCur('');setNw('');setCf(''); };
   const strength = Math.min(4,[/.{8,}/,/[A-Z]/,/[0-9]/,/[^A-Za-z0-9]/].filter(r=>r.test(nw)).length);
-  const inp = "w-full h-11 rounded-lg border border-border bg-white px-3.5 text-[14px] outline-none transition focus:border-transparent focus:ring-2";
+  const inp = "w-full h-11 rounded-lg border border-border bg-card px-3.5 text-[14px] outline-none transition focus:border-transparent focus:ring-2";
   const SECS=[['apparence','Apparence','Couleur et thème'],['securite','Sécurité','Mot de passe'],['langue','Langue','Français ou English'],['apropos','À propos','Version et build']];
-  const Card = ({title,desc,children}) => <section className="bg-white rounded-xl border border-border shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+  const Card = ({title,desc,children}) => <section className="bg-card rounded-xl border border-border shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
     <div className="px-7 pt-6 pb-5 border-b border-border-subtle"><h2 className="text-[18px] font-semibold tracking-[-0.01em] text-foreground">{title}</h2><p className="mt-1 text-[14px] text-muted-foreground">{desc}</p></div>
     <div className="p-7">{children}</div></section>;
   return (
     <div className="flex-1 overflow-auto scroll-thin">
       <div className="relative h-36 shrink-0" style={{background:`linear-gradient(120deg, ${accent}, ${accent}CC 60%, ${accent}88)`}}>
         <svg aria-hidden="true" className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 1200 144" preserveAspectRatio="xMidYMid slice">
-          <defs><radialGradient id="polGlow"><stop offset="0" stopColor="#fff" stopOpacity=".9"/><stop offset=".3" stopColor="#cfe8ff" stopOpacity=".35"/><stop offset="1" stopColor="#fff" stopOpacity="0"/></radialGradient></defs>
+          <defs><radialGradient id="polGlow"><stop offset="0" stopColor="#fff" stopOpacity=".9"/><stop offset=".3" stopColor="#123049" stopOpacity=".35"/><stop offset="1" stopColor="#fff" stopOpacity="0"/></radialGradient></defs>
           <circle cx="389" cy="22" r="0.6" fill="#fff" opacity="0.39"/><circle cx="643" cy="53" r="0.6" fill="#fff" opacity="0.85"/><circle cx="258" cy="12" r="1.3" fill="#fff" opacity="0.39"/><circle cx="109" cy="61" r="0.6" fill="#fff" opacity="0.87"/><circle cx="757" cy="84" r="0.6" fill="#fff" opacity="0.67"/><circle cx="476" cy="141" r="0.6" fill="#fff" opacity="0.66"/><circle cx="160" cy="60" r="0.6" fill="#fff" opacity="0.66"/><circle cx="672" cy="98" r="0.6" fill="#fff" opacity="0.67"/><circle cx="767" cy="54" r="0.6" fill="#fff" opacity="0.66"/><circle cx="743" cy="71" r="1.3" fill="#fff" opacity="0.78"/><circle cx="559" cy="133" r="1" fill="#fff" opacity="0.51"/><circle cx="953" cy="101" r="0.8" fill="#fff" opacity="0.40"/><circle cx="360" cy="71" r="1" fill="#fff" opacity="0.75"/><circle cx="346" cy="141" r="0.6" fill="#fff" opacity="0.63"/><circle cx="198" cy="49" r="1.3" fill="#fff" opacity="0.58"/><circle cx="1154" cy="11" r="1" fill="#fff" opacity="0.54"/><circle cx="420" cy="72" r="1.3" fill="#fff" opacity="0.39"/><circle cx="112" cy="39" r="0.6" fill="#fff" opacity="0.38"/><circle cx="842" cy="93" r="1.3" fill="#fff" opacity="0.51"/><circle cx="463" cy="96" r="0.6" fill="#fff" opacity="0.87"/><circle cx="427" cy="88" r="1.3" fill="#fff" opacity="0.38"/><circle cx="922" cy="19" r="0.8" fill="#fff" opacity="0.57"/><circle cx="1100" cy="71" r="0.8" fill="#fff" opacity="0.60"/><circle cx="659" cy="127" r="1.3" fill="#fff" opacity="0.83"/><circle cx="334" cy="60" r="1" fill="#fff" opacity="0.73"/><circle cx="457" cy="33" r="0.6" fill="#fff" opacity="0.45"/><circle cx="278" cy="34" r="1.3" fill="#fff" opacity="0.81"/><circle cx="219" cy="41" r="0.8" fill="#fff" opacity="0.58"/><circle cx="443" cy="82" r="0.8" fill="#fff" opacity="0.73"/><circle cx="619" cy="89" r="0.6" fill="#fff" opacity="0.60"/><circle cx="1045" cy="137" r="1.3" fill="#fff" opacity="0.57"/><circle cx="473" cy="69" r="1.3" fill="#fff" opacity="0.38"/><circle cx="81" cy="30" r="0.8" fill="#fff" opacity="0.41"/><circle cx="721" cy="15" r="0.8" fill="#fff" opacity="0.65"/><circle cx="1139" cy="88" r="0.6" fill="#fff" opacity="0.83"/><circle cx="737" cy="21" r="1" fill="#fff" opacity="0.88"/><circle cx="723" cy="68" r="0.6" fill="#fff" opacity="0.82"/><circle cx="1192" cy="67" r="1.3" fill="#fff" opacity="0.52"/><circle cx="173" cy="108" r="1" fill="#fff" opacity="0.61"/><circle cx="830" cy="74" r="0.8" fill="#fff" opacity="0.87"/><circle cx="634" cy="21" r="0.6" fill="#fff" opacity="0.77"/><circle cx="358" cy="93" r="0.6" fill="#fff" opacity="0.73"/><circle cx="313" cy="53" r="0.8" fill="#fff" opacity="0.55"/><circle cx="267" cy="78" r="1" fill="#fff" opacity="0.70"/><circle cx="736" cy="114" r="0.8" fill="#fff" opacity="0.79"/><circle cx="982" cy="107" r="0.8" fill="#fff" opacity="0.46"/><circle cx="591" cy="105" r="0.6" fill="#fff" opacity="0.78"/><circle cx="567" cy="28" r="1" fill="#fff" opacity="0.60"/><circle cx="1124" cy="142" r="1" fill="#fff" opacity="0.39"/><circle cx="123" cy="68" r="1" fill="#fff" opacity="0.46"/><circle cx="749" cy="130" r="0.6" fill="#fff" opacity="0.61"/><circle cx="784" cy="115" r="0.6" fill="#fff" opacity="0.81"/><circle cx="144" cy="56" r="0.8" fill="#fff" opacity="0.61"/><circle cx="214" cy="114" r="1" fill="#fff" opacity="0.40"/><circle cx="1135" cy="104" r="1.3" fill="#fff" opacity="0.57"/><circle cx="1136" cy="104" r="0.8" fill="#fff" opacity="0.90"/><circle cx="33" cy="85" r="1.3" fill="#fff" opacity="0.79"/><circle cx="175" cy="119" r="1.3" fill="#fff" opacity="0.71"/><circle cx="420" cy="79" r="0.8" fill="#fff" opacity="0.36"/><circle cx="959" cy="105" r="0.6" fill="#fff" opacity="0.64"/><circle cx="1120" cy="62" r="0.8" fill="#fff" opacity="0.80"/><circle cx="253" cy="36" r="1" fill="#fff" opacity="0.63"/><circle cx="916" cy="47" r="1.3" fill="#fff" opacity="0.81"/><circle cx="73" cy="107" r="1.3" fill="#fff" opacity="0.71"/><circle cx="978" cy="74" r="0.8" fill="#fff" opacity="0.64"/><circle cx="628" cy="3" r="1.3" fill="#fff" opacity="0.78"/><circle cx="730" cy="112" r="0.8" fill="#fff" opacity="0.44"/><circle cx="568" cy="104" r="0.6" fill="#fff" opacity="0.53"/><circle cx="622" cy="80" r="0.6" fill="#fff" opacity="0.84"/><circle cx="68" cy="28" r="0.6" fill="#fff" opacity="0.77"/>
           <g opacity=".5" stroke="#fff" strokeWidth=".8" fill="none"><path d="M960 60 L905 78 L862 92 L820 100 L800 124 L752 118 L770 96 L820 100"/></g>
           {[[905,78],[862,92],[820,100],[800,124],[752,118],[770,96]].map(([x,y],i)=><circle key={i} cx={x} cy={y} r="1.8" fill="#fff"/>)}
@@ -986,20 +995,20 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
         <div className="grid grid-cols-[240px_minmax(0,1fr)] gap-10">
           <nav className="space-y-1.5">
             {SECS.map(([k,n,d])=>{const on=sec===k; return (
-              <button key={k} onClick={()=>setSec(k)} className={`w-full text-left px-4 py-3 rounded-lg transition border ${on?'bg-white border-border shadow-sm':'border-transparent hover:bg-white/70'}`}>
+              <button key={k} onClick={()=>setSec(k)} className={`w-full text-left px-4 py-3 rounded-lg transition border ${on?'bg-card border-border shadow-sm':'border-transparent hover:bg-card/70'}`}>
                 <div className="flex items-center gap-2.5"><span className="w-1.5 h-5 rounded-full" style={{background:on?accent:'transparent'}}/><div><div className={`text-[14px] ${on?'font-semibold text-foreground':'text-ink-2'}`}>{t(n)}</div><div className="text-[12.5px] text-subtle">{t(d)}</div></div></div>
               </button>);})}
           </nav>
           <div>
             {sec==='apparence' && <Card title={t("Couleur de l'application")} desc={t("Choisissez la couleur d'accent utilisée dans toute l'interface.")}>
               <div className="grid grid-cols-3 gap-5">{THEMES.map(([k,n,c])=>{const on=theme===k; return (
-                <button key={k} onClick={()=>setTheme(k)} className={`group text-left rounded-xl border-2 overflow-hidden transition ${on?'shadow-md':'border-border hover:border-border-strong'}`} style={on?{borderColor:c}:{}}>
+                <button key={k} onClick={()=>setTheme(k)} className={`group text-left rounded-xl border-2 overflow-hidden transition ${on?'shadow-md outline outline-2 -outline-offset-2':'border-border hover:border-border-strong'}`} style={on?{borderColor:c,outlineColor:accentInk(c)}:{}}>
                   <div className="h-28 bg-surface-2 p-3 flex flex-col gap-2">
-                    <div className="h-4 rounded flex items-center gap-1.5 px-1.5 bg-white border border-border"><span className="w-2.5 h-2.5 rounded-sm" style={{background:c}}/><span className="h-1 w-8 rounded bg-track"/><span className="ml-auto w-2.5 h-2.5 rounded-full" style={{background:c}}/></div>
-                    <div className="flex-1 rounded bg-white border border-border p-2 space-y-1.5"><span className="block h-1.5 w-3/4 rounded bg-track"/><span className="block h-1.5 w-1/2 rounded bg-track"/><span className="block h-4 w-14 rounded mt-2" style={{background:c}}/></div>
+                    <div className="h-4 rounded flex items-center gap-1.5 px-1.5 bg-card border border-border"><span className="w-2.5 h-2.5 rounded-sm ring-1 ring-border-strong" style={{background:c}}/><span className="h-1 w-8 rounded bg-track"/><span className="ml-auto w-2.5 h-2.5 rounded-full ring-1 ring-border-strong" style={{background:c}}/></div>
+                    <div className="flex-1 rounded bg-card border border-border p-2 space-y-1.5"><span className="block h-1.5 w-3/4 rounded bg-track"/><span className="block h-1.5 w-1/2 rounded bg-track"/><span className="block h-4 w-14 rounded mt-2 ring-1 ring-border-strong" style={{background:c}}/></div>
                   </div>
-                  <div className="px-4 py-3 flex items-center gap-2.5 bg-white"><span className="w-5 h-5 rounded-full" style={{background:c}}/><span className="text-[14px] font-medium">{t(n)}</span><span className="ml-auto font-mono text-[11.5px] text-subtle">{c}</span>
-                    {on && <span className="w-5 h-5 rounded-full grid place-items-center text-white text-[11px]" style={{background:c}}>✓</span>}</div>
+                  <div className="px-4 py-3 flex items-center gap-2.5 bg-card"><span className="w-5 h-5 rounded-full ring-1 ring-border-strong" style={{background:c}}/><span className="text-[14px] font-medium">{t(n)}</span><span className="ml-auto font-mono text-[11.5px] text-subtle">{c}</span>
+                    {on && <span className="w-5 h-5 rounded-full grid place-items-center text-white text-[11px] ring-1 ring-border-strong" style={{background:c}}>✓</span>}</div>
                 </button>);})}</div>
             </Card>}
             {sec==='securite' && <Card title={t("Mot de passe")} desc={t("Non disponible : backend à venir — authentification gérée par le proxy.")}>
@@ -1007,7 +1016,7 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
                 {[['Mot de passe actuel',cur,setCur],['Nouveau mot de passe',nw,setNw],['Confirmer le mot de passe',cf,setCf]].map(([l,v,fn],i)=>(
                   <label key={l} className="block"><span className="block text-[13px] font-medium mb-1.5">{t(l)}</span>
                     <input disabled type="password" value={v} onChange={e=>fn(e.target.value)} className={inp}/>
-                    {i===1 && nw && <div className="mt-2 flex gap-1.5">{[0,1,2,3].map(j=><span key={j} className="h-1.5 flex-1 rounded-full" style={{background:j<strength?accent:'#EBEBEB'}}/>)}</div>}
+                    {i===1 && nw && <div className="mt-2 flex gap-1.5">{[0,1,2,3].map(j=><span key={j} className="h-1.5 flex-1 rounded-full" style={{background:j<strength?accent:'#1E3A57'}}/>)}</div>}
                   </label>))}
                 {pm && <div className={`text-[13px] rounded-lg px-3.5 py-2.5 ${pm[0]==='ok'?'bg-success-soft text-success':'bg-danger-soft text-danger'}`}>{pm[1]}</div>}
                 <button disabled title="Non disponible : backend à venir" type="submit" style={{background:accent}} className="h-11 px-6 rounded-lg text-white text-[14px] font-semibold shadow-sm hover:opacity-90">{t("Mettre à jour le mot de passe")}</button>
@@ -1016,7 +1025,7 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
             {sec==='langue' && <Card title={t("Langue de l'interface")} desc={t("Choisissez la langue utilisée dans POLARIS.")}>
               <div className="grid grid-cols-2 gap-5 max-w-[520px]">{[['fr','Français','FR'],['en','English','EN']].map(([k,n,c])=>{const on=lang===k; return (
                 <button key={k} onClick={()=>setLang(k)} className={`rounded-xl border-2 px-5 py-4 flex items-center gap-3 text-left transition ${on?'shadow-md':'border-border hover:border-border-strong'}`} style={on?{borderColor:accent}:{}}>
-                  <span className="w-10 h-10 rounded-lg grid place-items-center text-[13px] font-bold text-white" style={{background:on?accent:'#A3A3A3'}}>{c}</span>
+                  <span className="w-10 h-10 rounded-lg grid place-items-center text-[13px] font-bold text-white" style={{background:on?accent:'#A8BCCF'}}>{c}</span>
                   <span className="text-[15px] font-medium">{n}</span>
                   {on && <span className="ml-auto w-5 h-5 rounded-full grid place-items-center text-white text-[11px]" style={{background:accent}}>✓</span>}
                 </button>);})}</div>
@@ -1035,7 +1044,7 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
 function Traffic({setPage}){
   const { TR_CATS, TR_APPS, TR_CELLS, TR_V, TR_FLOWS, seedRand } = useTrafficDemo();
   const [sel,setSel]=useState(0); const [by,setBy]=useState('cat');
-  const f=TR_FLOWS[sel]; const card="bg-white rounded-xl border border-border overflow-hidden";
+  const f=TR_FLOWS[sel]; const card="bg-card rounded-xl border border-border overflow-hidden";
   const head=(n,x)=><div className="h-11 px-4 flex items-center gap-2 border-b border-border-subtle"><h3 className="text-[13px] font-semibold text-foreground">{t(n)}</h3>{x}</div>;
   const r=seedRand('flow'+sel); const W=600; const pts=k=>Array.from({length:40},()=>r()*k);
   const line=(d,mx)=>d.map((v,i)=>`${i?'L':'M'}${(i*W/39).toFixed(1)},${(70-v/mx*62).toFixed(1)}`).join(' ');
@@ -1049,7 +1058,7 @@ function Traffic({setPage}){
           <div className="ml-auto flex items-center gap-3"><span className="text-[11px] font-medium text-warning bg-warning-soft border border-warning-line rounded px-1.5 py-[1px]">{t("Données de démo")}</span><span className="text-[12px] text-subtle">{t("Aucune charge utile, aucune URL complète stockée.")}</span></div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-          {[['Volume','412 Go'],['Débit DL','1,84 Gb/s'],['Flux actifs','18 240'],['Établissement TCP','98,6 %'],['RTT médian','31 ms'],['Flux congestionnés','6,2 %']].map(([n,v])=><div key={n} className="bg-white rounded-xl border border-border px-4 py-3"><div className="text-[12px] text-subtle">{t(n)}</div><div className="text-[20px] font-semibold tabular-nums text-foreground mt-0.5">{v}</div></div>)}
+          {[['Volume','412 Go'],['Débit DL','1,84 Gb/s'],['Flux actifs','18 240'],['Établissement TCP','98,6 %'],['RTT médian','31 ms'],['Flux congestionnés','6,2 %']].map(([n,v])=><div key={n} className="bg-card rounded-xl border border-border px-4 py-3"><div className="text-[12px] text-subtle">{t(n)}</div><div className="text-[20px] font-semibold tabular-nums text-foreground mt-0.5">{v}</div></div>)}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
           <div className={card}>
@@ -1081,7 +1090,7 @@ function Traffic({setPage}){
           <div className={card}>
             {head("Détail du flux",<span className="ml-auto font-mono text-[11px] text-subtle">{f[0]} · {f[7]}</span>)}
             <div className="p-4 space-y-3">
-              {[['Débit',f[9]*1.4,'Mb/s'],['RTT',f[10]*1.5,'ms'],['Retransmissions',Math.max(1,f[11]*2),'%']].map(([n,k,u])=><div key={n}><div className="text-[11.5px] text-subtle">{t(n)} ({u})</div><svg viewBox={`0 0 ${W} 72`} className="w-full h-[56px]"><path d={line(pts(k),k)} fill="none" stroke="var(--app-accent)" strokeWidth="1.6"/></svg></div>)}
+              {[['Débit',f[9]*1.4,'Mb/s'],['RTT',f[10]*1.5,'ms'],['Retransmissions',Math.max(1,f[11]*2),'%']].map(([n,k,u])=><div key={n}><div className="text-[11.5px] text-subtle">{t(n)} ({u})</div><svg viewBox={`0 0 ${W} 72`} className="w-full h-[56px]"><path d={line(pts(k),k)} fill="none" stroke="var(--app-accent-ink)" strokeWidth="1.6"/></svg></div>)}
               <div className="rounded-md border border-border-subtle p-3 text-[12px]"><div className="flex items-center gap-2"><span className="text-subtle">{t("Verdict")}</span><span className="text-[11px] font-medium rounded px-1.5 text-white" style={{background:TR_V[f[12]][1]}}>{t(TR_V[f[12]][0])}</span></div><div className="mt-1 text-ink-2">{f[13]}</div><div className="mt-1 text-[11px] text-subtle">{t("Règle appliquée")} : {f[6]} · {f[5]}</div></div>
               <button onClick={()=>setPage('sessions')} className="w-full h-9 rounded-md bg-[var(--app-accent)] hover:opacity-90 text-white text-[12.5px] font-medium">{t("Ouvrir la session dans l'Analyzer →")}</button>
             </div>
@@ -1100,11 +1109,11 @@ function MockChart({data,unit}){
   const line=data.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
   const avg=data.reduce((a,b)=>a+b,0)/data.length;
   return <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-full">
-    {[0,1,2,3].map(i=>{const y=pad+i*(h-pad*2)/3; const v=hi-(i/3)*(hi-lo); return <g key={i}><line x1={pad} x2={w-pad} y1={y} y2={y} stroke="#F2F2F2"/><text x={2} y={y+3} fontSize="9" fill="#A3A3A3">{fmtV(v,unit)}</text></g>;})}
+    {[0,1,2,3].map(i=>{const y=pad+i*(h-pad*2)/3; const v=hi-(i/3)*(hi-lo); return <g key={i}><line x1={pad} x2={w-pad} y1={y} y2={y} stroke="#1E3A57"/><text x={2} y={y+3} fontSize="9" fill="#A8BCCF">{fmtV(v,unit)}</text></g>;})}
     <path d={`${line} L${X(data.length-1)},${h-pad} L${X(0)},${h-pad} Z`} fill="var(--app-accent)" opacity="0.08"/>
-    <path d={line} fill="none" stroke="var(--app-accent)" strokeWidth="1.8"/>
-    <line x1={pad} x2={w-pad} y1={Y(avg)} y2={Y(avg)} stroke="#A3A3A3" strokeDasharray="3 3"/>
-    {data.map((v,i)=>Math.abs(v-avg)>(mx-mn)*0.35?<circle key={i} cx={X(i)} cy={Y(v)} r="3.2" fill="#B42318"><title>{fmtV(v,unit)}</title></circle>:null)}
+    <path d={line} fill="none" stroke="var(--app-accent-ink)" strokeWidth="1.8"/>
+    <line x1={pad} x2={w-pad} y1={Y(avg)} y2={Y(avg)} stroke="#A8BCCF" strokeDasharray="3 3"/>
+    {data.map((v,i)=>Math.abs(v-avg)>(mx-mn)*0.35?<circle key={i} cx={X(i)} cy={Y(v)} r="3.2" fill="#F87171"><title>{fmtV(v,unit)}</title></circle>:null)}
   </svg>;
 }
 
@@ -1236,7 +1245,7 @@ function App() {
   const ui = {full,setFull,gridHidden,setGridHidden};
   useEffect(()=>{ setMsg(0); setLens(null); },[s?.id]);
   return (
-    <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-surface-2 text-foreground text-base">
+    <div style={{"--app-accent":accent,"--app-accent-ink":accentInk(accent)}} className="h-screen flex flex-col bg-surface-2 text-foreground text-base">
       <TopBar role={role} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')} metrics={metrics} version={version} demo={demo} hidden={navHidden}/>
       <DataStatus t={t}/>
       {role==='operator' && <div className="h-7 shrink-0 bg-warning-soft border-b border-warning-line text-warning text-[12px] flex items-center px-4">Rôle operator actif · identités masquées · actions soumises au proxy</div>}
@@ -1249,17 +1258,17 @@ function App() {
             <div onMouseDown={e=>drag(e,'h')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group h-2 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[2px] w-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
           </>}
           <div ref={lowRef} className="flex-1 min-h-0 flex">
-            <div className="flex-1 min-w-[280px] flex flex-col">{selected ? <Detail s={selected} sel={msg} setSel={setMsg} lens={lens} ui={ui} onOpenSession={id=>setSel(id)}/> : <div className="p-8 text-muted-foreground bg-white rounded-xl border border-border flex-1">{sessionsQuery.isError ? sessionsQuery.error.message : sessionsQuery.isPending ? "Connexion POLARIS…" : "Aucune session"}</div>}</div>
+            <div className="flex-1 min-w-[280px] flex flex-col">{selected ? <Detail s={selected} sel={msg} setSel={setMsg} lens={lens} ui={ui} onOpenSession={id=>setSel(id)}/> : <div className="p-8 text-muted-foreground bg-card rounded-xl border border-border flex-1">{sessionsQuery.isError ? sessionsQuery.error.message : sessionsQuery.isPending ? "Connexion POLARIS…" : "Aucune session"}</div>}</div>
           </div>
         </main>
-        {selected && !full && (jouHidden ? null : <><div onMouseDown={e=>drag(e,'jou')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><aside style={{width:`${jouPct}%`}} aria-label="Parcours abonné" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-border overflow-hidden"><div className="h-[42px] shrink-0 px-4 flex items-center border-b border-border"><span className="text-[13px] font-semibold text-foreground">Parcours abonné</span><button onClick={()=>setJouHidden(true)} title="Masquer Parcours abonné" className="ml-auto w-7 h-7 rounded-md grid place-items-center text-muted-foreground hover:bg-muted">×</button></div><div className="flex-1 overflow-auto scroll-thin"><SubscriberJourney s={selected} role={role} onOpen={id=>{ if(id) setSel(id); }}/></div></aside></>)}
+        {selected && !full && (jouHidden ? null : <><div onMouseDown={e=>drag(e,'jou')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><aside style={{width:`${jouPct}%`}} aria-label="Parcours abonné" className="shrink-0 bg-card flex flex-col min-w-0 rounded-xl border border-border overflow-hidden"><div className="h-[42px] shrink-0 px-4 flex items-center border-b border-border"><span className="text-[13px] font-semibold text-foreground">Parcours abonné</span><button onClick={()=>setJouHidden(true)} title="Masquer Parcours abonné" className="ml-auto w-7 h-7 rounded-md grid place-items-center text-muted-foreground hover:bg-muted">×</button></div><div className="flex-1 overflow-auto scroll-thin"><SubscriberJourney s={selected} role={role} onOpen={id=>{ if(id) setSel(id); }}/></div></aside></>)}
         {selected && !full && (insHidden ? null : <><div onMouseDown={e=>drag(e,'ins')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><Inspector key={selected.id} s={selected} sel={msg} role={role} lens={lens} setLens={setLens} width={`${insPct}%`} onHide={()=>setInsHidden(true)}/></>)}
         {selected && !full && (anaHidden ? null : <><div onMouseDown={e=>drag(e,'ana')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><SessionAnalysis onOpenSession={id=>setSel(id)} s={selected} width={`${anaPct}%`} loading={bundle.callflow.isFetching || bundle.events.isFetching} onPick={k=>setMsg(Math.max(0,k))} onHide={()=>setAnaHidden(true)}/></>)}
-        {selected && !full && <nav aria-label="Panneaux" className="ml-2 w-10 shrink-0 self-stretch bg-white rounded-xl border border-border flex flex-col items-center py-2 gap-1">
-          {[['Parcours abonné',jouHidden,setJouHidden,'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6'],['Décodage',insHidden,setInsHidden,'M8 6l-6 6 6 6M16 6l6 6-6 6'],['Analyse sessions',anaHidden,setAnaHidden,'M4 20V10M10 20V4M16 20v-7M22 20H2']].map(([l,h,set,d])=><button key={l} type="button" onClick={()=>set(!h)} aria-pressed={!h} title={`${h?'Afficher':'Masquer'} ${l}`} className={`w-8 rounded-lg flex flex-col items-center gap-2 py-2.5 transition ${!h?'bg-brand-soft text-[var(--app-accent)]':'text-muted-foreground hover:bg-muted hover:text-foreground'}`}><I d={d} c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[11.5px] font-medium">{l}</span></button>)}
+        {selected && !full && <nav aria-label="Panneaux" className="ml-2 w-10 shrink-0 self-stretch bg-card rounded-xl border border-border flex flex-col items-center py-2 gap-1">
+          {[['Parcours abonné',jouHidden,setJouHidden,'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6'],['Décodage',insHidden,setInsHidden,'M8 6l-6 6 6 6M16 6l6 6-6 6'],['Analyse sessions',anaHidden,setAnaHidden,'M4 20V10M10 20V4M16 20v-7M22 20H2']].map(([l,h,set,d])=><button key={l} type="button" onClick={()=>set(!h)} aria-pressed={!h} title={`${h?'Afficher':'Masquer'} ${l}`} className={`w-8 rounded-lg flex flex-col items-center gap-2 py-2.5 transition ${!h?'bg-brand-soft text-[var(--app-accent-ink)]':'text-muted-foreground hover:bg-muted hover:text-foreground'}`}><I d={d} c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[11.5px] font-medium">{l}</span></button>)}
         </nav>}
       </div>}</>}
-      <footer className="h-7 shrink-0 bg-white border-t border-border flex items-center gap-5 px-4 text-[11.5px] text-muted-foreground">
+      <footer className="h-7 shrink-0 bg-card border-t border-border flex items-center gap-5 px-4 text-[11.5px] text-muted-foreground">
         <span>Capture : {available(metrics.data?.data?.capture_state)}</span><span>Segments ingérés : {available(metrics.data?.data?.segments_ingested)}</span>
         <span className="ml-auto font-mono">POLARIS {available(version.data?.data?.platform_core)} · API {available(version.data?.data?.backend_api)} · UI {UI_VERSION}{demo ? ' · Données de démo' : ''}</span>
       </footer>

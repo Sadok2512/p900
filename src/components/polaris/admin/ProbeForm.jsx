@@ -9,7 +9,7 @@ import { PROBE_ROLES, isProbeRole, probeDraftErrors, probeFieldErrors, probeInte
  * data, the labels and the enabled actions differ per mode.
  */
 
-const base = 'w-full rounded-md border bg-white px-3 text-[13px] text-foreground outline-none transition focus:border-[var(--app-accent)]';
+const base = 'w-full rounded-md border bg-card px-3 text-[13px] text-foreground outline-none transition focus:border-[var(--app-accent)]';
 const cls = (error, extra = '') => `${base} ${error ? 'border-danger' : 'border-border'} ${extra}`;
 
 export function Field({ label, required, error, help, className = '', children }) {
@@ -106,7 +106,7 @@ export function InterfaceTable({ interfaces, onPatch, onRemove, protocols = {}, 
         </td>
         <td className={`${td} text-right`}>
           <button type="button" aria-label={`Retirer l'interface ${index + 1}`} disabled={interfaces.length === 1} onClick={() => onRemove(index)}
-            className="h-9 rounded-md border border-border px-2.5 text-[12.5px] text-danger hover:bg-danger-soft disabled:opacity-40 disabled:hover:bg-white">Retirer</button>
+            className="h-9 rounded-md border border-border px-2.5 text-[12.5px] text-danger hover:bg-danger-soft disabled:opacity-40 disabled:hover:bg-card">Retirer</button>
         </td>
       </tr>;
     })}</tbody>
@@ -117,8 +117,8 @@ export function ProbeDialog({ label, title, subtitle, identifier, onClose, onSub
   // Fixed height, not max-height: the header and footer must not move while the
   // dialog is open (font swaps and async rows otherwise shift the layout under
   // the pointer between mousedown and mouseup).
-  return <div className="fixed inset-0 z-[80] grid place-items-center bg-black/20 p-4" role="dialog" aria-modal="true" aria-label={label}>
-    <form onSubmit={onSubmit} className={`flex ${height} w-[min(1040px,95vw)] flex-col overflow-hidden rounded-xl border border-border bg-white shadow-2xl`}>
+  return <div className="fixed inset-0 z-[80] grid place-items-center bg-black/60 p-4" role="dialog" aria-modal="true" aria-label={label}>
+    <form onSubmit={onSubmit} className={`flex ${height} w-[min(1040px,95vw)] flex-col overflow-hidden rounded-xl border border-border bg-card shadow-2xl`}>
       <header className="flex shrink-0 items-start gap-4 border-b border-border px-6 py-4">
         <div className="min-w-0">
           <h2 className="text-[17px] font-semibold tracking-[-0.01em] text-foreground">{title}</h2>
