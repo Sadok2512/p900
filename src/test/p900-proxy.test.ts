@@ -63,7 +63,7 @@ describe('p900 proxy request target validation', () => {
     const access=proxyAccess('/api/v1/captures/start','POST',{authorization},'sadok','test-password');
     expect(access).toEqual({authenticated:true,status:200});
     const headers=forwardedHeaders({authorization},targetFor('/api/v1/captures/start')!,'POST',{operatorAuthenticated:access.authenticated,tokenOverride:'server-token'});
-    expect(headers.authorization).toBe('Bearer server-token');
+    expect(headers['authorization']).toBe('Bearer server-token');
     expect(headers['x-csrf-token']).toBe(csrfForToken('server-token'));
   });
 
