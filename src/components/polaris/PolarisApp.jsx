@@ -11,6 +11,7 @@ import ProbeRegistration from './admin/ProbeRegistration';
 import ProbeManagement from './admin/ProbeManagement';
 import { loadHidden, saveHidden, toggleHidden, isVisible, sanitizeHidden } from './admin/modules';
 import SubscriberJourney, { OtherSessions } from './analyzer/SubscriberJourney';
+import GeoPanel from './analyzer/GeoPanel';
 import { shortPseudo, groupBySubscriber } from './analyzer/subscriber';
 import { InterfaceBadge, AvailabilityStatus, TechnicalValue, BpfFilterDisplay } from './ui/InterfaceBadge';
 import { INTERFACE_FAMILY_HEX, interfaceFamilyOf } from '@/lib/polaris-ui/interfaceColors';
@@ -1238,7 +1239,7 @@ function App() {
   const [msg,setMsg] = useState(0);
   const [lens,setLens] = useState(null);
   const L0 = (()=>{ try { return JSON.parse(localStorage.getItem('polaris-layout-v2'))||{}; } catch(e) { return {}; } })();
-  const DEF = {gridPct:25,insPct:22,anaPct:21,jouPct:24};
+  const DEF = {gridPct:25,insPct:22,anaPct:21,jouPct:24,geoPct:26};
   const [gridPct,setGridPct] = useState(L0.gridPct ?? DEF.gridPct);
   const [gridHidden,setGridHidden] = useState(L0.gridHidden ?? false);
   const [insPct,setInsPct] = useState(L0.insPct ?? DEF.insPct);
@@ -1247,15 +1248,19 @@ function App() {
   const [anaHidden,setAnaHidden] = useState(L0.anaHidden ?? false);
   const [jouPct,setJouPct] = useState(L0.jouPct ?? DEF.jouPct);
   const [jouHidden,setJouHidden] = useState(L0.jouHidden ?? true);
+  const [geoPct,setGeoPct] = useState(L0.geoPct ?? DEF.geoPct);
+  const [geoHidden,setGeoHidden] = useState(L0.geoHidden ?? true);
+  const [geoMax,setGeoMax] = useState(false);
   const [full,setFull] = useState(false);
-  useEffect(()=>{ try { localStorage.setItem('polaris-layout-v2',JSON.stringify({gridPct,gridHidden,insPct,anaPct,insHidden,anaHidden,jouPct,jouHidden})); } catch(e) {} },[gridPct,gridHidden,insPct,anaPct,insHidden,anaHidden,jouPct,jouHidden]);
+  useEffect(()=>{ try { localStorage.setItem('polaris-layout-v2',JSON.stringify({gridPct,gridHidden,insPct,anaPct,insHidden,anaHidden,jouPct,jouHidden,geoPct,geoHidden})); } catch(e) {} },[gridPct,gridHidden,insPct,anaPct,insHidden,anaHidden,jouPct,jouHidden,geoPct,geoHidden]);
   const mainRef = useRef(null), lowRef = useRef(null), rowRef = useRef(null);
-  const resetLayout = () => { setGridPct(DEF.gridPct); setInsPct(DEF.insPct); setAnaPct(DEF.anaPct); setJouPct(DEF.jouPct); };
+  const resetLayout = () => { setGridPct(DEF.gridPct); setInsPct(DEF.insPct); setAnaPct(DEF.anaPct); setJouPct(DEF.jouPct); setGeoPct(DEF.geoPct); };
   const drag = (e,kind) => { e.preventDefault(); const r = (kind==='h'?mainRef:rowRef).current.getBoundingClientRect();
     const mv = ev => {
       if(kind==='h') return setGridPct(Math.min(70,Math.max(12,(ev.clientY-r.top)/r.height*100)));
       const fromRight = (r.right-ev.clientX)/r.width*100;
       if(kind==='ana') setAnaPct(Math.min(40,Math.max(14,fromRight)));
+      else if(kind==='geo') setGeoPct(Math.min(55,Math.max(18,fromRight-(anaHidden?0:anaPct)-(insHidden?0:insPct)-(jouHidden?0:jouPct))));
       else if(kind==='jou') setJouPct(Math.min(45,Math.max(16,fromRight-(anaHidden?0:anaPct)-(insHidden?0:insPct))));
       else setInsPct(Math.min(45,Math.max(14,fromRight-(anaHidden?0:anaPct))));
     };
@@ -1271,7 +1276,7 @@ function App() {
       {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={navHidden} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : page==='templates' ? <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
       {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
       {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">
-        <main ref={mainRef} className="flex-1 min-w-0 flex flex-col">
+        <main ref={mainRef} className={`flex-1 min-w-0 flex-col ${geoMax && selected && !geoHidden && !full ? 'hidden' : 'flex'}`}>
           {!full && !gridHidden && <>
             <Grid rows={rows} sel={s?.id} setSel={setSel} role={role} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`}/>
             <div onMouseDown={e=>drag(e,'h')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group h-2 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[2px] w-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
@@ -1280,11 +1285,12 @@ function App() {
             <div className="flex-1 min-w-[280px] flex flex-col">{selected ? <Detail s={selected} sel={msg} setSel={setMsg} lens={lens} ui={ui} onOpenSession={id=>setSel(id)}/> : <div className="p-8 text-muted-foreground bg-white rounded-xl border border-border flex-1">{sessionsQuery.isError ? sessionsQuery.error.message : sessionsQuery.isPending ? "Connexion POLARIS…" : "Aucune session"}</div>}</div>
           </div>
         </main>
+        {selected && !full && (geoHidden ? null : <>{!geoMax && <div onMouseDown={e=>drag(e,'geo')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div>}<aside style={geoMax?undefined:{width:`${geoPct}%`}} aria-label="Geolocating" className={`${geoMax?'flex-1':'shrink-0'} bg-white flex flex-col min-w-0 rounded-xl border border-border overflow-hidden`}><GeoPanel s={selected} msg={msg} setMsg={k=>setMsg(Math.max(0,k))} onHide={()=>{setGeoHidden(true); setGeoMax(false);}} max={geoMax} setMax={setGeoMax}/></aside></>)}
         {selected && !full && (jouHidden ? null : <><div onMouseDown={e=>drag(e,'jou')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><aside style={{width:`${jouPct}%`}} aria-label="Parcours abonné" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-border overflow-hidden"><div className="h-[42px] shrink-0 px-4 flex items-center border-b border-border"><span className="text-[13px] font-semibold text-foreground">Parcours abonné</span><button onClick={()=>setJouHidden(true)} title="Masquer Parcours abonné" className="ml-auto w-7 h-7 rounded-md grid place-items-center text-muted-foreground hover:bg-muted">×</button></div><div className="flex-1 overflow-auto scroll-thin"><SubscriberJourney s={selected} role={role} onOpen={id=>{ if(id) setSel(id); }}/></div></aside></>)}
         {selected && !full && (insHidden ? null : <><div onMouseDown={e=>drag(e,'ins')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><Inspector key={selected.id} s={selected} sel={msg} role={role} lens={lens} setLens={setLens} width={`${insPct}%`} onHide={()=>setInsHidden(true)}/></>)}
         {selected && !full && (anaHidden ? null : <><div onMouseDown={e=>drag(e,'ana')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div><SessionAnalysis onOpenSession={id=>setSel(id)} s={selected} width={`${anaPct}%`} loading={bundle.callflow.isFetching || bundle.events.isFetching} onPick={k=>setMsg(Math.max(0,k))} onHide={()=>setAnaHidden(true)}/></>)}
         {selected && !full && <nav aria-label="Panneaux" className="ml-2 w-10 shrink-0 self-stretch bg-white rounded-xl border border-border flex flex-col items-center py-2 gap-1">
-          {[['Parcours abonné',jouHidden,setJouHidden,'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6'],['Décodage',insHidden,setInsHidden,'M8 6l-6 6 6 6M16 6l6 6-6 6'],['Analyse sessions',anaHidden,setAnaHidden,'M4 20V10M10 20V4M16 20v-7M22 20H2']].map(([l,h,set,d])=><button key={l} type="button" onClick={()=>set(!h)} aria-pressed={!h} title={`${h?'Afficher':'Masquer'} ${l}`} className={`w-8 rounded-lg flex flex-col items-center gap-2 py-2.5 transition ${!h?'bg-brand-soft text-[var(--app-accent)]':'text-muted-foreground hover:bg-muted hover:text-foreground'}`}><I d={d} c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[11.5px] font-medium">{l}</span></button>)}
+          {[['Geolocating',geoHidden,v=>{setGeoHidden(v); if(v) setGeoMax(false);},'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5'],['Parcours abonné',jouHidden,setJouHidden,'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 20c0-3.3 3.6-6 8-6s8 2.7 8 6'],['Décodage',insHidden,setInsHidden,'M8 6l-6 6 6 6M16 6l6 6-6 6'],['Analyse sessions',anaHidden,setAnaHidden,'M4 20V10M10 20V4M16 20v-7M22 20H2']].map(([l,h,set,d])=><button key={l} type="button" onClick={()=>set(!h)} aria-pressed={!h} title={`${h?'Afficher':'Masquer'} ${l}`} className={`w-8 rounded-lg flex flex-col items-center gap-2 py-2.5 transition ${!h?'bg-brand-soft text-[var(--app-accent)]':'text-muted-foreground hover:bg-muted hover:text-foreground'}`}><I d={d} c="w-4 h-4"/><span className="[writing-mode:vertical-rl] text-[11.5px] font-medium">{l}</span></button>)}
         </nav>}
       </div>}</>}
       <footer className="h-7 shrink-0 bg-white border-t border-border flex items-center gap-5 px-4 text-[11.5px] text-muted-foreground">
