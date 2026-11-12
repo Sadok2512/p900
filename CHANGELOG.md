@@ -4,6 +4,7 @@
 
 - Version applicative POLARIS unifiée à `2.2.0` dans les métadonnées du paquet, l'écran À propos et le pied de page.
 - Synchronisation avec la branche `main` courante, en conservant le câblage operator des identités et Live Trace.
+- Le proxy accepte désormais la désactivation explicite de l'authentification Basic avec `P900_BASIC_AUTH_ENABLED=0`; l'injection des jetons backend reste exclusivement côté serveur.
 
 ## 0.18.0
 

@@ -15,6 +15,10 @@ function secretFromFile(name) {
 const tokens = { oiran: secretFromFile('OIRAN_OPERATOR_TOKEN_FILE'), polaris: secretFromFile('POLARIS_OPERATOR_TOKEN_FILE') };
 const basicUser = process.env.P900_BASIC_USER ?? 'sadok';
 const basicPassword = secretFromFile('P900_BASIC_PASSWORD_FILE');
+export function basicAuthEnabled(value=process.env.P900_BASIC_AUTH_ENABLED ?? '1') {
+  return !['0', 'false', 'no', 'off'].includes(String(value).toLowerCase());
+}
+const basicAuthRequired = basicAuthEnabled();
 const cpuSample = { at: 0, usage: 0, percent: null };
 const byteSamples = new Map();
 
@@ -49,6 +53,7 @@ export function basicAuthorized(headers, user=basicUser, password=basicPassword)
 }
 
 function requireBasic(request,response) {
+  if (!basicAuthRequired) return true;
   if (!basicPassword) { sendJson(response,503,{error:{code:'BASIC_AUTH_NOT_CONFIGURED',message:'Proxy authentication is not configured'}}); return false; }
   if (basicAuthorized(request.headers)) return true;
   response.writeHead(401,{'www-authenticate':'Basic realm="POLARIS", charset="UTF-8"','content-type':'application/json; charset=utf-8','cache-control':'no-store'});
@@ -165,7 +170,7 @@ export function createServer() {
     proxy(request,response,targetFor(request.url));
   });
   server.on('upgrade',(request,socket,head)=>{
-    if(!basicAuthorized(request.headers)) { socket.end('HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm="POLARIS"\r\nConnection: close\r\n\r\n'); return; }
+    if(basicAuthRequired && !basicAuthorized(request.headers)) { socket.end('HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm="POLARIS"\r\nConnection: close\r\n\r\n'); return; }
     const target=targetFor(request.url);
     if(!target) { socket.end('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n'); return; }
     const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target,request.method)});

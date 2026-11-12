@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { basicAuthorized, csrfForToken, forwardedHeaders, targetFor } from '../../ops/p900-proxy.mjs';
+import { basicAuthEnabled, basicAuthorized, csrfForToken, forwardedHeaders, targetFor } from '../../ops/p900-proxy.mjs';
 
 describe('p900 proxy request target validation', () => {
   it('rejects an invalid authority-form target instead of crashing the process', () => {
@@ -34,5 +34,12 @@ describe('p900 proxy request target validation', () => {
     expect(basicAuthorized({authorization:good},'sadok','test-password')).toBe(true);
     expect(basicAuthorized({authorization:bad},'sadok','test-password')).toBe(false);
     expect(basicAuthorized({},'sadok','test-password')).toBe(false);
+  });
+
+  it('allows Basic authentication to be disabled explicitly while remaining enabled by default', () => {
+    expect(basicAuthEnabled()).toBe(true);
+    expect(basicAuthEnabled('0')).toBe(false);
+    expect(basicAuthEnabled('false')).toBe(false);
+    expect(basicAuthEnabled('1')).toBe(true);
   });
 });
