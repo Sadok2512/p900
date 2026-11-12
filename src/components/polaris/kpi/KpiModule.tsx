@@ -51,7 +51,7 @@ export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChar
   const [editKpi, setEditKpi] = useState(null);
   const [openDash, setOpenDash] = useState(null);
   const [bk, setBk] = useState(0);
-  const canWrite = role === 'operator';
+  const canWrite = true;
   const log = (a) => setAudit(x => [{ ts: new Date().toLocaleString('fr-FR'), who: 'SD', role, a }, ...x].slice(0, 100));
   const all = useMemo(() => [...KPIS.filter(k => demo || k.id.startsWith('kpi.probe.')).map(k => ({ ...k, lib: 'SYSTEM', owner: 'system', tech: TECH(k.id) })), ...(demo ? custom : [])], [KPIS, custom, demo]);
   const byId = (id) => all.find(k => k.id === id);
@@ -66,7 +66,6 @@ export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChar
           <div className="flex flex-wrap items-end gap-4">
             <div><div className="text-[12px] text-muted-foreground">POLARIS KPI</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">{t('KPI & Anomalies')}</h1></div>
             <div className="ml-auto flex items-center gap-3 pb-1">
-              <span className="text-[12px] text-subtle">{t('Rôle')} <b className={role === 'operator' ? 'text-warning' : 'text-foreground'}>{role || '—'}</b>{!canWrite && ' · ' + t('consultation uniquement')}</span>
               <button onClick={() => setDemo(!demo)} className={`h-7 px-2.5 rounded-full text-[11.5px] font-medium border flex items-center gap-1.5 ${demo ? 'bg-warning-soft border-warning-line text-warning' : 'border-border text-muted-foreground'}`}><span className={`w-6 h-3.5 rounded-full relative ${demo ? 'bg-warning' : 'bg-track'}`}><span className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all ${demo ? 'left-[12px]' : 'left-[2px]'}`} /></span>{t('Démo')}</button>
             </div>
           </div>
@@ -144,7 +143,7 @@ function Catalog(p) {
             <div className="min-w-0"><div className="flex items-center gap-2"><h2 className="text-[16px] font-semibold text-foreground truncate">{t(k.name)}</h2><Tag c={LIBC[k.lib]}>{k.lib}</Tag>{k.status === 'draft' && <Tag c="#A15C07">{t('Brouillon')}</Tag>}</div><div className="font-mono text-[11px] text-subtle mt-0.5">{k.id} · v{k.ver} · {k.tech} · {k.unit}</div></div>
             <div className="ml-auto flex flex-wrap gap-1.5">
               <Btn onClick={() => setFavs(f => f.includes(k.id) ? f.filter(x => x !== k.id) : [...f, k.id])}>{favs.includes(k.id) ? '★' : '☆'} {t('Favori')}</Btn>
-              <Btn disabled={!canWrite || !demo} title={!canWrite ? t('Rôle operator requis') : ''} onClick={dup}>{t('Dupliquer')}</Btn>
+              <Btn disabled={!demo} onClick={dup}>{t('Dupliquer')}</Btn>
               {k.lib !== 'SYSTEM' && <Btn disabled={!canWrite || !demo} onClick={() => { setEditKpi(k); setTab('builder'); }}>{t('Modifier')}</Btn>}
               <div className="relative"><Btn disabled={!demo} title={!demo ? t('Non disponible : backend à venir') : ''} onClick={() => setAddTo(!addTo)}>+ Dashboard</Btn>{addTo && <div className="absolute right-0 top-9 z-20 w-56 bg-white rounded-lg border border-border shadow-lg py-1">{dashes.length === 0 && <div className="px-3 py-2 text-[12px] text-subtle">{t('Aucun dashboard personnel')}</div>}{dashes.map(d => <button key={d.id} onClick={() => { setDashes(ds => ds.map(x => x.id === d.id ? { ...x, widgets: [...x.widgets, { id: 'w' + Date.now(), kpi: k.id, type: 'series', title: '', x: 0, y: 99, w: 4, h: 3, inherit: true, color: '', thr: '' }] } : x)); log('KPI ' + k.id + ' ajouté à ' + d.name); setAddTo(false); }} className="w-full text-left px-3 py-1.5 text-[12.5px] hover:bg-surface-2">{d.name}</button>)}</div>}</div>
               <Btn onClick={() => setSheet(!sheet)}>{sheet ? t('Masquer la fiche') : t('Fiche KPI')}</Btn>

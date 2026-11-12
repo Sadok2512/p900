@@ -4,14 +4,10 @@ import { Fail } from '../analyzer/SubscriberJourney';
 import { NAV_MODULES, isVisible } from './modules';
 import NetworkTopology from './NetworkTopology';
 
-const TABS = ['Node Manager','Network Topology','Users & Roles','Modules Visibility','System Settings','Audit Log'];
+const TABS = ['Node Manager','Network Topology','Modules Visibility','System Settings','Audit Log'];
 const th = 'h-8 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border-subtle';
 const td = 'h-10 px-4 border-b border-border-subtle';
 const recs = (d, k) => Array.isArray(d) ? d : Array.isArray(d?.[k]) ? d[k] : [];
-
-function Users({Card}) {
-  return <Card title="Utilisateurs et rôles"><div className="p-5"><div className="text-[13px] font-medium">Compte unique géré par le proxy</div><p className="mt-1 text-[12.5px] text-muted-foreground">Aucune route de gestion des utilisateurs ou des rôles n'est exposée par OIRAN.</p></div></Card>;
-}
 
 function Modules({Card,hidden,onToggle}) {
   return <Card title="Visibilité des modules dans la navigation">
@@ -30,16 +26,16 @@ function System({Card,onSettings}) {
   return <div className="space-y-5">
     <Card title="Plateforme"><div className="p-4 grid grid-cols-2 gap-x-8 gap-y-2 text-[12.5px]">{[['État',h.status??h.mode??'connecté'],['POLARIS',v.platform_core],['API',v.backend_api],['Disque disponible',diskFree]].map(([l,x])=><div key={l} className="flex justify-between border-b border-border-subtle py-1.5"><span className="text-muted-foreground">{l}</span><span className="font-mono">{available(x)}</span></div>)}</div>
       {(health.isError||version.isError) && <div className="px-4 pb-4"><Fail q={health.isError?health:version} path={health.isError?'/health':'/version'}/></div>}</Card>
-    <Card title="Préférences de l'interface" action={<button type="button" onClick={onSettings} className="h-8 px-3 rounded-md border border-border bg-white text-[12.5px] text-ink-2 hover:bg-surface-2">Ouvrir les paramètres</button>}><div className="p-4 text-[12.5px] text-muted-foreground">Langue et couleur. Le compte est géré par le proxy.</div></Card>
+    <Card title="Préférences de l'interface" action={<button type="button" onClick={onSettings} className="h-8 px-3 rounded-md border border-border bg-white text-[12.5px] text-ink-2 hover:bg-surface-2">Ouvrir les paramètres</button>}><div className="p-4 text-[12.5px] text-muted-foreground">Langue et couleur.</div></Card>
   </div>;
 }
 
 function Audit({Card}) {
   const audit = useAuditLog(); const [q,setQ] = useState(''); const [open,setOpen] = useState(null);
   const list = recs(audit.data?.data,'events').filter(e=>!q || JSON.stringify(e).toLowerCase().includes(q.toLowerCase()));
-  return <Card title="Audit Live Trace (operator)">
+  return <Card title="Audit Live Trace">
     <div className="px-4 py-3 border-b border-border-subtle"><input aria-label="Filtrer le journal" value={q} onChange={e=>setQ(e.target.value)} placeholder="Filtrer…" className="h-8 px-3 border border-border rounded-md text-[12.5px] w-64"/></div>
-    {audit.isError ? <div className="p-4">{audit.error?.status===401 ? <div role="alert" className="rounded-md border border-warning-line bg-warning-soft px-3 py-2 text-[12px] text-warning">Authentification Basic requise · <span className="font-mono">GET /api/v1/audit</span> → HTTP 401</div> : <Fail q={audit} path="/audit"/>}</div> : <table className="w-full text-[12.5px]"><thead><tr>{['Horodatage','Utilisateur','Action','Résultat'].map(h=><th key={h} className={th}>{h}</th>)}</tr></thead>
+    {audit.isError ? <div className="p-4"><Fail q={audit} path="/audit"/></div> : <table className="w-full text-[12.5px]"><thead><tr>{['Horodatage','Utilisateur','Action','Résultat'].map(h=><th key={h} className={th}>{h}</th>)}</tr></thead>
       <tbody>{list.map((e,i)=><React.Fragment key={e.id??i}><tr onClick={()=>setOpen(open===i?null:i)} className="cursor-pointer hover:bg-surface-2"><td className={`${td} font-mono`}>{available(e.timestamp)}</td><td className={td}>{available(e.user)}</td><td className={td}>{available(e.action)}</td><td className={td}>{available(e.result)}</td></tr>
         {open===i && <tr><td colSpan="4" className="bg-surface-2 px-4 py-3"><pre className="text-[11.5px] whitespace-pre-wrap">{JSON.stringify(e,null,2)}</pre></td></tr>}</React.Fragment>)}
       {!list.length && <tr><td colSpan="4" className="p-4 text-subtle">{audit.isPending ? 'Connexion POLARIS…' : 'Aucun événement'}</td></tr>}</tbody></table>}
@@ -59,7 +55,7 @@ export default function Administration({Card, nodeManager, hidden, onToggle, onS
         {TABS.map(x=><button key={x} role="tab" aria-selected={tab===x} onClick={()=>pick(x)} className={`relative shrink-0 h-10 px-3 text-[13px] ${tab===x?'text-foreground font-semibold':'text-muted-foreground hover:text-foreground'}`}>{x}{tab===x && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-[#0062A1]"/>}</button>)}
       </div>
       <div role="tabpanel" aria-label={tab}>
-        {tab==='Node Manager' ? (React.isValidElement(nodeManager) && probeFocus ? React.cloneElement(nodeManager,{key:probeFocus,initialOpen:probeFocus}) : nodeManager) : tab==='Network Topology' ? <NetworkTopology onOpenProbe={openProbe}/> : tab==='Users & Roles' ? <Users Card={Card}/> : tab==='Modules Visibility' ? <Modules Card={Card} hidden={hidden} onToggle={onToggle}/> : tab==='System Settings' ? <System Card={Card} onSettings={onSettings}/> : <Audit Card={Card}/>}
+        {tab==='Node Manager' ? (React.isValidElement(nodeManager) && probeFocus ? React.cloneElement(nodeManager,{key:probeFocus,initialOpen:probeFocus}) : nodeManager) : tab==='Network Topology' ? <NetworkTopology onOpenProbe={openProbe}/> : tab==='Modules Visibility' ? <Modules Card={Card} hidden={hidden} onToggle={onToggle}/> : tab==='System Settings' ? <System Card={Card} onSettings={onSettings}/> : <Audit Card={Card}/>}
       </div>
     </div>
   </div>;

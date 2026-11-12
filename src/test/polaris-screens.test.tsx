@@ -53,13 +53,13 @@ describe('main screens with simulated REST responses',()=>{
     expect(calls).toHaveLength(1);
     expect(screen.getAllByText(clearTemporary).length).toBeGreaterThan(0);
   });
-  it('shows connection required to viewers and never calls operator identity routes', async()=>{
+  it('keeps identities directly accessible without deriving access from auth/me', async()=>{
     const previous=payloads['/auth/me']; payloads['/auth/me']={role:'viewer'};
     try {
       open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Afficher toutes les sessions'}));
-      expect((await screen.findAllByText('connexion requise')).length).toBeGreaterThan(0);
-      expect(fetcher.mock.calls.some(([url])=>String(url).includes('/sessions/s1/identities')||String(url).includes('/identities?'))).toBe(false);
-      expect(screen.queryByText(clearSubscriber)).not.toBeInTheDocument();
+      expect((await screen.findAllByText(clearSubscriber)).length).toBeGreaterThan(0);
+      expect(fetcher.mock.calls.some(([url])=>String(url).includes('/sessions/s1/identities'))).toBe(true);
+      expect(screen.queryByText('connexion requise')).not.toBeInTheDocument();
     } finally { payloads['/auth/me']=previous; }
   });
   it('Analyzer can display every session with an unfiltered request', async()=>{
@@ -148,12 +148,11 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.queryByRole('button',{name:'Actions lab-probe'})).not.toBeInTheDocument();
     expect(fetcher.mock.calls.some(([url,options])=>String(url).includes('/probes/p1')&&['PUT','DELETE'].includes(String(options?.method)))).toBe(false);
   });
-  it('shows proxy-managed account information without calling users or roles', async()=>{
+  it('does not expose user or role management screens', async()=>{
     open('nodes');
-    fireEvent.click(await screen.findByRole('tab',{name:'Users & Roles'}));
-    expect(screen.getByText('Compte unique géré par le proxy')).toBeInTheDocument();
+    await screen.findByRole('tab',{name:'Node Manager'});
+    expect(screen.queryByRole('tab',{name:'Users & Roles'})).not.toBeInTheDocument();
     expect(fetcher.mock.calls.some(([url])=>/\/api\/v1\/(users|roles)(?:\?|$)/.test(String(url)))).toBe(false);
-    fireEvent.click(screen.getByRole('tab',{name:'Node Manager'}));
   });
   it('keeps POLARIS connected when only probes fails and names the failing endpoint', async()=>{
     fetcher.mockImplementation(async (url: string) => {
@@ -210,7 +209,7 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByRole('option',{name:'Pseudonyme'})).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.2.1').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.2.1')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.2.2').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.2.2')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard library is marked local and has no simulated saved queries outside Demo',()=>{
     open('templates'); expect(screen.getByText('local à ce navigateur')).toBeInTheDocument(); expect(screen.getByText('Aucune requête enregistrée.')).toBeInTheDocument();

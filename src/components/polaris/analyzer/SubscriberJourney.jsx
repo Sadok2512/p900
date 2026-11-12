@@ -26,23 +26,22 @@ export function OtherSessions({s, onOpen}) {
 
 export default function SubscriberJourney({s, role, onOpen}) {
   const [query,setQuery] = useState(''); const [submitted,setSubmitted] = useState('');
-  const operator = role === 'operator' || role === 'administrator';
-  const lookup = useIdentityLookup(submitted,operator);
+  const lookup = useIdentityLookup(submitted,true);
   const looked = lookup.data?.data?.subscriber_pseudonym;
   const pseudo = looked ?? s.subscriber_pseudonym ?? null;
-  const journeyQ = useSubscriberJourney(pseudo), tmsiQ = useSubscriberTmsi(pseudo,operator), idQ = useSessionIdentities(s.session_id, operator);
+  const journeyQ = useSubscriberJourney(pseudo), tmsiQ = useSubscriberTmsi(pseudo,true), idQ = useSessionIdentities(s.session_id, true);
   const j = useMemo(()=>toJourney(journeyQ.data?.data),[journeyQ.data]);
   const ids = idQ.data?.data ?? {};
   const identityRows = [
     ['IMSI / SUPI','subscriber'],['TMSI / GUTI','temporary'],['S-TMSI','s_tmsi'],['M-TMSI','m_tmsi'],
     ['IMEI(SV) / PEI','equipment'],['MSISDN / GPSI','directory'],
   ];
-  const tmsi = useMemo(()=>toTmsiList(tmsiQ.data?.data,operator),[tmsiQ.data,operator]);
+  const tmsi = useMemo(()=>toTmsiList(tmsiQ.data?.data,true),[tmsiQ.data]);
   return <div className="p-4 space-y-4 text-[12.5px]">
-    <h2 className="text-[16px] font-semibold font-mono break-all" title={pseudo??undefined}>{operator?observedIdentity(ids,'subscriber'):'connexion requise'}</h2>
+    <h2 className="text-[16px] font-semibold font-mono break-all" title={pseudo??undefined}>{observedIdentity(ids,'subscriber')}</h2>
     <form onSubmit={e=>{e.preventDefault(); setSubmitted(query.trim());}} className="flex gap-2">
-      <input disabled={!operator} aria-label="Rechercher un abonné" value={query} onChange={e=>setQuery(e.target.value)} placeholder={operator?'IMSI, TMSI, S-TMSI, M-TMSI, IMEI ou MSISDN':'connexion requise'} className="flex-1 h-8 rounded-md border border-border px-2 outline-none focus:border-[var(--app-accent)] disabled:bg-surface-2"/>
-      <button disabled={!operator} className="h-8 px-3 rounded-md text-white text-[12px] disabled:opacity-50" style={{background:'var(--app-accent)'}}>Ouvrir le parcours</button>
+      <input aria-label="Rechercher un abonné" value={query} onChange={e=>setQuery(e.target.value)} placeholder="IMSI, TMSI, S-TMSI, M-TMSI, IMEI ou MSISDN" className="flex-1 h-8 rounded-md border border-border px-2 outline-none focus:border-[var(--app-accent)]"/>
+      <button className="h-8 px-3 rounded-md text-white text-[12px]" style={{background:'var(--app-accent)'}}>Ouvrir le parcours</button>
     </form>
     {submitted && <Fail q={lookup} path={`/identities?q=…`}/>}
     {submitted && lookup.data && !looked && <div className="text-muted-foreground">Aucun abonné trouvé.</div>}
@@ -50,9 +49,9 @@ export default function SubscriberJourney({s, role, onOpen}) {
     <section><H>Identités</H>
       <dl className="grid grid-cols-[110px_1fr] gap-y-0.5 text-[12px]">
         <dt className="text-muted-foreground">Pseudonyme</dt><dd className="font-mono" title={pseudo??undefined}>{shortPseudo(pseudo)}</dd>
-        {identityRows.map(([label,kind])=>{const proof=identityProofs(ids,kind).at(-1);return <React.Fragment key={label}><dt className="text-muted-foreground">{label}</dt><dd className="font-mono break-all" title={proof?.capture_id?`preuve ${proof.capture_id}·${proof.packet_number}`:undefined}>{operator ? observedIdentity(ids,kind) : 'connexion requise'}{operator&&proof?.event_id&&<span className="ml-1 text-[10px] text-[var(--app-accent)]">#{proof.packet_number}</span>}</dd></React.Fragment>;})}
+        {identityRows.map(([label,kind])=>{const proof=identityProofs(ids,kind).at(-1);return <React.Fragment key={label}><dt className="text-muted-foreground">{label}</dt><dd className="font-mono break-all" title={proof?.capture_id?`preuve ${proof.capture_id}·${proof.packet_number}`:undefined}>{observedIdentity(ids,kind)}{proof?.event_id&&<span className="ml-1 text-[10px] text-[var(--app-accent)]">#{proof.packet_number}</span>}</dd></React.Fragment>;})}
       </dl>
-      {operator && <div className="mt-1"><Fail q={idQ} path={`/sessions/${s.session_id}/identities`}/></div>}
+      <div className="mt-1"><Fail q={idQ} path={`/sessions/${s.session_id}/identities`}/></div>
     </section>
 
     {!pseudo ? <div className="rounded-md border border-dashed border-border p-4 text-muted-foreground">{pending} : le serveur ne fournit pas encore l'abonné de cette session (subscriber_pseudonym, OIRAN 2.13.0).</div> : <>

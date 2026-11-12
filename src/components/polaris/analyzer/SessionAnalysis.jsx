@@ -9,8 +9,7 @@ const H = ({children}) => <div className="text-[11px] font-semibold uppercase tr
 const Row = ({k,v}) => <><dt className="text-muted-foreground">{k}</dt><dd className="text-foreground break-all" title={String(v)}>{v}</dd></>;
 
 export default function SessionAnalysis({s,role,width,onPick,onHide,loading,onOpenSession}) {
-  const operator=role==='operator'||role==='administrator';
-  const identities=useSessionIdentities(s.session_id,operator);
+  const identities=useSessionIdentities(s.session_id,true);
   const ids=identities.data?.data??{};
   const flow = s.d;
   const st = useMemo(()=>steps(flow),[flow]);
@@ -34,7 +33,7 @@ export default function SessionAnalysis({s,role,width,onPick,onHide,loading,onOp
         {loading && <div className="text-muted-foreground">Chargement des messages…</div>}
         <section><H>Synthèse</H>
           <dl className="grid grid-cols-[96px_1fr] gap-x-2 gap-y-1">
-            <Row k="Session ID" v={s.session_id ?? '—'}/><Row k="UE" v={!s.ue || /^unknown$/i.test(s.ue) ? '—' : s.ue}/><Row k="IMSI / SUPI" v={operator?observedIdentity(ids,'subscriber'):'connexion requise'}/><Row k="TMSI / GUTI" v={operator?observedIdentity(ids,'temporary'):'connexion requise'}/><Row k="S-TMSI" v={operator?observedIdentity(ids,'s_tmsi'):'connexion requise'}/><Row k="M-TMSI" v={operator?observedIdentity(ids,'m_tmsi'):'connexion requise'}/><Row k="IMEI(SV) / PEI" v={operator?observedIdentity(ids,'equipment'):'connexion requise'}/><Row k="MSISDN / GPSI" v={operator?observedIdentity(ids,'directory'):'connexion requise'}/><Row k="Technologie" v={s.rat ?? '—'}/>
+            <Row k="Session ID" v={s.session_id ?? '—'}/><Row k="UE" v={!s.ue || /^unknown$/i.test(s.ue) ? '—' : s.ue}/><Row k="IMSI / SUPI" v={observedIdentity(ids,'subscriber')}/><Row k="TMSI / GUTI" v={observedIdentity(ids,'temporary')}/><Row k="S-TMSI" v={observedIdentity(ids,'s_tmsi')}/><Row k="M-TMSI" v={observedIdentity(ids,'m_tmsi')}/><Row k="IMEI(SV) / PEI" v={observedIdentity(ids,'equipment')}/><Row k="MSISDN / GPSI" v={observedIdentity(ids,'directory')}/><Row k="Technologie" v={s.rat ?? '—'}/>
             <Row k="Début" v={start}/><Row k="Fin" v={end}/><Row k="Durée" v={fmtSpan(k.durationMs,k.multiCapture)}/>
             <Row k="Cellule" v={s.cell ?? '—'}/><Row k="MME / AMF" v={s.serving_node ?? '—'}/><Row k="Procédure" v={s.proc ?? '—'}/>
           </dl>

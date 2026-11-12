@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.2
+
+- Le proxy active `P900_OPEN_ACCESS=1` par défaut et injecte le jeton operator côté serveur pour toutes les requêtes HTTP, SSE et upgrade, sans demander d’authentification Basic au navigateur.
+- Les identités observées, Live Trace, la dissection et les actions de capture sont directement accessibles ; l’interface ne présente plus de connexion, de rôle utilisateur ni de réglage de mot de passe.
+- L’accès fermé optionnel ne produit plus de challenge Basic : une requête restreinte est refusée avec HTTP 403.
+
 ## 2.2.1
 
 - Le rôle operator authentifié affiche sans masque les identités observées IMSI/SUPI, TMSI/GUTI, S-TMSI, M-TMSI, IMEI(SV)/PEI et MSISDN/GPSI dans la liste des sessions, le Call Flow, le détail, le Parcours abonné et Live Trace ; une identité absente affiche « non observé ».

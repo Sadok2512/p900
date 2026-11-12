@@ -15,6 +15,10 @@ function secretFromFile(name) {
 const tokens = { oiran: secretFromFile('OIRAN_OPERATOR_TOKEN_FILE'), polaris: secretFromFile('POLARIS_OPERATOR_TOKEN_FILE') };
 const basicUser = process.env.P900_BASIC_USER ?? 'sadok';
 const basicPassword = secretFromFile('P900_BASIC_PASSWORD_FILE');
+export function openAccessEnabled(value=process.env.P900_OPEN_ACCESS ?? '1') {
+  return !['0', 'false', 'no', 'off'].includes(String(value).toLowerCase());
+}
+const openAccessRequired = openAccessEnabled();
 export function basicAuthEnabled(value=process.env.P900_BASIC_AUTH_ENABLED ?? '1') {
   return !['0', 'false', 'no', 'off'].includes(String(value).toLowerCase());
 }
@@ -63,10 +67,11 @@ export function operatorOnlyPath(rawUrl = '/') {
     || /^\/api\/v1\/audit(?:\/|$)/.test(pathname);
 }
 
-export function proxyAccess(rawUrl, method = 'GET', headers = {}, user=basicUser, password=basicPassword, enabled=basicAuthRequired) {
+export function proxyAccess(rawUrl, method = 'GET', headers = {}, user=basicUser, password=basicPassword, enabled=basicAuthRequired, openAccess=openAccessRequired) {
+  if (openAccess) return {authenticated:true,status:200};
   const authenticated=enabled && basicAuthorized(headers,user,password);
   if (authenticated) return {authenticated:true,status:200};
-  if (operatorOnlyPath(rawUrl)) return {authenticated:false,status:401};
+  if (operatorOnlyPath(rawUrl)) return {authenticated:false,status:403};
   if (!SAFE_METHODS.has(String(method).toUpperCase())) return {authenticated:false,status:403};
   return {authenticated:false,status:200};
 }
@@ -172,8 +177,7 @@ export function createServer() {
     const parsed=parsedUrl(request.url);
     if(!parsed) return sendJson(response,400,{error:{code:'INVALID_URL',message:'Invalid request target'}});
     const access=proxyAccess(request.url,request.method,request.headers);
-    if(access.status===401) { response.setHeader('www-authenticate','Basic realm="POLARIS", charset="UTF-8"'); return sendJson(response,401,{error:{code:'AUTHENTICATION_REQUIRED',message:'Basic authentication required'}}); }
-    if(access.status===403) return sendJson(response,403,{error:{code:'OPERATOR_REQUIRED',message:'Operator authentication required for this method'}});
+    if(access.status===403) return sendJson(response,403,{error:{code:'ACCESS_RESTRICTED',message:'Open access is disabled for this request'}});
     const pathname=parsed.pathname;
     if (pathname==='/api/v1/interfaces/runtime') {
       if (request.method!=='GET') return sendJson(response,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required'}});
@@ -183,7 +187,7 @@ export function createServer() {
   });
   server.on('upgrade',(request,socket,head)=>{
     const access=proxyAccess(request.url,request.method,request.headers);
-    if(access.status!==200) { const label=access.status===401?'Unauthorized':'Forbidden'; socket.end(`HTTP/1.1 ${access.status} ${label}\r\n${access.status===401?'WWW-Authenticate: Basic realm="POLARIS"\r\n':''}Connection: close\r\n\r\n`); return; }
+    if(access.status!==200) { socket.end(`HTTP/1.1 ${access.status} Forbidden\r\nConnection: close\r\n\r\n`); return; }
     const target=targetFor(request.url);
     if(!target) { socket.end('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n'); return; }
     const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target,request.method,{operatorAuthenticated:access.authenticated})});

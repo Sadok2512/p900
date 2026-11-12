@@ -85,8 +85,7 @@ function TopBarVersion({version}) {
   return <div title={title} className="flex flex-col justify-center leading-none whitespace-nowrap"><span className="text-[17px] font-semibold tracking-tight text-foreground leading-[20px]">POLARIS</span><span className="text-[10.5px] text-muted-foreground font-mono leading-[14px] mt-0.5">{UI_VERSION}</span></div>;
 }
 
-function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,demo,hidden=[]}) {
-  const [menu,setMenu] = useState(false);
+function TopBar({page,setPage,onAnalyzer,accent,onSettings,metrics,version,demo,hidden=[]}) {
   return (
     <header className="h-14 shrink-0 bg-white border-b border-border flex items-center px-4 lg:px-5 gap-4 lg:gap-8 min-w-0">
       <div className="flex items-center gap-2.5 shrink-0">
@@ -101,17 +100,8 @@ function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,
       </nav>
       <div className="ml-auto shrink-0 flex items-center gap-2 lg:gap-4 text-[13px]">
         <TopBarLive metrics={metrics} demo={demo} onOpen={()=>setPage('live')}/>
-        <span className="hidden lg:inline text-muted-foreground" aria-label="Rôle">{role || '—'}</span>
         <button type="button" title={t("Notifications")} className="w-9 h-9 rounded-md grid place-items-center text-muted-foreground hover:bg-muted hover:text-foreground"><I d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0" c="w-[18px] h-[18px]"/></button>
-        <div className="relative">
-          <button type="button" onClick={()=>setMenu(m=>!m)} title={t("Compte")} style={{background:accent}} className="w-8 h-8 rounded-full grid place-items-center text-[12px] font-semibold text-white hover:opacity-90">SD</button>
-          {menu && <>
-            <div className="fixed inset-0 z-40" onClick={()=>setMenu(false)}/>
-            <div className="absolute right-0 top-10 z-50 w-48 bg-white border border-border rounded-md shadow-lg py-1 text-[13px]">
-              <div className="px-3 py-2 border-b border-border"><div className="font-semibold text-foreground">SD</div><div className="text-[11.5px] text-subtle">{role}</div></div>
-              <button type="button" onClick={()=>{setMenu(false);onSettings();}} className="w-full text-left px-3 py-2 hover:bg-surface-2 text-foreground">{t("Paramètres")}</button>
-            </div></>}
-        </div>
+        <button type="button" onClick={onSettings} title={t("Paramètres")} className="w-9 h-9 rounded-md grid place-items-center text-muted-foreground hover:bg-muted hover:text-foreground"><I d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21h-4v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3v-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3 1.7 1.7 0 0 0 1-1.5V3h4v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.5 1h.1v4h-.1a1.7 1.7 0 0 0-1.5 1Z" c="w-[18px] h-[18px]"/></button>
       </div>
     </header>
   );
@@ -165,7 +155,6 @@ function QueryPanel({conds,setConds}) {
                 <div className="flex gap-1.5"><button onClick={()=>{setConds([...conds,[f,v]]); setAdding(false);}} className="flex-1 h-7 rounded bg-[var(--app-accent)] text-white text-[12px] font-medium">Ajouter</button><button onClick={()=>setAdding(false)} className="h-7 px-2 rounded border border-border text-[12px] bg-white">Annuler</button></div>
               </div>
             ) : <button onClick={()=>setAdding(true)} className="w-full h-8 rounded-md border border-dashed border-border-strong text-[12.5px] text-muted-foreground hover:border-foreground hover:text-foreground flex items-center justify-center gap-1.5"><I d={ic.plus} c="w-3.5 h-3.5"/>Ajouter une condition</button>}
-            <div className="flex items-center gap-1.5 pt-1 text-[11.5px] text-subtle"><I d={ic.lock} c="w-3 h-3"/>Identités : rôle operator uniquement</div>
           </div>
         </div>
         <div><Lbl>Regrouper par</Lbl>
@@ -216,7 +205,6 @@ const GRID_COLS = [
 ];
 function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
   const { demo } = usePolarisMode(); const sessions = useSessions({ page:1, page_size:100, sort:'capture_id', order:'asc' },false);
-  const operator=role==='operator'||role==='administrator';
   const [more,setMore] = useState(false);
   const [manageCols,setManageCols] = useState(false);
   const [txt,setTxt] = useState('');
@@ -246,15 +234,15 @@ function Grid({rows,sel,setSel,role,conds,setConds,onEdit,height}) {
   useEffect(()=>{ setPage(1); },[q,condKey,size]);
   const pages = Math.max(1,Math.ceil(shown.length/size)); const cur = Math.min(page,pages);
   const rawPageRows = pageSlice(shown,cur,size);
-  const identityMap=useSessionIdentityMap(rawPageRows.map(row=>row.session_id),operator&&!demo);
+  const identityMap=useSessionIdentityMap(rawPageRows.map(row=>row.session_id),!demo);
   const pageRows=useMemo(()=>rawPageRows.map(row=>({...row,identities:identityMap[row.session_id]})),[rawPageRows,identityMap]);
   const ko = rows.filter(r=>verdict(r.res)==='FAILED').length;
   const cell = (c,r) => {
     const v = c.v(r);
     if (c.k==='res') return <VerdictBadge v={v}/>;
-    if (c.k==='sub') { const subscriber=operator ? observedIdentity(r.identities,'subscriber') : v; return subscriber==='—' ? <span className="text-subtle">—</span> : <span className="inline-flex items-center gap-1" title={operator?r.subscriber_pseudonym:undefined}>{subscriber}{r.subscriber_session_count!=null && <span className="rounded bg-brand-soft text-brand px-1 text-[11px] font-sans font-semibold">{r.subscriber_session_count} sessions</span>}</span>; }
+    if (c.k==='sub') { const subscriber=observedIdentity(r.identities,'subscriber'); return subscriber==='—' ? <span className="text-subtle">—</span> : <span className="inline-flex items-center gap-1" title={r.subscriber_pseudonym}>{subscriber}{r.subscriber_session_count!=null && <span className="rounded bg-brand-soft text-brand px-1 text-[11px] font-sans font-semibold">{r.subscriber_session_count} sessions</span>}</span>; }
     if (c.k==='ifc') return <span className="flex gap-1">{[...new Set(r.interfaces ?? [])].map(i=><Tag key={i} i={i}/>)}</span>;
-    if (c.identity) { if(!operator) return <span className="text-muted-foreground font-sans">connexion requise</span>; const values=identityProofs(r.identities,c.kind); const extra=Math.max(0,values.length-1); const title=values.map(x=>`${x.value} — ${x.role} — ${x.capture_id}·${x.packet_number}`).join('\n'); return <span className="font-mono whitespace-normal break-all" title={title||undefined}>{v}{extra>0&&<span className="ml-1 rounded bg-brand-soft text-brand px-1 font-sans text-[10px]">+{extra}</span>}</span>; }
+    if (c.identity) { const values=identityProofs(r.identities,c.kind); const extra=Math.max(0,values.length-1); const title=values.map(x=>`${x.value} — ${x.role} — ${x.capture_id}·${x.packet_number}`).join('\n'); return <span className="font-mono whitespace-normal break-all" title={title||undefined}>{v}{extra>0&&<span className="ml-1 rounded bg-brand-soft text-brand px-1 font-sans text-[10px]">+{extra}</span>}</span>; }
     if (c.k==='cause') return <span className={verdict(r.res)==='FAILED'?'text-danger':'text-muted-foreground'}>{v}</span>;
     return v;
   };
@@ -510,9 +498,8 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
   useEffect(()=>{ try { localStorage.setItem('polaris-insp-tab',tab); } catch(e) {} },[tab]);
   const d = s.d, m = d.msgs[Math.min(sel,d.msgs.length-1)];
   const evidence = d.evidence?.[Math.min(sel,d.msgs.length-1)];
-  const operator=role==='operator'||role==='administrator';
-  const identities=useSessionIdentities(s.session_id,operator);
-  const eventQuery = useEvent(evidence?.event_id ?? evidence?.id,operator); const provenance = useProvenance(evidence?.event_id ?? evidence?.id); const packetRef=provenance.data?.data?.packet_references?.[0]??evidence?.packet_references?.[0]??{}; const packetCapture=provenance.data?.data?.capture_id??evidence?.capture_id; const packetNumber=packetRef.packet_number??evidence?.seq; const packets = usePackets({capture_id:packetCapture,packet_number:packetNumber}, packetCapture!=null && packetNumber!=null); const dissection=usePacketDissection(packetCapture,packetNumber,operator&&tab==='Hex'); const rules = useCorrelationRules(); const versions = useVersion();
+  const identities=useSessionIdentities(s.session_id,true);
+  const eventQuery = useEvent(evidence?.event_id ?? evidence?.id,true); const provenance = useProvenance(evidence?.event_id ?? evidence?.id); const packetRef=provenance.data?.data?.packet_references?.[0]??evidence?.packet_references?.[0]??{}; const packetCapture=provenance.data?.data?.capture_id??evidence?.capture_id; const packetNumber=packetRef.packet_number??evidence?.seq; const packets = usePackets({capture_id:packetCapture,packet_number:packetNumber}, packetCapture!=null && packetNumber!=null); const dissection=usePacketDissection(packetCapture,packetNumber,tab==='Hex'); const rules = useCorrelationRules(); const versions = useVersion();
   const proof = provenance.data?.data ?? evidence ?? {};
   const ids=identities.data?.data??{};
   if (!m) return <aside className="p-4 text-muted-foreground">Non disponible</aside>;
@@ -535,11 +522,11 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
             <div className="pl-4">▾ {m[1].split(' ').slice(1).join(' ')}</div>
             <div className="pl-8">ue : <span className="text-foreground">{s.ue}</span> <span className="text-subtle">(pseudonyme)</span></div>
             {m[3] && <><div className="pl-8">▾ NAS-PDU</div><div className="pl-12">message : <span className="text-foreground">{m[3]}</span></div>
-              <div className="pl-12">identité : <span className="text-subtle">{operator?observedIdentity(ids,'subscriber'):'connexion requise'}</span></div></>}
+              <div className="pl-12">identité : <span className="text-subtle">{observedIdentity(ids,'subscriber')}</span></div></>}
             {m[4] && <div className="pl-8">{m[4]} : <span className="text-warning">{m[5]}</span></div>}
           </div>}
           <div><Lbl>Informations UE</Lbl><dl className="grid grid-cols-[100px_1fr] gap-y-0.5 text-[11.5px]">
-            {[['IMSI / SUPI',operator?observedIdentity(ids,'subscriber'):'connexion requise'],['TMSI / GUTI',operator?observedIdentity(ids,'temporary'):'connexion requise'],['S-TMSI',operator?observedIdentity(ids,'s_tmsi'):'connexion requise'],['M-TMSI',operator?observedIdentity(ids,'m_tmsi'):'connexion requise'],['IMEI(SV) / PEI',operator?observedIdentity(ids,'equipment'):'connexion requise'],['MSISDN / GPSI',operator?observedIdentity(ids,'directory'):'connexion requise'],['Identifiant UE',s.ue],['Technologie',s.rat],['Cellule',s.cell],['PCI',s.pci],['EARFCN / ARFCN',s.arfcn ?? s.earfcn ?? s.nr_arfcn],['MME / AMF',s.serving_node],['PDU Session ID',s.pdu_session_id]].map(([k,v])=><React.Fragment key={k}><dt className="text-muted-foreground">{k}</dt><dd className="font-mono break-all" title={String(available(v))}>{available(v)}</dd></React.Fragment>)}
+            {[['IMSI / SUPI',observedIdentity(ids,'subscriber')],['TMSI / GUTI',observedIdentity(ids,'temporary')],['S-TMSI',observedIdentity(ids,'s_tmsi')],['M-TMSI',observedIdentity(ids,'m_tmsi')],['IMEI(SV) / PEI',observedIdentity(ids,'equipment')],['MSISDN / GPSI',observedIdentity(ids,'directory')],['Identifiant UE',s.ue],['Technologie',s.rat],['Cellule',s.cell],['PCI',s.pci],['EARFCN / ARFCN',s.arfcn ?? s.earfcn ?? s.nr_arfcn],['MME / AMF',s.serving_node],['PDU Session ID',s.pdu_session_id]].map(([k,v])=><React.Fragment key={k}><dt className="text-muted-foreground">{k}</dt><dd className="font-mono break-all" title={String(available(v))}>{available(v)}</dd></React.Fragment>)}
           </dl></div>
           <details className="rounded-md border border-border"><summary className="px-2 h-7 flex items-center cursor-pointer text-[11.5px] font-medium text-ink-2">Métadonnées techniques</summary>
             <dl className="grid grid-cols-[110px_1fr] gap-y-1 font-mono text-[11.5px] p-2 pt-0">
@@ -559,8 +546,8 @@ function Inspector({s,sel,role,lens,setLens,width,onHide}) {
         {tab==='Preuves' && <div className="space-y-2"><div>event_id : {available(proof.event_id ?? evidence?.id)} · seq : {available(proof.seq)}</div>{provenance.isError && <div>{provenance.error.message}</div>}{packets.data && <div>Paquets : {records(packets.data.data,'packets').length}</div>}<div>Règles : {rules.isError ? rules.error.message : JSON.stringify(rules.data?.data ?? [])}</div>{d.links.map((l,k)=>(
           <div key={k} className="rounded-md border border-border p-3"><div className="flex items-center gap-2"><Tag i={l[2]}/><span className="text-subtle">→</span><Tag i={l[3]}/><span className="ml-auto"><Stat s={l[5]}/></span></div>
           <div className="font-mono text-[11.5px] mt-2 text-ink-2">{l[4]}</div><div className="text-[11.5px] text-subtle mt-0.5">messages {l[0]===null?'—':l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun message N4'} · matched_rules : {JSON.stringify(l[6] ?? [])}</div></div>))}</div>}
-        {tab==='Hex' && (!operator?<div>Rôle operator requis.</div>:dissection.isPending?<div>Chargement de la dissection tshark…</div>:dissection.isError?<div role="alert">Échec GET /packets/:capture_id/:packet_number/dissect → {dissection.error.status||'réseau'}</div>:<pre className="font-mono text-[11px] whitespace-pre-wrap">{dissection.data?.data?.dissection??'—'}</pre>)}
-        {tab==='Identité' && <div><Lbl>Pseudonyme</Lbl><span className="font-mono">{s.ue}</span><dl className="mt-3 grid grid-cols-[120px_1fr] gap-1">{[['IMSI / SUPI','subscriber'],['TMSI / GUTI','temporary'],['S-TMSI','s_tmsi'],['M-TMSI','m_tmsi'],['IMEI(SV) / PEI','equipment'],['MSISDN / GPSI','directory']].map(([k,kind])=><React.Fragment key={k}><dt className="text-muted-foreground">{k}</dt><dd className="font-mono break-all">{operator?observedIdentity(ids,kind):'connexion requise'}</dd></React.Fragment>)}</dl></div>}
+        {tab==='Hex' && (dissection.isPending?<div>Chargement de la dissection tshark…</div>:dissection.isError?<div role="alert">Échec GET /packets/:capture_id/:packet_number/dissect → {dissection.error.status||'réseau'}</div>:<pre className="font-mono text-[11px] whitespace-pre-wrap">{dissection.data?.data?.dissection??'—'}</pre>)}
+        {tab==='Identité' && <div><Lbl>Pseudonyme</Lbl><span className="font-mono">{s.ue}</span><dl className="mt-3 grid grid-cols-[120px_1fr] gap-1">{[['IMSI / SUPI','subscriber'],['TMSI / GUTI','temporary'],['S-TMSI','s_tmsi'],['M-TMSI','m_tmsi'],['IMEI(SV) / PEI','equipment'],['MSISDN / GPSI','directory']].map(([k,kind])=><React.Fragment key={k}><dt className="text-muted-foreground">{k}</dt><dd className="font-mono break-all">{observedIdentity(ids,kind)}</dd></React.Fragment>)}</dl></div>}
       </div>
     </aside>
   );
@@ -689,7 +676,7 @@ function ProbeDetails({ node, onBack }) {
   const runtime = useInterfaceRuntime();
   const [tab,setTab] = useState(PROBE_TABS[0]);
   const [target,setTarget] = useState(''); const [actionError,setActionError] = useState('');
-  const capture = useCaptureAction(auth.data?.data?.role, health.data?.data?.coordination_open);
+  const capture = useCaptureAction('operator', health.data?.data?.coordination_open);
   const doCapture = (action,id) => { if (!window.confirm('Confirmer cette action de capture ?')) return; capture.mutate({action,id,target,confirmed:true},{onError:e=>setActionError(e.message)}); };
   const failure = (query,path) => query.isError ? `GET /api/v1${path} → ${query.error?.status ? `HTTP ${query.error.status}` : 'erreur réseau'}` : null;
   const raw = node.raw ?? {};
@@ -699,7 +686,6 @@ function ProbeDetails({ node, onBack }) {
   const freePercent = typeof storage.free_percent==='number' ? storage.free_percent : typeof filesystem.usage_percent==='number' ? Math.max(0,100-filesystem.usage_percent) : null;
   const diskAvailable = freePercent==null && filesystem.available_bytes==null ? null : `${freePercent==null?'—':freePercent.toFixed(2)+' %'} · ${fmtBytes(filesystem.available_bytes)} libres`;
   const online = node.st==='ok' || node.st==='warn';
-  const operator = auth.data?.data?.role==='operator' || auth.data?.data?.role==='administrator';
   const ifaceRows = (() => {
     const scoped = records(resources.probeInterfaces.data?.data,'interfaces'), global = records(resources.interfaces.data?.data,'interfaces');
     const base = [...new Map([...global,...scoped].map(x => [String(x.name ?? x.interface ?? '—'), { ...global.find(g => String(g.name ?? g.interface ?? '—') === String(x.name ?? x.interface ?? '—')), ...x }])).values()];
@@ -726,7 +712,6 @@ function ProbeDetails({ node, onBack }) {
           </div>
           <div className="text-[11.5px] text-subtle mt-0.5">{available(node.role)} · {available(node.info)} · ID {available(node.id ?? node.n)}</div>
         </div>
-        <div className="ml-auto text-[11.5px] text-muted-foreground">Rôle {available(auth.data?.data?.role)} · gestion des interfaces réservée à operator</div>
       </div>
       <div role="tablist" aria-label="Fiche sonde" className="flex gap-1 border-b border-border overflow-x-auto scroll-thin">
         {PROBE_TABS.map(x => <button key={x} role="tab" aria-selected={tab===x} onClick={()=>setTab(x)} className={`relative shrink-0 h-10 px-3 text-[13px] ${tab===x?'text-foreground font-semibold':'text-muted-foreground hover:text-foreground'}`}>{x}{tab===x && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-[var(--app-accent)]"/>}</button>)}
@@ -770,17 +755,17 @@ function ProbeDetails({ node, onBack }) {
         </Card>}
         {tab==='Actions' && <Card title="Actions sur la sonde">
           <div className="p-4 space-y-4 text-[12.5px]">
-            {operator ? <div className="space-y-2">
+            <div className="space-y-2">
               <Lbl>Capture</Lbl>
               <div className="flex items-center gap-2 flex-wrap">
-                <input aria-label="Cible de capture" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)} value={target} onChange={e=>setTarget(e.target.value)} placeholder="Cible de capture" className="h-8 px-3 border border-border rounded-md text-[12.5px]"/>
-                <button type="button" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('validate')} className="h-8 px-3 rounded-md border border-border bg-white text-[12.5px] text-ink-2 disabled:opacity-50">Valider la capture</button>
-                <button type="button" disabled={!canCapture(auth.data?.data?.role,health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('start')} className="h-8 px-3 rounded-md bg-[var(--app-accent)] text-white text-[12.5px] font-medium disabled:opacity-50">Démarrer la capture</button>
+                <input aria-label="Cible de capture" disabled={!canCapture('operator',health.data?.data?.coordination_open)} value={target} onChange={e=>setTarget(e.target.value)} placeholder="Cible de capture" className="h-8 px-3 border border-border rounded-md text-[12.5px]"/>
+                <button type="button" disabled={!canCapture('operator',health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('validate')} className="h-8 px-3 rounded-md border border-border bg-white text-[12.5px] text-ink-2 disabled:opacity-50">Valider la capture</button>
+                <button type="button" disabled={!canCapture('operator',health.data?.data?.coordination_open)||!target||capture.isPending} onClick={()=>doCapture('start')} className="h-8 px-3 rounded-md bg-[var(--app-accent)] text-white text-[12.5px] font-medium disabled:opacity-50">Démarrer la capture</button>
                 <button type="button" disabled={!running||capture.isPending} onClick={()=>doCapture('stop',running?.id ?? running?.capture_id)} className="h-8 px-3 rounded-md border border-danger-line bg-white text-[12.5px] text-danger disabled:opacity-50">Arrêter la capture</button>
               </div>
               {actionError && <div role="alert" className="text-[12px] text-danger">{actionError}</div>}
               {!health.data?.data?.coordination_open && <div className="text-[11.5px] text-warning">coordination_open absent de /health : actions de capture désactivées.</div>}
-            </div> : <div className="text-[12px] text-muted-foreground">Actions de capture réservées au rôle operator.</div>}
+            </div>
             {demo && <div><Lbl>Cycle de vie</Lbl><div className="text-[12px] text-subtle">Données de démo</div></div>}
           </div>
         </Card>}
@@ -806,7 +791,6 @@ function Nodes({ initialOpen = null } = {}) {
     <div className="space-y-5">
       <div className="flex items-center gap-2">
         <div className="text-[13px] text-muted-foreground">{failure(probes,'/probes') ?? `${nodes.length} sondes enregistrées · POLARIS`}</div>
-        <div className="ml-auto text-[11.5px] text-muted-foreground">Rôle {available(auth.data?.data?.role)} · gestion des interfaces réservée à operator</div>
         <button type="button" onClick={()=>setRegistering(true)} className="h-8 px-3 rounded-md bg-[var(--app-accent)] text-white text-[12px] font-medium">Ajouter une sonde</button>
       </div>
       <Card title="Sondes">
@@ -941,7 +925,6 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]})
   const exec = () => {
     const unsupported = querySupport(draft,demo); if (unsupported) return setErr(unsupported);
     if (draft.tpl==='Trace' && !draft.conds.some(c=>c[0]==='UE')) return setErr('Le gabarit Trace exige une condition UE.');
-    if (draft.conds.some(c=>c[0]==='IMSI') && role!=='operator') return setErr('Les conditions IMSI exigent le rôle operator.');
     setErr(''); run();
   };
   return (
@@ -968,11 +951,10 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]})
               {draft.conds.map((c,i) => <span key={i} className="inline-flex items-center h-8 rounded-md border border-border text-[12.5px] overflow-hidden">{i>0 && <span className="px-2 h-full flex items-center text-[11px] font-semibold text-subtle border-r border-border">{draft.join}</span>}<ConditionBadge field={c[0]} value={c[1]} op={c[2]||'='} size="md" className="rounded-none border-0 pr-0"><button onClick={()=>up({conds:draft.conds.filter((_,j)=>j!==i)})} aria-label="Retirer" className="w-7 h-full grid place-items-center opacity-70 hover:opacity-100 hover:text-danger"><I d={ic.x} c="w-3.5 h-3.5"/></button></ConditionBadge></span>)}
             </div>
             <div className="flex items-center gap-2">
-              <select value={f} onChange={e=>{setF(e.target.value); setV(fieldList.find(x=>x[0]===e.target.value)[1][0] || '');}} className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-white">{fieldList.map(x=><option key={x[0]} disabled={idField(x[0]) && x[0]==='IMSI' && role!=='operator'}>{x[0]}</option>)}</select>
+              <select value={f} onChange={e=>{setF(e.target.value); setV(fieldList.find(x=>x[0]===e.target.value)[1][0] || '');}} className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-white">{fieldList.map(x=><option key={x[0]}>{x[0]}</option>)}</select>
               <select value={op} onChange={e=>setOp(e.target.value)} className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-white"><option>=</option><option>≠</option></select>
               <input value={v} onChange={e=>setV(e.target.value)} list="polaris-filter-values" className="h-8 rounded-md border border-border text-[12.5px] px-2 bg-white min-w-[180px]"/><datalist id="polaris-filter-values">{vals.map(x=><option key={x} value={x}/>)}</datalist>
               <button onClick={()=>up({conds:[...draft.conds,[f,v,op]]})} className="h-8 px-3 rounded-md border border-border text-[12.5px] hover:bg-surface-2 flex items-center gap-1.5"><I d={ic.plus} c="w-3.5 h-3.5"/>Ajouter</button>
-              <span className="ml-2 inline-flex items-center gap-1.5 text-[11.5px] text-subtle"><I d={ic.lock} c="w-3 h-3"/>Identités : rôle operator</span>
             </div>
           </div>
         </QSec>
@@ -992,14 +974,9 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]})
 const THEMES = APP_THEMES.map(t => [t.id, t.label, t.hex]);
 function Settings({theme,setTheme,lang,setLang,onClose}) {
   const version = useVersion();
-  const { demo } = usePolarisMode();
   const [sec,setSec]=useState('apparence');
-  const [cur,setCur]=useState(''),[nw,setNw]=useState(''),[cf,setCf]=useState(''),[pm,setPm]=useState(null);
   const accent = accentOf(theme);
-  const save = e => { e.preventDefault(); if(!cur||nw.length<8) return setPm(['err',t("Mot de passe actuel requis et 8 caractères minimum.")]); if(nw!==cf) return setPm(['err',t("Les mots de passe ne correspondent pas.")]); setPm(['err',t("Non disponible : backend à venir — authentification gérée par le proxy.")]); setCur('');setNw('');setCf(''); };
-  const strength = Math.min(4,[/.{8,}/,/[A-Z]/,/[0-9]/,/[^A-Za-z0-9]/].filter(r=>r.test(nw)).length);
-  const inp = "w-full h-11 rounded-lg border border-border bg-white px-3.5 text-[14px] outline-none transition focus:border-transparent focus:ring-2";
-  const SECS=[['apparence','Apparence','Couleur et thème'],...(demo ? [['securite','Sécurité','Mot de passe']] : []),['langue','Langue','Français ou English'],['apropos','À propos','Version et build']];
+  const SECS=[['apparence','Apparence','Couleur et thème'],['langue','Langue','Français ou English'],['apropos','À propos','Version et build']];
   const Card = ({title,desc,children}) => <section className="bg-white rounded-xl border border-border shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
     <div className="px-7 pt-6 pb-5 border-b border-border-subtle"><h2 className="text-[18px] font-semibold tracking-[-0.01em] text-foreground">{title}</h2><p className="mt-1 text-[14px] text-muted-foreground">{desc}</p></div>
     <div className="p-7">{children}</div></section>;
@@ -1021,7 +998,7 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
       <div className="polaris-content-shell relative z-10 px-8 -mt-12 pb-16">
         <div className="flex items-end gap-5 mb-10">
           <div style={{background:accent}} className="w-24 h-24 rounded-2xl ring-4 ring-white shadow-lg grid place-items-center text-[30px] font-bold text-white">SD</div>
-          <div className="pb-1 pt-14"><h1 className="text-[30px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground">{t("Paramètres")}</h1><p className="text-[14px] text-muted-foreground">{t("Gérez votre compte et l'apparence de POLARIS")}</p></div>
+          <div className="pb-1 pt-14"><h1 className="text-[30px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground">{t("Paramètres")}</h1><p className="text-[14px] text-muted-foreground">Gérez l’apparence et la langue de POLARIS</p></div>
         </div>
         <div className="grid grid-cols-[240px_minmax(0,1fr)] gap-10">
           <nav className="space-y-1.5">
@@ -1041,17 +1018,6 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
                   <div className="px-4 py-3 flex items-center gap-2.5 bg-white"><span className="w-5 h-5 rounded-full" style={{background:c}}/><span className="text-[14px] font-medium">{t(n)}</span><span className="ml-auto font-mono text-[11.5px] text-subtle">{c}</span>
                     {on && <span className="w-5 h-5 rounded-full grid place-items-center text-white text-[11px]" style={{background:c}}>✓</span>}</div>
                 </button>);})}</div>
-            </Card>}
-            {demo && sec==='securite' && <Card title={t("Mot de passe")} desc={t("Données de démo")}>
-              <form onSubmit={save} className="space-y-5 max-w-[460px]" style={{'--tw-ring-color':accent+'55'}}>
-                {[['Mot de passe actuel',cur,setCur],['Nouveau mot de passe',nw,setNw],['Confirmer le mot de passe',cf,setCf]].map(([l,v,fn],i)=>(
-                  <label key={l} className="block"><span className="block text-[13px] font-medium mb-1.5">{t(l)}</span>
-                    <input disabled type="password" value={v} onChange={e=>fn(e.target.value)} className={inp}/>
-                    {i===1 && nw && <div className="mt-2 flex gap-1.5">{[0,1,2,3].map(j=><span key={j} className="h-1.5 flex-1 rounded-full" style={{background:j<strength?accent:'#EBEBEB'}}/>)}</div>}
-                  </label>))}
-                {pm && <div className={`text-[13px] rounded-lg px-3.5 py-2.5 ${pm[0]==='ok'?'bg-success-soft text-success':'bg-danger-soft text-danger'}`}>{pm[1]}</div>}
-                <button disabled title="Non disponible : backend à venir" type="submit" style={{background:accent}} className="h-11 px-6 rounded-lg text-white text-[14px] font-semibold shadow-sm hover:opacity-90">{t("Mettre à jour le mot de passe")}</button>
-              </form>
             </Card>}
             {sec==='langue' && <Card title={t("Langue de l'interface")} desc={t("Choisissez la langue utilisée dans POLARIS.")}>
               <div className="grid grid-cols-2 gap-5 max-w-[520px]">{[['fr','Français','FR'],['en','English','EN']].map(([k,n,c])=>{const on=lang===k; return (
@@ -1149,7 +1115,7 @@ function MockChart({data,unit}){
 }
 
 function App() {
-  const { demo } = usePolarisMode(); const auth = useAuthMe(); const role = auth.data?.data?.role ?? null;
+  const { demo } = usePolarisMode(); const role = 'operator';
   const version = useVersion(), metrics = useLiveMetrics();
   const kpis = useKpiCatalogue(); const demoLibrary = useDemoLibrary(); const sessionFilter = useSessionFilter();
 
@@ -1160,7 +1126,7 @@ function App() {
   const setTheme = t => { try { localStorage.setItem('polaris-theme',t); } catch(e) {} setThemeS(t); };
   const [hiddenMods,setHiddenMods] = useState([]);
   useEffect(()=>{ setHiddenMods(loadHidden()); },[]);
-  const accountHidden = sanitizeHidden(auth.data?.data?.hidden_modules); const navHidden = [...new Set([...hiddenMods,...accountHidden])];
+  const navHidden = hiddenMods;
   const toggleMod = k => setHiddenMods(h=>{ const n=toggleHidden(h,k); saveHidden(n); return n; });
   const accent = accentOf(theme);
     const readP = () => { const h=(location.hash||'').replace('#',''); return (h!=='trafic'||TRAFFIC_ENABLED) && ['sessions','nodes','settings','templates','kpi','live','trafic'].includes(h) ? h : 'home'; };
@@ -1281,9 +1247,8 @@ function App() {
   useEffect(()=>{ setMsg(0); setLens(null); },[s?.id]);
   return (
     <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-surface-2 text-foreground text-base">
-      <TopBar role={role} page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')} metrics={metrics} version={version} demo={demo} hidden={navHidden}/>
+      <TopBar page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')} metrics={metrics} version={version} demo={demo} hidden={navHidden}/>
       <DataStatus t={t}/>
-      {(role==='operator'||role==='administrator') && <div className="h-7 shrink-0 bg-warning-soft border-b border-warning-line text-warning text-[12px] flex items-center px-4">Rôle operator actif · identités en clair · actions soumises au proxy</div>}
       {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={navHidden} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} role={role} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV}/> : page==='live' ? <LiveModule t={t} role={role} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : page==='templates' ? <QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/> : <>
       {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
       {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} role={role} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">

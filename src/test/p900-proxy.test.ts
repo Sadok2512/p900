@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { basicAuthEnabled, basicAuthorized, csrfForToken, forwardedHeaders, proxyAccess, targetFor } from '../../ops/p900-proxy.mjs';
+import { basicAuthEnabled, basicAuthorized, csrfForToken, forwardedHeaders, openAccessEnabled, proxyAccess, targetFor } from '../../ops/p900-proxy.mjs';
 
 describe('p900 proxy request target validation', () => {
   it('rejects an invalid authority-form target instead of crashing the process', () => {
@@ -36,43 +36,49 @@ describe('p900 proxy request target validation', () => {
     expect(basicAuthorized({},'sadok','test-password')).toBe(false);
   });
 
-  it('allows Basic authentication to be disabled explicitly while remaining enabled by default', () => {
+  it('enables open access by default and accepts an explicit closed configuration', () => {
+    expect(openAccessEnabled()).toBe(true);
+    expect(openAccessEnabled('1')).toBe(true);
+    expect(openAccessEnabled('0')).toBe(false);
+    expect(openAccessEnabled('false')).toBe(false);
+  });
+
+  it('keeps the legacy Basic parser configurable for a closed deployment', () => {
     expect(basicAuthEnabled()).toBe(true);
     expect(basicAuthEnabled('0')).toBe(false);
     expect(basicAuthEnabled('false')).toBe(false);
     expect(basicAuthEnabled('1')).toBe(true);
   });
 
-  it('serves public reads as viewer without forwarding an operator token', () => {
-    expect(proxyAccess('/api/v1/sessions','GET',{},'sadok','test-password')).toEqual({authenticated:false,status:200});
-    const headers=forwardedHeaders({},targetFor('/api/v1/sessions')!,'GET');
-    expect(headers).not.toHaveProperty('authorization');
-  });
-
-  it('protects operator data and public writes with distinct statuses', () => {
-    expect(proxyAccess('/api/v1/identities','GET',{},'sadok','test-password').status).toBe(401);
-    expect(proxyAccess('/api/v1/sessions/s-1/identities','GET',{},'sadok','test-password').status).toBe(401);
-    expect(proxyAccess('/api/v1/packets/c-1/4/dissect','GET',{},'sadok','test-password').status).toBe(401);
-    expect(proxyAccess('/api/v1/live/traces/t-1/stream','GET',{},'sadok','test-password').status).toBe(401);
-    expect(proxyAccess('/api/v1/audit','GET',{},'sadok','test-password').status).toBe(401);
-    expect(proxyAccess('/api/v1/captures/start','POST',{},'sadok','test-password').status).toBe(403);
-  });
-
-  it('injects operator credentials only after successful Basic authentication', () => {
-    const authorization=`Basic ${Buffer.from('sadok:test-password').toString('base64')}`;
-    const access=proxyAccess('/api/v1/captures/start','POST',{authorization},'sadok','test-password');
+  it('elevates every HTTP read to operator without browser credentials', () => {
+    const access=proxyAccess('/api/v1/sessions','GET',{});
     expect(access).toEqual({authenticated:true,status:200});
-    const headers=forwardedHeaders({authorization},targetFor('/api/v1/captures/start')!,'POST',{operatorAuthenticated:access.authenticated,tokenOverride:'server-token'});
+    const headers=forwardedHeaders({},targetFor('/api/v1/sessions')!,'GET',{operatorAuthenticated:access.authenticated,tokenOverride:'server-token'});
+    expect(headers.authorization).toBe('Bearer server-token');
+  });
+
+  it('opens identities, dissection, live streams, audit, and writes without Basic', () => {
+    expect(proxyAccess('/api/v1/identities','GET',{}).status).toBe(200);
+    expect(proxyAccess('/api/v1/sessions/s-1/identities','GET',{}).status).toBe(200);
+    expect(proxyAccess('/api/v1/packets/c-1/4/dissect','GET',{}).status).toBe(200);
+    expect(proxyAccess('/api/v1/live/traces/t-1/stream','GET',{}).status).toBe(200);
+    expect(proxyAccess('/api/v1/audit','GET',{}).status).toBe(200);
+    expect(proxyAccess('/api/v1/captures/start','POST',{}).status).toBe(200);
+  });
+
+  it('injects operator credentials and CSRF for open-access writes', () => {
+    const access=proxyAccess('/api/v1/captures/start','POST',{});
+    expect(access).toEqual({authenticated:true,status:200});
+    const headers=forwardedHeaders({},targetFor('/api/v1/captures/start')!,'POST',{operatorAuthenticated:access.authenticated,tokenOverride:'server-token'});
     expect(headers.authorization).toBe('Bearer server-token');
     expect(headers['x-csrf-token']).toBe(csrfForToken('server-token'));
   });
 
-  it('falls back to viewer when no Basic password is configured', () => {
-    expect(proxyAccess('/api/v1/sessions','GET',{},'sadok',null)).toEqual({authenticated:false,status:200});
+  it('does not depend on a configured Basic password in open access mode', () => {
+    expect(proxyAccess('/api/v1/sessions','GET',{},'sadok',null)).toEqual({authenticated:true,status:200});
   });
 
-  it('never elevates requests when Basic authentication is disabled', () => {
-    const authorization=`Basic ${Buffer.from('sadok:test-password').toString('base64')}`;
-    expect(proxyAccess('/api/v1/sessions','GET',{authorization},'sadok','test-password',false)).toEqual({authenticated:false,status:200});
+  it('never emits a Basic challenge when open access is explicitly disabled', () => {
+    expect(proxyAccess('/api/v1/identities','GET',{},'sadok',null,false,false)).toEqual({authenticated:false,status:403});
   });
 });

@@ -15,7 +15,7 @@ const RES_C = (r) => r==='Échec'?'#B42318':r==='Succès'||r==='Accepted'||/^2\d
 const fmtRate = (v) => v>=1000?(v/1000).toFixed(2)+' Gb/s':v>=1?v.toFixed(1)+' Mb/s':(v*1000).toFixed(0)+' kb/s';
 
 export default function LiveModule({ t, role, setPage }) {
-  const op = role === 'operator';
+  const op = true;
   const { demo, setDemo } = usePolarisMode();
   const liveData = useLiveDemo(); const DIR = liveData.directory; const NODES = liveData.nodes; const IFC_C = liveData.colors;
   const [ttype, setTtype] = useState('pseudonym');
@@ -45,7 +45,6 @@ export default function LiveModule({ t, role, setPage }) {
   const tech = ue?.tech || '5G';
   const tracking = demo ? !!(ue && (res?.st === 'Trouvé' || res?.st === 'OUVERT')) : !!traceId;
 
-  useEffect(() => { if (ttype !== 'pseudonym' && !op) setTtype('pseudonym'); }, [op]);
   useEffect(() => { setMsgs([]); setBuf([]); setThr([]); seq.current = 0; setSel(null); setTtl(30*60); }, [res?.ue, demo]);
   useEffect(() => { runningRef.current=running; },[running]);
   useEffect(() => { if (!tracking || !demo) return; const script = liveData.scripts[tech]; const t0 = Date.now();
@@ -86,7 +85,7 @@ export default function LiveModule({ t, role, setPage }) {
       <div className="flex gap-1 ml-1">{ifcs.map(i=>{const off=hide.includes(i);return <button key={i} onClick={()=>setHide(h=>off?h.filter(x=>x!==i):[...h,i])} className={`h-6 px-2 rounded-full text-[11px] font-medium border ${off?'border-border text-subtle line-through':'border-transparent text-white'}`} style={off?{}:{background:IFC_C[i]}}>{i}</button>;})}</div>
       <input value={fq} onChange={e=>setFq(e.target.value)} placeholder={t('Filtrer messages…')} className="h-7 w-44 px-2.5 rounded-md border border-border text-[12px] outline-none focus:border-[var(--app-accent)]"/>
       <span className="ml-auto text-[11px] text-subtle tabular-nums">{shown.length}/{msgs.length}</span>
-      {mode==='table' && <Btn disabled={!op||!shown.length} onClick={exportCsv} title={!op?t('Rôle operator requis'):''}>CSV</Btn>}
+      {mode==='table' && <Btn disabled={!shown.length} onClick={exportCsv}>CSV</Btn>}
       <Btn onClick={()=>setFull(full==='sig'?null:'sig')}>{full==='sig'?t('Quitter'):'⤢'}</Btn>
     </div>
     <div ref={sigBox} onScroll={onSigScroll} className="overflow-auto scroll-thin flex-1" style={full==='sig'?{}:{height:ladH}}>
@@ -112,7 +111,7 @@ export default function LiveModule({ t, role, setPage }) {
           <div className="mr-2"><div className="text-[12px] text-muted-foreground">POLARIS Live</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Live Trace</h1></div>
           <form onSubmit={find} className="flex items-center h-9 rounded-lg border border-border bg-white focus-within:border-[var(--app-accent)] overflow-hidden">
             <select value={ttype} onChange={e=>{setTtype(e.target.value);setQ('');}} className="h-full px-2 text-[12px] bg-surface-2 border-r border-border outline-none">
-              <option value="pseudonym">{t('Pseudonyme')}</option>{op&&<><option value="imsi">IMSI / SUPI</option><option value="tmsi">TMSI / GUTI</option><option value="s_tmsi">S-TMSI</option><option value="m_tmsi">M-TMSI</option><option value="imei">IMEI</option><option value="msisdn">MSISDN</option></>}
+              <option value="pseudonym">{t('Pseudonyme')}</option><option value="imsi">IMSI / SUPI</option><option value="tmsi">TMSI / GUTI</option><option value="s_tmsi">S-TMSI</option><option value="m_tmsi">M-TMSI</option><option value="imei">IMEI</option><option value="msisdn">MSISDN</option>
             </select>
             <input value={q} onChange={e=>setQ(e.target.value)} type="text" autoComplete="off" placeholder={ttype==='pseudonym'?'UE-…':'identité en clair'} className="w-48 px-3 text-[13px] font-mono outline-none"/>
             <button className="h-full px-3 bg-[var(--app-accent)] text-white text-[12.5px] font-medium hover:opacity-90">{t('Rechercher')}</button>
@@ -130,7 +129,6 @@ export default function LiveModule({ t, role, setPage }) {
         {/* compact counters */}
         <div className="w-full px-6 h-8 flex items-center gap-5 text-[11.5px] text-muted-foreground border-t border-border-subtle">
           {[['Traces actives', tracking?'1 / 10':'—'],['Expiration', tracking?`${Math.floor(ttl/60)}:${String(ttl%60).padStart(2,'0')}`:'—'],['Messages',msgs.length],['Tampon',buf.length],['Marqueurs',marks.length],['Techno',ue?(ue.tech==='LTE'?'LTE':'5G SA'):'—']].map(([n,v])=><span key={n}>{t(n)} <b className="text-foreground tabular-nums">{v}</b></span>)}
-          {!op && <span className="text-subtle">· {t('viewer : connexion requise pour les identités, pseudonymes uniquement')}</span>}
           {demo && <span className="ml-auto text-warning">{t('Données de démo — API live POLARIS (WebSocket) non connectée')}</span>}
         </div>
       </div>
@@ -243,10 +241,7 @@ function UeInfo({ t, ue, res, op, tracking, msgs, onHide }) {
     {!tracking ? <div className="px-4 py-6 text-[12.5px] text-subtle">{t('Aucun UE suivi.')}</div> : <>
       <Sec title="Identité">
         <Row n={t('Pseudonyme')} v={res.ue} s={null} />
-        {op
-          ? <>{[['IMSI / SUPI','subscriber'],['TMSI / GUTI','temporary'],['S-TMSI','s_tmsi'],['M-TMSI','m_tmsi'],['IMEI(SV) / PEI','equipment'],['MSISDN / GPSI','directory']].map(([label,kind])=><Row key={kind} n={label} v={observedIdentity(clearIdentities,kind)} s={null}/>)}</>
-          : <Row n={t('Identités')} v="connexion requise" s={null}/>
-        }
+        {[['IMSI / SUPI','subscriber'],['TMSI / GUTI','temporary'],['S-TMSI','s_tmsi'],['M-TMSI','m_tmsi'],['IMEI(SV) / PEI','equipment'],['MSISDN / GPSI','directory']].map(([label,kind])=><Row key={kind} n={label} v={observedIdentity(clearIdentities,kind)} s={null}/>)}
         <div className="flex items-center gap-2 py-1 text-[12px]"><span className="w-[120px] text-subtle">{t('Rattachement')}</span><Tag c={res.st === 'Trouvé' ? '#15803D' : '#A15C07'}>{res.st === 'Trouvé' ? 'EXACT' : 'OUVERT'}</Tag><button onClick={() => setProof(!proof)} className="ml-auto text-[11px] text-[var(--app-accent)]">{proof ? t('masquer') : t('preuve')}</button></div>
         {proof && <div className="text-[11px] text-ink-2 bg-surface-2 rounded p-2 mb-1">{ue.proof}</div>}
       </Sec>
