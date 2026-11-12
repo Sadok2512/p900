@@ -44,21 +44,22 @@ function useTopologyTheme() {
 const Seg = ({value,onChange,options,label}) => <div role="radiogroup" aria-label={label} className="inline-flex rounded-md border border-border bg-surface-2 p-0.5">{options.map(([k,l])=><button key={k} type="button" role="radio" aria-checked={value===k} onClick={()=>onChange(k)} className={`h-6 px-2.5 rounded text-[11.5px] ${value===k?'bg-white shadow-sm text-foreground font-medium':'text-muted-foreground'}`}>{l}</button>)}</div>;
 const ToolBtn = ({children,label,onClick}) => <button type="button" aria-label={label} title={label} onClick={onClick} className="h-7 min-w-7 px-1.5 rounded-md border border-border bg-white text-[12px] text-ink-2 hover:bg-surface-2">{children}</button>;
 
-function NodeBox({slot,state,sub,selected,onSelect,dashed}) {
+function NodeBox({slot,state,sub,selected,onSelect,dashed,faded}) {
   const [color] = STATE[state] ?? STATE.unknown;
-  return <g role="button" tabIndex={0} aria-label={`${slot.label} · ${STATE[state]?.[1]}`} onClick={e=>{e.stopPropagation(); onSelect();}} onKeyDown={e=>e.key==='Enter'&&onSelect()} className="cursor-pointer" style={{outline:'none'}}>
-    <title>{`${slot.label} — ${STATE[state]?.[1]}${sub?` · ${sub}`:''}`}</title>
+  return <g role="button" tabIndex={0} aria-label={`${slot.label} · ${STATE[state]?.[1]}`} onClick={e=>{e.stopPropagation(); onSelect();}} onKeyDown={e=>e.key==='Enter'&&onSelect()} className="cursor-pointer" style={{outline:'none',opacity:faded?0.45:1,transition:'opacity .2s'}}>
+    <title>{`${slot.label} — état : ${STATE[state]?.[1]}${dashed?' (aucune donnée du lab)':''}${sub?` · ${sub}`:''}`}</title>
     <rect x={slot.x} y={slot.y} width={slot.w} height={slot.h} rx="7" fill="var(--topo-node)" stroke={selected?'var(--topo-select)':'var(--topo-node-line)'} strokeWidth={selected?2:1} strokeDasharray={dashed?'4 3':undefined} style={{transition:'fill .25s, stroke .25s'}}/>
-    <circle cx={slot.x+11} cy={slot.y+(sub?14:slot.h/2)} r="3.5" fill={color}/>
-    <text x={slot.x+20} y={slot.y+(sub?18:slot.h/2+4)} fontSize="12" fontWeight="600" fontFamily="var(--font-mono, ui-monospace)" fill="var(--topo-text)">{slot.label}</text>
-    {sub && <text x={slot.x+10} y={slot.y+32} fontSize="10" fill="var(--topo-muted)">{String(sub).slice(0,Math.floor(slot.w/6))}</text>}
+    <circle cx={slot.x+13} cy={slot.y+(sub?15:slot.h/2)} r="7" fill={color} opacity="0.18"/>
+    <circle cx={slot.x+13} cy={slot.y+(sub?15:slot.h/2)} r="4.5" fill={color} stroke="var(--topo-node)" strokeWidth="1"/>
+    <text x={slot.x+24} y={slot.y+(sub?19:slot.h/2+4.5)} fontSize="12.5" fontWeight="600" fontFamily="var(--font-mono, ui-monospace)" fill="var(--topo-text)">{slot.label}</text>
+    {sub && <text x={slot.x+10} y={slot.y+34} fontSize="11" fill="var(--topo-muted)">{String(sub).slice(0,Math.floor(slot.w/6))}</text>}
   </g>;
 }
 
 export default function NetworkTopology({ onOpenProbe }) {
   const lab=usePolarisLab(), nodesQ=usePolarisNodes(), uesQ=usePolarisUes(), interfacesQ=useInterfaces(), runtimeQ=useInterfaceRuntime(), metricsQ=useLiveMetrics(), probesQ=useProbes();
   const [mode,setMode] = useTopologyTheme();
-  const [view,setView] = useState(VIEW), [selected,setSelected] = useState(null), [panel,setPanel] = useState(true), [showRef,setShowRef] = useState(false);
+  const [view,setView] = useState(VIEW), [selected,setSelected] = useState(null), [hover,setHover] = useState(null), [panel,setPanel] = useState(true), [showRef,setShowRef] = useState(false);
   const svgRef = useRef(null), drag = useRef(null);
   const dark = mode==='dark';
 
@@ -106,23 +107,28 @@ export default function NetworkTopology({ onOpenProbe }) {
 
   const sel = selected;
   const isSel = (kind,id) => sel?.kind===kind && sel?.id===id;
+  const focus = hover ?? sel;
+  // Which links / probes relate to the current focus (selection or hover).
+  const linkRelevant = l => !focus ? true : focus.kind==='link' ? focus.id===l.name : focus.kind==='probe' ? l.evidence.probes.includes(focus.id) : focus.kind==='node' ? (l.from===focus.id||l.to===focus.id||(l.plane==='sbi'&&CORE_5G.includes(focus.id))) : false;
+  const monitorRelevant = (p,name) => focus && ((focus.kind==='probe'&&focus.id===p.id)||(focus.kind==='link'&&focus.id===name));
   const labDown = lab.isError || nodesQ.isError;
   const observedNfs = [...CORE_5G,...CORE_LTE].filter(id=>nfByName[norm(id)]).length;
 
-  const drawLink = (l, ghost=false) => { const g=geom(l); const c=ghost?'var(--topo-muted)':ink(l.name); const [stc]=STATE[AVAIL_TO_STATE[l.network]]; const on=isSel('link',l.name);
-    return <g key={(ghost?'ref-':'')+l.name} role="button" aria-label={`Interface ${l.name}`} className="cursor-pointer" onClick={e=>{e.stopPropagation(); if(!ghost) setSelected({kind:'link',id:l.name});}}>
+  const drawLink = (l, ghost=false) => { const g=geom(l); const c=ghost?'var(--topo-muted)':ink(l.name); const [stc]=STATE[AVAIL_TO_STATE[l.network]]; const on=!ghost&&!!focus&&linkRelevant(l); const fade=!ghost&&!!focus&&!on;
+    return <g key={(ghost?'ref-':'')+l.name} role="button" aria-label={`Interface ${l.name}`} className="cursor-pointer" style={{opacity:fade?0.25:1,transition:'opacity .2s'}} onMouseEnter={()=>!ghost&&setHover({kind:'link',id:l.name})} onMouseLeave={()=>setHover(null)} onClick={e=>{e.stopPropagation(); if(!ghost) setSelected({kind:'link',id:l.name});}}>
       <title>{ghost?`${l.name} · référence 3GPP, non configurée dans le lab`:`${l.name} · ${l.from} ↔ ${l.to} · ${l.protocol} · réseau ${AVAILABILITY_LABEL[l.network].toLowerCase()} · capture ${CAPTURE_LABEL[l.capture]}`}</title>
       <path d={g.d} fill="none" stroke="transparent" strokeWidth="12"/>
-      <path d={g.d} fill="none" stroke={c} strokeWidth={on?3:l.plane==='sbi'?2.2:1.6} strokeDasharray={ghost?'2 4':l.plane==='logical'?'6 4':l.plane==='user'?undefined:undefined} opacity={ghost?0.5:1} strokeLinecap="round"/>
+      <path d={g.d} fill="none" stroke={c} strokeWidth={on?2.8:2} strokeDasharray={ghost?'2 4':l.plane==='logical'?'6 4':undefined} opacity={ghost?0.5:1} strokeLinecap="round"/>
       {l.plane==='sbi' && !ghost && ['NRF','AUSF','UDM','UDR','PCF','NSSF','BSF'].map(id=>{const s=slotById[id]; return <line key={id} x1={s.x+s.w/2} y1={s.y+s.h} x2={s.x+s.w/2} y2={SBI_Y} stroke={c} strokeWidth="1.2"/>;})}
       {l.plane==='sbi' && !ghost && ['AMF','SMF'].map(id=>{const s=slotById[id]; return <line key={id} x1={s.x+s.w/2} y1={SBI_Y} x2={s.x+s.w/2} y2={s.y} stroke={c} strokeWidth="1.2"/>;})}
       <g transform={`translate(${g.lx},${g.ly})`}>
-        <rect x={-l.name.length*3.6-13} y="-9" width={l.name.length*7.2+(ghost?14:26)} height="18" rx="9" fill="var(--topo-node)" stroke={c} strokeWidth={on?1.6:1} opacity={ghost?0.7:1}/>
-        <text x={ghost?-l.name.length*3.6-6:-l.name.length*3.6-6} y="4" fontSize="10.5" fontWeight="600" fontFamily="var(--font-mono, ui-monospace)" fill={c}>{l.name}</text>
-        {!ghost && <circle cx={l.name.length*3.6+5} cy="0" r="3" fill={stc}/>}
+        <rect x={-l.name.length*3.6-13} y="-10" width={l.name.length*7.2+(ghost?14:26)} height="20" rx="10" fill="var(--topo-node)" stroke={c} strokeWidth={on?1.6:1} opacity={ghost?0.7:1}/>
+        <text x={ghost?-l.name.length*3.6-6:-l.name.length*3.6-6} y="4" fontSize="11.5" fontWeight="600" fontFamily="var(--font-mono, ui-monospace)" fill={c}>{l.name}</text>
+        {!ghost && <circle cx={l.name.length*3.6+5} cy="0" r="3.5" fill={stc}><title>{`réseau : ${AVAILABILITY_LABEL[l.network]}`}</title></circle>}
       </g>
     </g>; };
 
+  const probeCapture = p => { const st=links.filter(l=>l.evidence.probes.includes(p.id)).map(l=>l.capture); const k=st.includes('active')?'active':st.find(x=>x!=='unknown')??'unknown'; return CAPTURE_LABEL[k]; };
   const probeAnchors = (p) => p.interfaces.map(n=>links.find(l=>l.name===n || l.name===String(n).toUpperCase())).filter(Boolean).map(l=>({l,...geom(l)}));
 
   // ----- details -----
@@ -166,38 +172,40 @@ export default function NetworkTopology({ onOpenProbe }) {
           <defs><pattern id="topo-grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle cx="1" cy="1" r="0.9" fill="var(--topo-grid)"/></pattern></defs>
           <rect data-bg="1" width="1360" height="820" fill="url(#topo-grid)"/>
           <g style={{transform:`translate(${view.x}px,${view.y}px) scale(${view.k})`, transformOrigin:'680px 410px', transformBox:'view-box', transition:drag.current?'none':'transform .15s ease'}}>
-            {ZONES.map(z=><g key={z.id}><rect x={z.x} y={z.y} width={z.w} height={z.h} rx="12" fill="var(--topo-zone)" stroke="var(--topo-zone-line)"/><text x={z.x+14} y={z.y+20} fontSize="11" fontWeight="700" letterSpacing="0.08em" fill="var(--topo-muted)">{z.label.toUpperCase()}</text></g>)}
+            {ZONES.map(z=><g key={z.id}><rect x={z.x} y={z.y} width={z.w} height={z.h} rx="12" fill="var(--topo-zone)" stroke="var(--topo-zone-line)"/><text x={z.x+14} y={z.y+20} fontSize="12.5" fontWeight="700" letterSpacing="0.08em" fill="var(--topo-muted)">{z.label.toUpperCase()}</text></g>)}
             {refOnly.map(l=>drawLink(l,true))}
             {links.map(l=>drawLink(l))}
             {/* probe monitoring links: dotted, never a 3GPP interface */}
-            {probes.map((p,i)=>{ const s=probeSlot(i); return probeAnchors(p).map(a=><path key={p.id+a.l.name} d={`M${s.x+s.w/2},${s.y} C ${s.x+s.w/2},${s.y-80} ${a.lx},${a.ly+80} ${a.lx},${a.ly+10}`} fill="none" stroke="var(--topo-probe)" strokeWidth={isSel('probe',p.id)?1.8:1} strokeDasharray="1.5 4" strokeLinecap="round" opacity={sel&&!isSel('probe',p.id)?0.35:0.9}><title>{`${p.name} surveille ${a.l.name} (point de capture)`}</title></path>); })}
-            {SLOTS.filter(s=>s.zone==='5gc'||s.zone==='epc').map(s=>{ const st=nfState(s.id); const r=nfByName[norm(s.id)]; return <NodeBox key={s.id} slot={s} state={st} dashed={!r} selected={isSel('node',s.id)} onSelect={()=>setSelected({kind:'node',id:s.id,state:st,raw:r})}/>; })}
+            {probes.map((p,i)=>{ const s=probeSlot(i); const cx=s.x+s.w/2, trunkY=s.y-18; return <g key={'mon-'+p.id} pointerEvents="none">{probeAnchors(p).map(a=>{ const hot=monitorRelevant(p,a.l.name); return <path key={a.l.name} d={`M${cx},${s.y} V${trunkY} C ${cx},${trunkY-60} ${a.lx},${a.ly+70} ${a.lx},${a.ly+11}`} fill="none" stroke="var(--topo-probe)" strokeWidth={hot?1.8:1} strokeDasharray="1.5 4" strokeLinecap="round" opacity={hot?0.95:focus?0.06:0.22} style={{transition:'opacity .2s'}}/>; })}</g>; })}
+            {SLOTS.filter(s=>s.zone==='5gc'||s.zone==='epc').map(s=>{ const st=nfState(s.id); const r=nfByName[norm(s.id)]; return <NodeBox key={s.id} slot={s} state={st} dashed={!r} faded={!!focus&&focus.kind!=='node'&&focus.kind!=='ue'&&!links.some(l=>linkRelevant(l)&&(l.from===s.id||l.to===s.id||(l.plane==='sbi'&&CORE_5G.includes(s.id))))} selected={isSel('node',s.id)} onSelect={()=>setSelected({kind:'node',id:s.id,state:st,raw:r})}/>; })}
             {[['gNB',g5,ue5],['eNB',g4,ue4]].map(([id,list,uel])=>{ const base=slotById[id]; const n=list[0]; const st=ranState(n); const name=n?String(n.id ?? n.name):`${id} non observé`;
               return <g key={id}><NodeBox slot={{...base,label:n?name:id}} state={st} dashed={!n} sub={n?`${available(n.technology)} · ${available(n.simulator)}`:'non observé'} selected={isSel('node',id)} onSelect={()=>setSelected({kind:'node',id:name,state:st,raw:n})}/>
                 {list.length>1 && <text x={base.x+base.w-4} y={base.y-6} textAnchor="end" fontSize="10" fill="var(--topo-muted)">+{list.length-1} autre(s)</text>}
                 {n && <text x={40} y={base.y+base.h+34} fontSize="10" fill="var(--topo-muted)">UE ({uel.length})</text>}
                 {uel.slice(0,8).map((u,j)=>{ const label=String(u.id ?? u.ue_id ?? `UE ${j+1}`); const x=40+(j%4)*64, y=base.y+base.h+44+Math.floor(j/4)*26; const on=isSel('ue',label);
-                  return <g key={label} className="cursor-pointer" onClick={e=>{e.stopPropagation(); setSelected({kind:'ue',id:label,state:nodeStateOf(u.state ?? u.status),raw:u});}}><title>{label}</title><rect x={x} y={y} width="58" height="20" rx="5" fill="var(--topo-node)" stroke={on?'var(--topo-select)':'var(--topo-node-line)'}/><text x={x+29} y={y+14} textAnchor="middle" fontSize="10" fontFamily="var(--font-mono, ui-monospace)" fill="var(--topo-text)">{label.slice(0,8)}</text></g>; })}
+                  return <g key={label} className="cursor-pointer" onClick={e=>{e.stopPropagation(); setSelected({kind:'ue',id:label,state:nodeStateOf(u.state ?? u.status),raw:u});}}><title>{label}</title><rect x={x} y={y} width="58" height="20" rx="5" fill="var(--topo-node)" stroke={on?'var(--topo-select)':'var(--topo-node-line)'}/><text x={x+29} y={y+14} textAnchor="middle" fontSize="11" fontFamily="var(--font-mono, ui-monospace)" fill="var(--topo-text)">{label.slice(0,8)}</text></g>; })}
                 {uel.length>8 && <text x={40} y={base.y+base.h+108} fontSize="10" fill="var(--topo-muted)">+{uel.length-8} UE</text>}
                 {n && !uel.length && <text x={40} y={base.y+base.h+56} fontSize="10" fill="var(--topo-muted)">aucun UE rattaché</text>}
               </g>; })}
             {(()=>{ const s=slotById.DN; const names=dataNetworks.map(d=>String(d.name ?? d.dnn ?? d.apn ?? '')).filter(Boolean); return <NodeBox slot={s} state={names.length?'operational':'unknown'} dashed={!names.length} sub={names.length?names.join(', '):'non configuré'} selected={isSel('node','DN')} onSelect={()=>setSelected({kind:'node',id:'Data Network',state:names.length?'operational':'unknown',raw:names.length?{data_networks:names.join(', ')}:undefined})}/>; })()}
-            {probes.map((p,i)=>{ const s=probeSlot(i); const on=isSel('probe',p.id); const [c]=STATE[p.online]; return <g key={p.id} role="button" aria-label={`Sonde ${p.name}`} className="cursor-pointer" onClick={e=>{e.stopPropagation(); setSelected({kind:'probe',id:p.id});}}>
-              <title>{`${p.name} · ${STATE[p.online][1]}`}</title>
+            {probes.map((p,i)=>{ const s=probeSlot(i); const on=isSel('probe',p.id); const [c]=STATE[p.online]; return <g key={p.id} role="button" aria-label={`Sonde ${p.name}`} className="cursor-pointer" onMouseEnter={()=>setHover({kind:'probe',id:p.id})} onMouseLeave={()=>setHover(null)} onClick={e=>{e.stopPropagation(); setSelected({kind:'probe',id:p.id});}}>
+              <title>{`${p.name} · sonde ${STATE[p.online][1]} · capture ${probeCapture(p)} — surveillance passive, pas un chemin de trafic`}</title>
               <rect x={s.x} y={s.y} width={s.w} height={s.h} rx="9" fill="var(--topo-node)" stroke={on?'var(--topo-select)':'var(--topo-probe)'} strokeWidth={on?2:1}/>
-              <circle cx={s.x+13} cy={s.y+16} r="3.5" fill={c}/>
+              <circle cx={s.x+13} cy={s.y+16} r="4.5" fill={c}/>
               <text x={s.x+22} y={s.y+20} fontSize="12" fontWeight="600" fontFamily="var(--font-mono, ui-monospace)" fill="var(--topo-text)">{p.name.slice(0,24)}</text>
-              <text x={s.x+12} y={s.y+37} fontSize="10" fill="var(--topo-muted)">{`${available(p.type)} · ${STATE[p.online][1]}`}</text>
-              {p.interfaces.slice(0,5).map((n,j)=><g key={n} transform={`translate(${s.x+12+j*40},${s.y+48})`}><rect width="36" height="15" rx="4" fill="none" stroke={ink(n)}/><text x="18" y="11" textAnchor="middle" fontSize="9.5" fontWeight="600" fontFamily="var(--font-mono, ui-monospace)" fill={ink(n)}>{n.slice(0,6)}</text></g>)}
+              <text x={s.x+12} y={s.y+36} fontSize="11" fill="var(--topo-muted)">{`${available(p.type)} · sonde ${STATE[p.online][1].split(' ')[0]} · capture ${probeCapture(p)}`.slice(0,40)}</text>
+              {p.interfaces.slice(0,5).map((n,j)=><g key={n} transform={`translate(${s.x+12+j*40},${s.y+48})`}><rect width="36" height="16" rx="4" fill="none" stroke={ink(n)}/><text x="18" y="12" textAnchor="middle" fontSize="11" fontWeight="600" fontFamily="var(--font-mono, ui-monospace)" fill={ink(n)}>{n.slice(0,6)}</text></g>)}
               {!p.interfaces.length && <text x={s.x+12} y={s.y+60} fontSize="10" fill="var(--topo-muted)">aucun point de capture</text>}
             </g>; })}
             {allProbes.length>probes.length && <text x={1320} y={700} textAnchor="end" fontSize="10" fill="var(--topo-muted)">{allProbes.length-probes.length} sonde(s) sans point de capture · voir Node Manager</text>}
             {!probes.length && <text x={40} y={752} fontSize="11" fill="var(--topo-muted)">{probesQ.isError?'Sondes indisponibles (GET /api/v1/probes)':'Aucune sonde enregistrée'}</text>}
           </g>
         </svg>
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-[11px]" style={{color:'var(--topo-muted)',borderTop:'1px solid var(--topo-zone-line)'}}>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-3 py-2 text-[11.5px]" style={{color:'var(--topo-muted)',borderTop:'1px solid var(--topo-zone-line)'}}>
           {Object.entries(STATE).map(([k,[c,l]])=><span key={k} className="inline-flex items-center gap-1.5"><span className="w-2 h-2 rounded-full" style={{background:c}}/>{l}</span>)}
-          <span className="inline-flex items-center gap-1.5"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" strokeWidth="1.6"/></svg>interface 3GPP</span>
+          <span className="inline-flex items-center gap-1.5"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" strokeWidth="2"/></svg>interface configurée / observée</span>
+          <span className="inline-flex items-center gap-1.5"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="currentColor" strokeWidth="1.6" strokeDasharray="2 4" opacity="0.6"/></svg>référence 3GPP</span>
+          <span className="inline-flex items-center gap-1.5">{['N2','N3','N4','SBI','S1-MME'].map(n=><span key={n} className="font-mono font-semibold" style={{color:ink(n)}}>{n==='S1-MME'?'S1':n}</span>)}<span>· autres</span></span>
           <span className="inline-flex items-center gap-1.5"><svg width="22" height="6"><line x1="0" y1="3" x2="22" y2="3" stroke="var(--topo-probe)" strokeWidth="1.4" strokeDasharray="1.5 4" strokeLinecap="round"/></svg>surveillance sonde</span>
           <span className="inline-flex items-center gap-1.5"><svg width="22" height="10"><rect x="1" y="1" width="20" height="8" rx="2" fill="none" stroke="currentColor" strokeDasharray="3 2"/></svg>non observé</span>
           <span className="ml-auto">Glisser pour déplacer · molette pour zoomer</span>
