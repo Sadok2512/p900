@@ -37,7 +37,10 @@ export type Session = Evidence & {
   runtime_evidence?: unknown;
   unresolved_fields?: number;
   ue_ip?: string;
+  serving_cell?: SessionCell | null;
 };
+export type SessionCell = RecordData & { event_id?: string; interface?: string; message?: string; capture_id?: string; packet_number?: number; plmn?: string; tac?: string; nci?: string | null; eci?: string | null; enb_id?: string | null; cell_id?: string | null; pci?: string | null; arfcn?: string | null; site?: string | null; latitude?: number | null; longitude?: number | null; azimuth?: number | null; opening?: number | null; range?: number | null; snapshot_id?: string | null; cell_unknown?: boolean };
+export type SessionCells = RecordData & { session_id?: string; ordering?: string; cells: SessionCell[] };
 export type Event = Evidence & {
   interface?: string;
   protocol?: string;

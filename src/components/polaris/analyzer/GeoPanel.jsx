@@ -15,9 +15,11 @@ export default function GeoPanel({ s, msg, setMsg, onHide, max, setMax }) {
   const [layers, setLayers] = useState({ cell: true, ue: true, traj: true });
   useEffect(() => setHydrated(true), []);
   const events = s?.d?.evidence ?? [];
-  const geo = useMemo(() => extractGeo(s, events), [s, events]);
+  const cells = s?.cells ?? [];
+  const locatedCells = useMemo(() => cells.map((cell, index) => ({ ...cell, kind: 'cell', event_index: events.findIndex(event => event.event_id === cell.event_id) >= 0 ? events.findIndex(event => event.event_id === cell.event_id) : index, technology: s?.rat })), [cells, events, s?.rat]);
+  const geo = useMemo(() => extractGeo(s ? { ...s, serving_cell: undefined, cells: locatedCells } : s, events), [s, locatedCells, events]);
   const ev = events[msg];
-  const radio = useMemo(() => { const r = radioContext(ev); const b = radioContext(s ? { ...s, d: undefined } : null); return Object.fromEntries(Object.keys(r).map(k => [k, r[k] ?? b[k]])); }, [ev, s]);
+  const radio = useMemo(() => { const r = radioContext(ev); const b = radioContext(s ? { ...s, d: undefined, cells: undefined, serving_cell: s.serving_cell ?? cells.at(-1) } : null); return Object.fromEntries(Object.keys(r).map(k => [k, r[k] ?? b[k]])); }, [ev, s, cells]);
   const shown = geo.points.filter(p => (p.kind === 'cell' ? layers.cell : layers.ue));
   const msgPoints = geo.points.filter(p => p.eventIndex === msg);
   const current = picked ?? msgPoints.find(p => p.kind !== 'cell') ?? msgPoints[0] ?? geo.points.find(p => p.kind === 'ue-actual') ?? geo.points.find(p => p.kind === 'cell' && p.serving) ?? null;
@@ -26,7 +28,7 @@ export default function GeoPanel({ s, msg, setMsg, onHide, max, setMax }) {
   const btn = 'h-7 px-2 rounded-md text-[12px] border border-border hover:bg-muted';
   return <div className="flex flex-col h-full min-h-0">
     <div className="h-[42px] shrink-0 px-3 flex items-center gap-1.5 border-b border-border">
-      <span className="text-[13px] font-semibold text-foreground mr-auto">Geolocating</span>
+      <span className="text-[13px] font-semibold text-foreground mr-auto">Géolocalisation</span>
       <div role="group" aria-label="Style de carte" className="flex rounded-md border border-border overflow-hidden">{[['light', 'Clair'], ['dark', 'Sombre'], ['osm', 'OpenStreetMap']].map(([k, l]) => <button key={k} onClick={() => setTheme(k)} aria-pressed={theme === k} className={`h-7 px-2 text-[12px] ${theme === k ? 'bg-brand-soft text-[var(--app-accent)]' : 'hover:bg-muted'}`}>{l}</button>)}</div>
       <button onClick={() => setMax(!max)} className={btn} title={max ? 'Restaurer' : 'Agrandir la carte'}>{max ? 'Restaurer' : 'Agrandir'}</button>
       <button onClick={onHide} title="Masquer Geolocating" className="w-7 h-7 rounded-md grid place-items-center text-muted-foreground hover:bg-muted">×</button>
@@ -44,6 +46,7 @@ export default function GeoPanel({ s, msg, setMsg, onHide, max, setMax }) {
         <Row k="UE" v={s?.ue} /><Row k="RAT" v={s?.rat === '5G' ? 'NR' : s?.rat === '4G' ? 'LTE' : s?.rat} />
         <Row k="Cellule servante" v={radio.cellId} /><Row k="PCI" v={radio.pci} /><Row k="EARFCN / NR-ARFCN" v={radio.arfcn} /><Row k="TAC" v={radio.tac} /><Row k="eNB / gNB" v={radio.node} /><Row k="Timing Advance" v={radio.timingAdvance} />
       </section>
+      {!!cells.filter(cell=>cell.cell_unknown).length && <section><H>Cellules inconnues</H><div className="space-y-1">{cells.filter(cell=>cell.cell_unknown).map((cell,index)=><div key={`${cell.event_id??'unknown'}-${index}`} className="rounded border border-border px-2 py-1 text-[11.5px]"><span className="font-mono">{cell.plmn??'—'} · {cell.nci??cell.eci??'—'}</span><span className="block text-muted-foreground">{cell.interface??'—'} · {cell.message??'—'} — non dessinée</span></div>)}</div></section>}
       <section><H>Message sélectionné {ev ? `#${msg + 1}` : ''}</H>
         <Row k="Message" v={ev?.message_name} /><Row k="Horodatage" v={ev?.timestamp ?? current?.timestamp} />
         {current ? <><Row k="Type de position" v={KIND_L[current.kind]} /><Row k="Coordonnées" v={`${current.lat.toFixed(5)}, ${current.lon.toFixed(5)}`} /><Row k="Source" v={current.source} /><Row k="Précision" v={current.accuracy_m != null ? `± ${current.accuracy_m} m` : null} />

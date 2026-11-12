@@ -54,6 +54,8 @@ export function extractGeo(session: Obj | null | undefined, events: unknown[] = 
   events.forEach((e, i) => { if (isObj(e)) scan(e, { path: 'event', rat: ratOf(e['technology']), ts: text(e['timestamp'] ?? e['time']), eventIndex: i }, points); });
   const seen = new Set<string>();
   const unique = points.filter(p => { const k = `${p.kind}|${p.lat}|${p.lon}|${p.eventIndex ?? ''}`; if (seen.has(k)) return false; seen.add(k); return true; });
-  const trajectory = unique.filter(p => p.kind !== 'cell' && p.eventIndex != null).sort((a, b) => (a.eventIndex ?? 0) - (b.eventIndex ?? 0));
+  const cells = unique.filter(p => p.kind === 'cell' && p.eventIndex != null).sort((a, b) => (a.eventIndex ?? 0) - (b.eventIndex ?? 0));
+  const ue = unique.filter(p => p.kind !== 'cell' && p.eventIndex != null).sort((a, b) => (a.eventIndex ?? 0) - (b.eventIndex ?? 0));
+  const trajectory = cells.length > 1 ? cells : ue;
   return { points: unique, trajectory: trajectory.length > 1 ? trajectory : [] };
 }

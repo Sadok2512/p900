@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.4.0
+
+- L’Analyzer charge `GET /sessions/:id/cells` avec les autres détails de la
+  session et ajoute un onglet « Cellules » dans l’ordre fourni par OIRAN.
+- La carte Géolocalisation relie les cellules connues dans l’ordre canonique,
+  place un marqueur par changement et ne dessine jamais une cellule inconnue.
+  Les NCI/ECI inconnus restent visibles dans une liste dédiée.
+- Le contexte de session affiche la cellule servante, PCI, ARFCN, TAC et
+  eNB/gNB à partir de `serving_cell` et des observations de cellule, sans
+  fabriquer de coordonnées.
+
 ## 2.3.1
 
 - Intègre le correctif Analyzer 2.2.4 à la branche du référentiel cellules : aucun préchargement des callflows, identités paresseuses, file bornée à quatre requêtes et priorité aux détails ouverts.

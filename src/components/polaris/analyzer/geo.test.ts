@@ -12,5 +12,14 @@ describe('geolocation extraction', () => {
     const g = extractGeo({ ue_track: [{ latitude: 48.89, longitude: 2.24, source: 'GNSS', event_index: 0 }, { latitude: 48.9, longitude: 2.23, source: 'GNSS', event_index: 8 }] });
     expect(g.points.map(p => p.eventIndex)).toEqual([0, 8]); expect(g.trajectory).toHaveLength(2);
   });
+  it('prefers the canonical cell path and excludes unknown cells from the map', () => {
+    const g = extractGeo({ cells: [
+      { kind: 'cell', nci: '0x1', latitude: 48.8, longitude: 2.3, event_index: 0 },
+      { kind: 'cell', nci: '0x2', cell_unknown: true, event_index: 1 },
+      { kind: 'cell', nci: '0x3', latitude: 48.9, longitude: 2.4, event_index: 2 },
+    ] });
+    expect(g.points.map(point => point.cellId)).toEqual(['0x1', '0x3']);
+    expect(g.trajectory.map(point => point.eventIndex)).toEqual([0, 2]);
+  });
   it('reads radio identifiers from IE trees without inventing them', () => { const r = radioContext({ ies: [{ name: 'PCI', value: 301 }, { name: 'TAC', value: '0x01' }] }); expect(r.pci).toBe('301'); expect(r.tac).toBe('0x01'); expect(r.cellId).toBeNull(); });
 });

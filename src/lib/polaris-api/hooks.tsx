@@ -7,7 +7,7 @@ import { TR_CATS, TR_APPS, TR_CELLS, TR_V, TR_FLOWS } from './demo/traffic';
 import { SYS_DASH, ANOMS } from './demo/kpi';
 import { DIR, S5G, SLTE, NODES, IFC_C } from './demo/live';
 import { records, toLegacyCallflow, filterBody, querySupport, type Draft } from './adapters';
-import type { Health, Version, Metrics, Safety, Session, Event, Probe, RecordData, QueryParams, Envelope, Correlation, SessionIdentities, CellReferenceList, CellReferenceReport } from './types';
+import type { Health, Version, Metrics, Safety, Session, SessionCells, Event, Probe, RecordData, QueryParams, Envelope, Correlation, SessionIdentities, CellReferenceList, CellReferenceReport } from './types';
 const Mode = createContext({ demo: false, setDemo: (_value: boolean) => {} });
 export function PolarisDataProvider({ children }: { children: ReactNode }) { const [demo, setDemo] = useState(false); return <Mode.Provider value={{ demo, setDemo }}>{children}</Mode.Provider>; }
 export const usePolarisMode = () => useContext(Mode);
@@ -29,6 +29,7 @@ export const useEvents = (id?: string | number | null) => useResource<Event[]>(`
 export const useProcedures = (id?: string | number | null) => useResource<RecordData[]>(`/sessions/${idPath(id)}/procedures`, {}, id != null, true, detailRequest);
 export const useCallflow = (id?: string | number | null) => useResource<RecordData | Event[]>(`/sessions/${idPath(id)}/callflow`, {}, id != null, true, detailRequest);
 export const useCorrelations = (id?: string | number | null) => useResource<Correlation[] | { edges: Correlation[] }>(`/sessions/${idPath(id)}/correlations`, {}, id != null, true, detailRequest);
+export const useSessionCells = (id?: string | number | null) => useResource<SessionCells>(`/sessions/${idPath(id)}/cells`, {}, id != null, true, detailRequest);
 export const useEvent = (id?: string | number | null, clearIdentities=false) => useQuery({ queryKey:['polaris','api','event',id,clearIdentities?'clear':'redacted'], queryFn:({signal})=>request<Event>(`/events/${idPath(id)}`,{signal,clearIdentityResponse:clearIdentities}), enabled:id!=null, retry:false, refetchOnWindowFocus:false });
 export const useProvenance = (id?: string | number | null) => useResource<RecordData>(`/events/${idPath(id)}/provenance`, {}, id != null);
 export const usePackets = (params: QueryParams = {}, enabled = true) => useResource<RecordData[]>('/packets', params, enabled);
@@ -65,9 +66,9 @@ export const useCorrelationRules = () => useResource<RecordData[]>('/correlation
 export function useProbeResources(id?: string | number | null) { return { probe: useProbe(id), interfaces: useInterfaces(), probeInterfaces: useProbeInterfaces(id), captures: useCaptures(), modules: useModules() }; }
 export function useSessionBundle(id?: string | number | null) {
   const { demo } = usePolarisMode();
-  const session = useSession(id), events = useEvents(demo ? null : id), procedures = useProcedures(demo ? null : id), callflow = useCallflow(demo ? null : id), correlations = useCorrelations(demo ? null : id);
+  const session = useSession(id), events = useEvents(demo ? null : id), procedures = useProcedures(demo ? null : id), callflow = useCallflow(demo ? null : id), correlations = useCorrelations(demo ? null : id), cells = useSessionCells(demo ? null : id);
   const detail = demo ? null : toLegacyCallflow(callflow.data?.data ?? events.data?.data, procedures.data?.data, correlations.data?.data);
-  return { session, events, procedures, callflow, correlations, detail };
+  return { session, events, procedures, callflow, correlations, cells, detail };
 }
 export function useSessionFilter() {
   const { demo } = usePolarisMode(); const client = useQueryClient();
