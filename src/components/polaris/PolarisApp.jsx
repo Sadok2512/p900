@@ -645,7 +645,7 @@ function Home({setPage,onNew,hidden=[]}) {
 }
 
 /* ---------------- PROBE MANAGER : liste des sondes, puis fiche détaillée ---------------- */
-const PROBE_TABS = ['Général','Live Capture','Interfaces et points de capture','Stockage et ingestion','Actions'];
+const PROBE_TABS = ['Général','Live Capture','Stockage et ingestion','Actions'];
 
 function ProbeDetails({ node, onBack }) {
   const { demo } = usePolarisMode();
@@ -698,7 +698,8 @@ function ProbeDetails({ node, onBack }) {
         {PROBE_TABS.map(x => <button key={x} role="tab" aria-selected={tab===x} onClick={()=>setTab(x)} className={`relative shrink-0 h-10 px-3 text-[13px] ${tab===x?'text-foreground font-semibold':'text-muted-foreground hover:text-foreground'}`}>{x}{tab===x && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-[var(--app-accent)]"/>}</button>)}
       </div>
       <div role="tabpanel" aria-label={tab} className="space-y-5">
-        {tab==='Général' && <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {tab==='Général' && <>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           <Card title="Identité et état">
             <div className="p-4 text-[12.5px]">
               {row('Nom',available(node.n))}{row('ID',available(node.id ?? node.n))}{row('Type',available(node.role))}{row('Hôte',available(node.info))}
@@ -717,16 +718,17 @@ function ProbeDetails({ node, onBack }) {
             </div>
             {(safety.isError || metrics.isError) && <div className="px-4 pb-4">{failure(safety,'/storage/safety') ?? failure(metrics,'/metrics')}</div>}
           </Card>
-        </div>}
-        {tab==='Live Capture' && <LiveCapture probe={node}/>}
-        {tab==='Interfaces et points de capture' && <Card title="Interfaces et points de capture">
+        </div>
+        <Card title="Interfaces et points de capture">
           <table className="w-full text-[12.5px]"><thead><tr>{['Interface','Protocole','Source de capture','Filtre BPF','Disponibilité'].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border-subtle">{h}</th>)}</tr></thead>
             <tbody>{ifaceRows.map(x=><tr key={x.name}><td className="h-10 px-4 border-b border-border-subtle font-mono">{x.name}</td><td className="px-4 border-b border-border-subtle">{available(x.protocol)}</td><td className="px-4 border-b border-border-subtle font-mono text-[11.5px]">{available(x.source)}</td><td className="px-4 border-b border-border-subtle font-mono text-[11.5px] max-w-[220px] truncate" title={String(available(x.bpf))}>{available(x.bpf)}</td>
               <td className="px-4 border-b border-border-subtle">{x.active==null ? <span className="text-subtle">—</span> : <span className="inline-flex items-center gap-1.5"><Dot st={x.active?'ok':'error'}/>{x.active?'Disponible':'Indisponible'}</span>}</td></tr>)}
               {!ifaceRows.length && <tr><td colSpan="5" className="p-4 text-subtle">{resources.probeInterfaces.isPending || resources.interfaces.isPending ? 'Connexion POLARIS…' : 'Aucune interface renvoyée par /probes/{id}/interfaces ni /interfaces'}</td></tr>}
             </tbody></table>
           <div className="px-4 py-3 text-[11.5px] text-subtle">{ifaceRows.length ? (records(resources.probeInterfaces.data?.data,'interfaces').length ? 'Liste fournie par /probes/{id}/interfaces · disponibilité par /interfaces/runtime.' : 'Liste fournie par /interfaces · disponibilité par /interfaces/runtime.') : (failure(resources.probeInterfaces,'/probes/'+String(node.id ?? node.n)+'/interfaces') ?? failure(resources.interfaces,'/interfaces'))}</div>
-        </Card>}
+        </Card>
+        </>}
+        {tab==='Live Capture' && <LiveCapture probe={node}/>}
         {tab==='Stockage et ingestion' && <Card title="Stockage et ingestion">
           <div className="p-4 space-y-3 text-[12.5px]">{[['Disque disponible',diskAvailable],['Segments ingérés',metrics.data?.data?.segments_ingested],['Échecs ingestion',metrics.data?.data?.ingestion_failures],['Segments en attente',metrics.data?.data?.pending_segments],['Segments ouverts',metrics.data?.data?.open_segments]].map(([label,value])=><div key={label} className="flex justify-between border-b border-border-subtle py-1.5 last:border-0"><span className="text-muted-foreground">{label}</span><span className="font-mono text-[12px]">{available(value)}</span></div>)}</div>
           {(safety.isError || metrics.isError) && <div className="px-4 pb-4 text-danger">{failure(safety,'/storage/safety') ?? failure(metrics,'/metrics')}</div>}

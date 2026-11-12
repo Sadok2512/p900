@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.15.1
+
+- Fiche sonde (Administration → Node Manager) : « Interfaces et points de capture » n'est plus un onglet, la table s'affiche directement sous « Identité et état » et « Télémétrie de la sonde » dans l'onglet Général.
+- Les onglets de la fiche deviennent Général, Live Capture, Stockage et ingestion, Actions.
+
 ## 0.15.0
 
 - Node Manager : la colonne « Détails » devient un menu `⋯` avec Détails, Modifier, Mettre à jour le logiciel et Supprimer.
