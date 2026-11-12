@@ -10,7 +10,7 @@
  * name to a family and exposes the token names.
  */
 
-export type InterfaceFamily = 'blue' | 'green' | 'amber' | 'purple' | 'pink' | 'teal' | 'gray';
+export type InterfaceFamily = 'blue' | 'green' | 'amber' | 'purple' | 'pink' | 'rose' | 'teal' | 'gray';
 
 /* Brief §2 mapping. Anything the lab names but does not list falls back to gray. */
 export const INTERFACE_FAMILY: Record<string, InterfaceFamily> = {
@@ -30,6 +30,9 @@ export const INTERFACE_FAMILY_HEX: Record<InterfaceFamily, { fg: string; bg: str
   amber: { fg: '#B45309', bg: '#FEF3C7', line: '#FDE68A' },
   purple: { fg: '#7C3AED', bg: '#F3E8FF', line: '#E9D5FF' },
   pink: { fg: '#BE185D', bg: '#FCE7F3', line: '#FBCFE8' },
+  /* Rose sits exactly between pink and red: the OKLCH midpoint of #BE185D
+   * and #DC2626, so it reads as its own family and not as a tint of either. */
+  rose: { fg: '#CE1A47', bg: '#FFE4E6', line: '#FECDD3' },
   teal: { fg: '#0F766E', bg: '#CCFBF1', line: '#99F6E4' },
   gray: { fg: '#64748B', bg: '#F1F5F9', line: '#E2E8F0' },
 };

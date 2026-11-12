@@ -36,8 +36,9 @@ describe('interface family colours', () => {
   it('exposes one token per family so a badge and a chart line agree', () => {
     expect(interfaceInk('N2')).toBe('var(--ifc-blue-fg)');
     expect(interfaceInk('S6a')).toBe('var(--ifc-purple-fg)');
-    expect(Object.keys(INTERFACE_FAMILY_HEX).sort()).toEqual(['amber', 'blue', 'gray', 'green', 'pink', 'purple', 'teal']);
+    expect(Object.keys(INTERFACE_FAMILY_HEX).sort()).toEqual(['amber', 'blue', 'gray', 'green', 'pink', 'purple', 'rose', 'teal']);
     expect(INTERFACE_FAMILY_HEX.purple.fg).toBe('#7C3AED');
+    expect(INTERFACE_FAMILY_HEX.rose).toEqual({ fg: '#CE1A47', bg: '#FFE4E6', line: '#FECDD3' });
     expect(INTERFACE_FAMILY).toHaveProperty('S5-C');
   });
 });

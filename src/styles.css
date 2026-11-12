@@ -104,6 +104,9 @@
   --color-ifc-pink-fg: var(--ifc-pink-fg);
   --color-ifc-pink-bg: var(--ifc-pink-bg);
   --color-ifc-pink-line: var(--ifc-pink-line);
+  --color-ifc-rose-fg: var(--ifc-rose-fg);
+  --color-ifc-rose-bg: var(--ifc-rose-bg);
+  --color-ifc-rose-line: var(--ifc-rose-line);
   --color-ifc-teal-fg: var(--ifc-teal-fg);
   --color-ifc-teal-bg: var(--ifc-teal-bg);
   --color-ifc-teal-line: var(--ifc-teal-line);
@@ -191,6 +194,10 @@
   --ifc-pink-fg: oklch(0.525 0.199 4.0);
   --ifc-pink-bg: oklch(0.948 0.028 342.3);
   --ifc-pink-line: oklch(0.899 0.059 343.2);
+  /* Rose: the exact midpoint between pink (#BE185D) and red (#DC2626) in OKLCH. */
+  --ifc-rose-fg: oklch(0.5495 0.2077 15.6);
+  --ifc-rose-bg: oklch(0.9414 0.0298 12.6);
+  --ifc-rose-line: oklch(0.8924 0.0559 10.0);
   --ifc-teal-fg: oklch(0.511 0.086 186.4);
   --ifc-teal-bg: oklch(0.953 0.050 180.8);
   --ifc-teal-line: oklch(0.910 0.093 180.4);
