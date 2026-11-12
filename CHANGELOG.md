@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.2.4
+
+- L'Analyzer ne précharge plus le callflow de chaque session : seuls les cinq détails de la session ouverte sont prioritaires, et les identités sont chargées paresseusement pour cette session.
+- Le client limite les lectures API à quatre requêtes simultanées, accorde 60 secondes aux détails et aux identités, et conserve le délai de 8 secondes uniquement pour les contrôles de santé.
+- Une navigation annulée ne produit plus d'erreur ; les échecs visibles distinguent désormais un délai dépassé, une erreur réseau et le statut HTTP réel au lieu d'afficher « HTTP 0 ».
+- Le bandeau de connexion consulte la santé de POLARIS Control via `/polaris-api/v1/health`, et non la santé de l'API OIRAN utilisée par l'Analyzer.
+
 ## 2.2.3
 
 - L’interface ne consulte plus le rôle pour afficher, masquer ou désactiver une action : capture, téléchargement PCAP, identités, dissection et gestion des sondes sont directement disponibles.
