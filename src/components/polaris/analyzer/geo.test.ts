@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { extractGeo, coords, radioContext } from './geo';
 describe('geolocation extraction', () => {
   it('returns nothing when no coordinates exist', () => { expect(extractGeo({ technology: '5G', cell_id: '42', timing_advance: 3 }, [{ message_name: 'X' }]).points).toEqual([]); });
-  it('never treats a serving cell site as the UE position', () => { const g = extractGeo({ serving_cell: { cell_id: 'C1', latitude: 48.8, longitude: 2.3 } }); expect(g.points).toHaveLength(1); expect(g.points[0].kind).toBe('cell'); });
+  it('never treats a serving cell site as the UE position', () => { const g = extractGeo({ serving_cell: { cell_id: 'C1', latitude: 48.8, longitude: 2.3 } }); expect(g.points).toHaveLength(1); expect(g.points[0]?.kind).toBe('cell'); });
   it('marks GNSS UE positions actual and others estimated', () => {
     const g = extractGeo({}, [{ ue_location: { latitude: 48, longitude: 2, source: 'GNSS' } }, { ue_location: { latitude: 48.1, longitude: 2.1, source: 'E-CID' } }]);
     expect(g.points.map(p => p.kind)).toEqual(['ue-actual', 'ue-estimated']); expect(g.trajectory).toHaveLength(2);
