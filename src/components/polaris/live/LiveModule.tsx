@@ -99,7 +99,7 @@ export default function LiveModule({ t, role, setPage }) {
     <div className="flex-1 overflow-auto scroll-thin bg-surface-2">
       {/* Top zone */}
       <div className="bg-white border-b border-border">
-        <div className="max-w-[1600px] mx-auto px-6 py-4 flex flex-wrap items-center gap-3">
+        <div className="w-full px-6 py-4 flex flex-wrap items-center gap-3">
           <div className="mr-2"><div className="text-[12px] text-muted-foreground">POLARIS Live</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Live Trace</h1></div>
           <form onSubmit={find} className="flex items-center h-9 rounded-lg border border-border bg-white focus-within:border-[var(--app-accent)] overflow-hidden">
             <select value={ttype} onChange={e=>{setTtype(e.target.value);setQ('');}} className="h-full px-2 text-[12px] bg-surface-2 border-r border-border outline-none">
@@ -119,14 +119,14 @@ export default function LiveModule({ t, role, setPage }) {
           </div>
         </div>
         {/* compact counters */}
-        <div className="max-w-[1600px] mx-auto px-6 h-8 flex items-center gap-5 text-[11.5px] text-muted-foreground border-t border-border-subtle">
+        <div className="w-full px-6 h-8 flex items-center gap-5 text-[11.5px] text-muted-foreground border-t border-border-subtle">
           {[['Traces actives', tracking?'2 / 5':'—'],['Expiration', tracking?`${Math.floor(ttl/60)}:${String(ttl%60).padStart(2,'0')}`:'—'],['Messages', demo ? msgs.length : '—'],['Tampon', demo ? buf.length : '—'],['Marqueurs', demo ? marks.length : '—'],['Techno', ue?(ue.tech==='LTE'?'LTE':'5G SA'):'—']].map(([n,v])=><span key={n}>{t(n)} <b className="text-foreground tabular-nums">{v}</b></span>)}
           {!op && <span className="text-subtle">· {t('viewer : recherche IMSI masquée, pseudonymes uniquement')}</span>}
           {demo && <span className="ml-auto text-warning">{t('Données de démo — API live POLARIS (WebSocket) non connectée')}</span>}
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-6 py-4">
+      <div className="w-full px-6 py-4">
         {full==='sig' ? sig : full==='thr' ? <Throughput t={t} data={thr} running={running} delay={delay} tracking={tracking} full onFull={()=>setFull(null)} ue={ue}/> :
         <div className="flex items-start">
           <div className="flex-1 min-w-0 space-y-0">

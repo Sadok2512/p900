@@ -827,7 +827,7 @@ function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
   const list = saved.filter(x=>(flt==='Toutes'||(flt==='Favoris'?x.fav:x.shared)) && x.n.toLowerCase().includes(q.toLowerCase()));
   return (
     <div className="flex-1 overflow-auto scroll-thin">
-      <div className="max-w-[1280px] mx-auto px-8 py-8 space-y-6">
+      <div className="w-full px-8 py-8 space-y-6">
         <div className="flex items-end gap-4">
           <div><div className="text-[12px] text-muted-foreground">POLARIS Analyzer</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Requêtes</h1>
             <div className="text-[13px] text-muted-foreground mt-1">Consulte et lance tes requêtes. La création s’ouvre dans un nouvel onglet.</div></div>
@@ -911,7 +911,7 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]})
   };
   return (
     <div className="flex-1 overflow-auto scroll-thin">
-      <div className="max-w-[1280px] mx-auto px-8 py-6 space-y-3">
+      <div className="w-full px-8 py-6 space-y-3">
         <div className="flex items-end gap-4 pb-1">
           <div><div className="text-[12px] text-muted-foreground">POLARIS Analyzer · Requête</div>
             <input value={draft.name} onChange={e=>up({name:e.target.value})} placeholder="Nouvelle requête" className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1 bg-transparent outline-none w-[520px] placeholder:text-foreground"/></div>
