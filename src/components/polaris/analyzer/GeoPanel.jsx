@@ -2,6 +2,8 @@ import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { extractGeo, radioContext } from './geo';
 
 const GeoMap = lazy(() => import('./GeoMap'));
+// A map load failure must never blank the Analyzer.
+class MapBoundary extends React.Component { constructor(p) { super(p); this.state = { err: false }; } static getDerivedStateFromError() { return { err: true }; } render() { return this.state.err ? <div className="absolute inset-0 grid place-items-center text-[12px] text-muted-foreground p-4 text-center">Carte indisponible — rechargez la page.</div> : this.props.children; } }
 const KIND_L = { 'ue-actual': 'Position UE réelle', 'ue-estimated': 'Position UE estimée', cell: 'Site de la cellule' };
 const Row = ({ k, v }) => <div className="flex justify-between gap-3 py-[3px] text-[12px]"><span className="text-muted-foreground">{k}</span><span className="font-mono text-foreground text-right truncate">{v ?? '—'}</span></div>;
 const H = ({ children }) => <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-1">{children}</div>;
@@ -23,7 +25,7 @@ export default function GeoPanel({ s, msg, setMsg, onHide, max, setMax }) {
   return <div className="flex flex-col h-full min-h-0">
     <div className="h-[42px] shrink-0 px-3 flex items-center gap-1.5 border-b border-border">
       <span className="text-[13px] font-semibold text-foreground mr-auto">Geolocating</span>
-      <div role="group" aria-label="Style de carte" className="flex rounded-md border border-border overflow-hidden">{[['light', 'Clair'], ['dark', 'Sombre']].map(([k, l]) => <button key={k} onClick={() => setTheme(k)} aria-pressed={theme === k} className={`h-7 px-2 text-[12px] ${theme === k ? 'bg-brand-soft text-[var(--app-accent)]' : 'hover:bg-muted'}`}>{l}</button>)}</div>
+      <div role="group" aria-label="Style de carte" className="flex rounded-md border border-border overflow-hidden">{[['light', 'Clair'], ['dark', 'Sombre'], ['osm', 'OpenStreetMap']].map(([k, l]) => <button key={k} onClick={() => setTheme(k)} aria-pressed={theme === k} className={`h-7 px-2 text-[12px] ${theme === k ? 'bg-brand-soft text-[var(--app-accent)]' : 'hover:bg-muted'}`}>{l}</button>)}</div>
       <button onClick={() => setMax(!max)} className={btn} title={max ? 'Restaurer' : 'Agrandir la carte'}>{max ? 'Restaurer' : 'Agrandir'}</button>
       <button onClick={onHide} title="Masquer Geolocating" className="w-7 h-7 rounded-md grid place-items-center text-muted-foreground hover:bg-muted">×</button>
     </div>
@@ -32,7 +34,7 @@ export default function GeoPanel({ s, msg, setMsg, onHide, max, setMax }) {
       <span className="ml-auto flex items-center gap-2"><i className="inline-block w-2.5 h-2.5 rotate-45 rounded-[2px]" style={{ background: '#2563EB' }} />NR<i className="inline-block w-2.5 h-2.5 rotate-45 rounded-[2px]" style={{ background: '#16A34A' }} />LTE<i className="inline-block w-2.5 h-2.5 rounded-full bg-foreground" />UE réelle<i className="inline-block w-2.5 h-2.5 rounded-full border border-dashed border-foreground" />UE estimée</span>
     </div>
     <div className="relative flex-1 min-h-[220px] bg-surface-2">
-      {hydrated && geo.points.length > 0 && <Suspense fallback={null}><GeoMap points={shown} trajectory={layers.traj ? geo.trajectory : []} theme={theme} activeCell={activeCell} onPick={p => { setPicked(p); if (p.eventIndex != null) setMsg(p.eventIndex); }} /></Suspense>}
+      {hydrated && <MapBoundary><Suspense fallback={null}><GeoMap points={shown} trajectory={layers.traj ? geo.trajectory : []} theme={theme} activeCell={activeCell} onPick={p => { setPicked(p); if (p.eventIndex != null) setMsg(p.eventIndex); }} /></Suspense></MapBoundary>}
       {!s ? <Empty t="Sélectionnez une session" d="La carte suit la session et le message sélectionnés." /> : geo.points.length === 0 && <Empty t="Aucune donnée géographique" d="Cette session ne contient ni coordonnées de cellule ni position UE. Aucune position n'est déduite (Timing Advance, mesures radio)." />}
     </div>
     <div className="shrink-0 max-h-[45%] overflow-auto scroll-thin border-t border-border px-3 py-2 space-y-2">
@@ -50,4 +52,4 @@ export default function GeoPanel({ s, msg, setMsg, onHide, max, setMax }) {
     </div>
   </div>;
 }
-const Empty = ({ t, d }) => <div className="absolute inset-0 grid place-items-center p-6 text-center"><div><div className="mx-auto mb-2 w-9 h-9 rounded-full bg-muted grid place-items-center text-muted-foreground"><svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg></div><div className="text-[13px] font-medium text-foreground">{t}</div><div className="text-[12px] text-muted-foreground max-w-[280px] mt-1">{d}</div></div></div>;
+const Empty = ({ t, d }) => <div className="absolute left-3 right-12 top-3 z-10 pointer-events-none flex justify-center text-center"><div className="pointer-events-auto bg-white/95 border border-border rounded-lg shadow-sm px-4 py-3 max-w-[340px]"><div className="mx-auto mb-2 w-9 h-9 rounded-full bg-muted grid place-items-center text-muted-foreground"><svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="1.6"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z" /><circle cx="12" cy="10" r="2.5" /></svg></div><div className="text-[13px] font-medium text-foreground">{t}</div><div className="text-[12px] text-muted-foreground max-w-[280px] mt-1">{d}</div></div></div>;

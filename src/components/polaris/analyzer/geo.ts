@@ -43,7 +43,7 @@ function scan(value: unknown, ctx: { path: string; rat: 'LTE' | 'NR' | null; ts:
       const estimated = o['estimated'] === true || /estim|ta|timing|measure|e-?cid|otdoa/i.test(source);
       const kind: GeoKind = isCell && !/gnss|gps/i.test(source) ? 'cell' : estimated || !/gnss|gps|actual|reported/i.test(source) ? 'ue-estimated' : 'ue-actual';
       const cellId = text(o['cell_id'] ?? o['eci'] ?? o['nci'] ?? o['id']);
-      out.push({ kind, ...c, rat, label: text(o['name'] ?? o['label']) ?? (kind === 'cell' ? `Cellule ${cellId ?? '—'}` : 'UE'), source: source || (kind === 'cell' ? 'inventaire cellules' : 'non précisée'), accuracy_m: num(o['accuracy_m'] ?? o['accuracy'] ?? o['uncertainty_m']), timestamp: text(o['timestamp'] ?? o['time']) ?? ctx.ts, eventIndex: ctx.eventIndex, cellId, serving: kind === 'cell' && !/neighbo/.test(path) && o['neighbor'] !== true });
+      out.push({ kind, ...c, rat, label: text(o['name'] ?? o['label']) ?? (kind === 'cell' ? `Cellule ${cellId ?? '—'}` : 'UE'), source: source || (kind === 'cell' ? 'inventaire cellules' : 'non précisée'), accuracy_m: num(o['accuracy_m'] ?? o['accuracy'] ?? o['uncertainty_m']), timestamp: text(o['timestamp'] ?? o['time']) ?? ctx.ts, eventIndex: ctx.eventIndex ?? num(o['event_index'] ?? o['eventIndex']), cellId, serving: kind === 'cell' && !/neighbo/.test(path) && o['neighbor'] !== true });
     }
   }
   for (const [k, v] of Object.entries(o)) if (typeof v === 'object') scan(v, { ...ctx, path: `${ctx.path}.${k}`, rat }, out, depth + 1);

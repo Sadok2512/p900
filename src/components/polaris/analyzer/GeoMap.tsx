@@ -5,7 +5,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import type { GeoPoint } from './geo';
 
 maplibregl.setWorkerUrl(workerUrl);
-const STYLE = { light: 'https://tiles.openfreemap.org/styles/positron', dark: 'https://tiles.openfreemap.org/styles/dark' };
+const OSM: maplibregl.StyleSpecification = { version: 8, sources: { osm: { type: 'raster', tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'], tileSize: 256, maxzoom: 19, attribution: '© OpenStreetMap contributors' } }, layers: [{ id: 'osm', type: 'raster', source: 'osm' }] };
+const STYLE: Record<'light' | 'dark' | 'osm', string | maplibregl.StyleSpecification> = { light: 'https://tiles.openfreemap.org/styles/positron', dark: 'https://tiles.openfreemap.org/styles/dark', osm: OSM };
 // Map marker colours: NR blue / LTE green, UE in ink (signalling-style inline colours).
 const RAT_C: Record<string, string> = { NR: '#2563EB', LTE: '#16A34A' };
 function markerEl(p: GeoPoint, active: boolean) {
@@ -19,7 +20,7 @@ function markerEl(p: GeoPoint, active: boolean) {
       : `width:16px;height:16px;border-radius:50%;background:#fff;border:2px dashed ${c};cursor:pointer`;
   return el;
 }
-export default function GeoMap({ points, trajectory, theme, activeCell, onPick }: { points: GeoPoint[]; trajectory: GeoPoint[]; theme: 'light' | 'dark'; activeCell: string | null; onPick: (p: GeoPoint) => void }) {
+export default function GeoMap({ points, trajectory, theme, activeCell, onPick }: { points: GeoPoint[]; trajectory: GeoPoint[]; theme: 'light' | 'dark' | 'osm'; activeCell: string | null; onPick: (p: GeoPoint) => void }) {
   const box = useRef<HTMLDivElement>(null); const map = useRef<maplibregl.Map | null>(null); const markers = useRef<maplibregl.Marker[]>([]);
   const pick = useRef(onPick); pick.current = onPick;
   useEffect(() => {
@@ -46,5 +47,5 @@ export default function GeoMap({ points, trajectory, theme, activeCell, onPick }
     if (points.length) { const b = new maplibregl.LngLatBounds(); points.forEach(p => b.extend([p.lon, p.lat])); m.fitBounds(b, { padding: 50, maxZoom: 15, duration: 0 }); }
     return () => { m.off('styledata', draw); };
   }, [points, trajectory, activeCell]);
-  return <div ref={box} className="absolute inset-0" />;
+  return <div className="absolute inset-0"><div ref={box} style={{ position: "absolute", inset: 0 }} /></div>;
 }
