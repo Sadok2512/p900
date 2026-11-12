@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.2
+
+- « Dashboard » quitte le menu du haut : la page des requêtes (recherche, modèles, requêtes enregistrées) s'ouvre désormais dans l'onglet **Dashboard** de KPI, entre KPI Builder et Anomalies, y compris hors mode Démo.
+- Le menu du haut affiche Accueil · Analyzer · KPI · Live ; l'ancienne bibliothèque de dashboards de démo et l'action « + Dashboard » du catalogue sont retirées, l'onglet affichant la page déplacée.
+- Les liens `#templates` et l'action « Ouvrir un template » de l'accueil ouvrent KPI → Dashboard ; le module « templates » disparaît de la visibilité des modules.
+
 ## 2.2.1
 
 - Le rôle operator authentifié affiche sans masque les identités observées IMSI/SUPI, TMSI/GUTI, S-TMSI, M-TMSI, IMEI(SV)/PEI et MSISDN/GPSI dans la liste des sessions, le Call Flow, le détail, le Parcours abonné et Live Trace ; une identité absente affiche « non observé ».

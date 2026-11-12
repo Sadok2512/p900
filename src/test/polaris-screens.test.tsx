@@ -210,10 +210,19 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByRole('option',{name:'Pseudonyme'})).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.2.1').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.2.1')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.2.2').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.2.2')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
-  it('Dashboard library is marked local and has no simulated saved queries outside Demo',()=>{
-    open('templates'); expect(screen.getByText('local à ce navigateur')).toBeInTheDocument(); expect(screen.getByText('Aucune requête enregistrée.')).toBeInTheDocument();
+  it('Dashboard sits under KPI and is gone from the top menu', async()=>{
+    open('kpi');
+    const nav = screen.getByRole('navigation', { name: 'Navigation principale' });
+    expect(within(nav).queryByRole('button', { name: 'Dashboard' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Dashboard' }));
+    expect(screen.getByText('local à ce navigateur')).toBeInTheDocument();
+    expect(screen.getByText('Aucune requête enregistrée.')).toBeInTheDocument();
+  });
+  it('legacy #templates opens the KPI Dashboard tab', async()=>{
+    open('templates'); await screen.findByText('local à ce navigateur');
+    await waitFor(()=>expect(window.location.hash).toBe('#kpi'));
   });
   it('offline remains empty, no automatic demo fallback', async()=>{
     fetcher.mockRejectedValue(new TypeError('offline')); open('home'); await screen.findAllByText('POLARIS non connecté');

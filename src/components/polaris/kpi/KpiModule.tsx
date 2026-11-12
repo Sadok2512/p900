@@ -39,7 +39,7 @@ const LIBC = { SYSTEM: '#171717', PUBLIC: '#0062A1', PRIVATE: '#A15C07' };
 const Empty = ({ title, sub }) => <div className="h-full min-h-[220px] grid place-items-center text-center px-6"><div><div className="mx-auto w-9 h-9 rounded-full bg-muted grid place-items-center text-subtle">∅</div><div className="mt-3 text-[13px] font-medium text-foreground">{title}</div><div className="mt-1 text-[12.5px] text-muted-foreground max-w-[360px]">{sub}</div></div></div>;
 
 /* ===== Main ===== */
-export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChart, fmtV }) {
+export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChart, fmtV, DashboardView }) {
   const [tab, setTab] = useStore('polaris-kpi-tab', 'catalog');
   const { demo, setDemo } = usePolarisMode();
   const metrics = useMetrics(); const safety = useStorageSafety();
@@ -57,8 +57,8 @@ export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChar
   const byId = (id) => all.find(k => k.id === id);
   const metricEvidence = metrics.data?.data; const storageEvidence = safety.data?.data;
   const ctx = { metricEvidence, storageEvidence, measurement, t, role, canWrite, demo, all, byId, custom, setCustom, favs, setFavs, dashes, setDashes, log, audit, mockSeries, MockChart, fmtV, setPage, setTab, setEditKpi, setOpenDash };
-  const TABS = demo ? [['catalog', 'Catalogue KPI'], ['builder', 'KPI Builder'], ['dash', 'Dashboards'], ['anom', 'Anomalies']] : [['catalog', 'Catalogue KPI']];
-  useEffect(() => { if (!demo && tab !== 'catalog') setTab('catalog'); }, [demo, tab, setTab]);
+  const TABS = demo ? [['catalog', 'Catalogue KPI'], ['builder', 'KPI Builder'], ['dash', 'Dashboard'], ['anom', 'Anomalies']] : [['catalog', 'Catalogue KPI'], ['dash', 'Dashboard']];
+  useEffect(() => { if (!demo && tab !== 'catalog' && tab !== 'dash') setTab('catalog'); }, [demo, tab, setTab]);
   return (
     <div className="flex-1 overflow-auto scroll-thin bg-surface-2">
       <div className="bg-white border-b border-border">
@@ -76,9 +76,9 @@ export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChar
       {!demo && (metrics.isError || safety.isError) && <div className="w-full px-6 pt-3"><div className="text-[12px] text-subtle flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-track" />{t('POLARIS non connecté : aucune donnée en direct.')} {t('Activez « Démo » pour un aperçu.')}</div></div>}
       <div className="w-full px-6 py-4">
         {tab === 'catalog' && <Catalog {...ctx} />}
-        {!demo && tab!=='catalog' && <Empty title={t('Non disponible : backend à venir')} sub={t('Source POLARIS indisponible pour cette fonction.')} />}
+        {!demo && tab!=='catalog' && tab!=='dash' && <Empty title={t('Non disponible : backend à venir')} sub={t('Source POLARIS indisponible pour cette fonction.')} />}
         {demo && tab === 'builder' && <Builder key={(editKpi?.id || 'new') + bk} {...ctx} initial={editKpi} onNew={() => { setEditKpi(null); setBk(b => b + 1); }} />}
-        {demo && tab === 'dash' && (openDash ? <DashEditor {...ctx} dash={openDash} /> : <DashLib {...ctx} />)}
+        {tab === 'dash' && DashboardView}
         {demo && tab === 'anom' && <Anomalies {...ctx} />}
       </div>
     </div>
@@ -146,7 +146,7 @@ function Catalog(p) {
               <Btn onClick={() => setFavs(f => f.includes(k.id) ? f.filter(x => x !== k.id) : [...f, k.id])}>{favs.includes(k.id) ? '★' : '☆'} {t('Favori')}</Btn>
               <Btn disabled={!canWrite || !demo} title={!canWrite ? t('Rôle operator requis') : ''} onClick={dup}>{t('Dupliquer')}</Btn>
               {k.lib !== 'SYSTEM' && <Btn disabled={!canWrite || !demo} onClick={() => { setEditKpi(k); setTab('builder'); }}>{t('Modifier')}</Btn>}
-              <div className="relative"><Btn disabled={!demo} title={!demo ? t('Non disponible : backend à venir') : ''} onClick={() => setAddTo(!addTo)}>+ Dashboard</Btn>{addTo && <div className="absolute right-0 top-9 z-20 w-56 bg-white rounded-lg border border-border shadow-lg py-1">{dashes.length === 0 && <div className="px-3 py-2 text-[12px] text-subtle">{t('Aucun dashboard personnel')}</div>}{dashes.map(d => <button key={d.id} onClick={() => { setDashes(ds => ds.map(x => x.id === d.id ? { ...x, widgets: [...x.widgets, { id: 'w' + Date.now(), kpi: k.id, type: 'series', title: '', x: 0, y: 99, w: 4, h: 3, inherit: true, color: '', thr: '' }] } : x)); log('KPI ' + k.id + ' ajouté à ' + d.name); setAddTo(false); }} className="w-full text-left px-3 py-1.5 text-[12.5px] hover:bg-surface-2">{d.name}</button>)}</div>}</div>
+              
               <Btn onClick={() => setSheet(!sheet)}>{sheet ? t('Masquer la fiche') : t('Fiche KPI')}</Btn>
             </div>
           </div>
@@ -262,103 +262,6 @@ function Builder(p) {
 }
 
 /* ===== Dashboards ===== */
-function DashLib(p) {
-  const { dashboards: SYS_DASH } = useKpiDemo();
-  const { t, dashes, setDashes, canWrite, log, setOpenDash } = p;
-  const [confirm, setConfirm] = useState(null);
-  const all = [...SYS_DASH, ...dashes];
-  const nw = () => { const d = { id: 'd' + Date.now(), lib: 'PRIVATE', name: t('Nouveau dashboard'), widgets: [] }; setDashes(x => [...x, d]); log('Dashboard créé ' + d.name); setOpenDash(d); };
-  const dup = (d) => { const n = { ...d, id: 'd' + Date.now(), lib: 'PRIVATE', name: d.name + ' (copie)', widgets: d.widgets.map(w => ({ ...w, id: w.id + 'c' + Date.now() })) }; setDashes(x => [...x, n]); log('Dashboard dupliqué ' + d.name); };
-  const exp = (d) => { const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(d, null, 2)], { type: 'application/json' })); a.download = d.name + '.json'; a.click(); };
-  return <div className="space-y-6">
-    <div className="flex items-center"><div className="text-[13px] text-muted-foreground">{all.length} dashboards</div><Btn primary className="ml-auto" disabled={!canWrite || !demo} onClick={nw}>+ {t('Nouveau dashboard')}</Btn></div>
-    {['SYSTEM', 'PUBLIC', 'PRIVATE'].map(L => { const ds = all.filter(d => d.lib === L); return <section key={L}><h2 className="text-[11px] font-bold tracking-[0.06em] mb-3" style={{ color: LIBC[L] }}>{L} <span className="text-subtle font-normal">{ds.length}</span></h2>
-      {ds.length === 0 ? <div className="rounded-xl border border-dashed border-border px-5 py-6 text-[12.5px] text-subtle">{t('Aucun dashboard')}</div> :
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">{ds.map(d => <div key={d.id} className={card + ' p-4 flex flex-col hover:border-border-strong transition'}>
-          <button onClick={() => setOpenDash(d)} className="text-left"><div className="h-20 rounded-md bg-surface-2 border border-border-subtle grid grid-cols-3 gap-1 p-1.5">{d.widgets.slice(0, 6).map(w => <div key={w.id} className="rounded-sm bg-white border border-border" />)}</div><div className="mt-3 text-[14px] font-semibold text-foreground">{d.name}</div><div className="text-[12px] text-subtle">{d.widgets.length} widgets</div></button>
-          <div className="mt-3 flex flex-wrap gap-1 text-[11.5px]">
-            <button onClick={() => setOpenDash(d)} className="font-medium text-[var(--app-accent)]">{t('Ouvrir')}</button><span className="text-faint">·</span>
-            <button disabled={!canWrite || !demo} onClick={() => dup(d)} className="text-muted-foreground disabled:opacity-40">{t('Dupliquer')}</button><span className="text-faint">·</span>
-            <button onClick={() => exp(d)} className="text-muted-foreground">{t('Exporter')}</button>
-            {d.lib !== 'SYSTEM' && <><span className="text-faint">·</span><button disabled={!canWrite || !demo} onClick={() => { const n = prompt(t('Renommer'), d.name); if (n) { setDashes(x => x.map(y => y.id === d.id ? { ...y, name: n } : y)); log('Dashboard renommé ' + n); } }} className="text-muted-foreground disabled:opacity-40">{t('Renommer')}</button><span className="text-faint">·</span>
-              <button disabled={!canWrite || !demo} onClick={() => { setDashes(x => x.map(y => y.id === d.id ? { ...y, lib: y.lib === 'PUBLIC' ? 'PRIVATE' : 'PUBLIC' } : y)); log('Dashboard partagé ' + d.name); }} className="text-muted-foreground disabled:opacity-40">{d.lib === 'PUBLIC' ? t('Rendre privé') : t('Partager')}</button><span className="text-faint">·</span>
-              <button disabled={!canWrite || !demo} onClick={() => setConfirm(d)} className="text-danger disabled:opacity-40">{t('Supprimer')}</button></>}
-          </div></div>)}</div>}</section>; })}
-    {confirm && <div className="fixed inset-0 z-50 bg-black/30 grid place-items-center" onClick={() => setConfirm(null)}><div onClick={e => e.stopPropagation()} className="bg-white rounded-xl p-5 w-[380px] shadow-xl"><div className="text-[15px] font-semibold">{t('Supprimer le dashboard ?')}</div><div className="mt-1 text-[13px] text-muted-foreground">« {confirm.name} » — {t('cette action est journalisée.')}</div><div className="mt-4 flex justify-end gap-2"><Btn onClick={() => setConfirm(null)}>{t('Annuler')}</Btn><button onClick={() => { setDashes(x => x.filter(y => y.id !== confirm.id)); log('Dashboard supprimé ' + confirm.name); setConfirm(null); }} className="h-8 px-3 rounded-md bg-danger text-white text-[12.5px] font-medium">{t('Supprimer')}</button></div></div></div>}
-  </div>;
-}
-
-function Widget({ w, k, p, filters }) {
-  const { t, demo, mockSeries, MockChart, fmtV } = p;
-  if (!k) return <Empty title={t('KPI introuvable')} sub={w.kpi} />;
-  const data = demo ? mockSeries(k, filters.period) : null;
-  if (!data) return <Empty title={t('Aucune donnée')} sub={t('POLARIS non connecté.')} />;
-  const last = data[data.length - 1];
-  if (w.type === 'card') return <div className="h-full flex flex-col justify-center px-2"><div className="text-[30px] font-semibold tabular-nums text-foreground">{fmtV(last, k.unit)}</div><div className="text-[12px] text-subtle">{t('moyenne')} {fmtV(data.reduce((a, b) => a + b, 0) / data.length, k.unit)}</div>{w.thr && <div className={`mt-1 text-[11.5px] ${last < +w.thr ? 'text-danger' : 'text-success'}`}>{t('seuil')} {w.thr}</div>}</div>;
-  if (['bar', 'stack', 'hist'].includes(w.type)) { const vals = w.type === 'hist' ? Array.from({ length: 12 }, (_, i) => data.filter(v => { const mn = Math.min(...data), mx = Math.max(...data), s = (mx - mn) / 12 || 1; return v >= mn + i * s && v < mn + (i + 1) * s + (i === 11 ? 1 : 0); }).length) : data.slice(-16); const mx = Math.max(...vals) || 1; return <div className="h-full flex items-end gap-[3px] pt-2">{vals.map((v, i) => <div key={i} className="flex-1 rounded-t-sm" style={{ height: (v / mx * 100) + '%', background: w.color || 'var(--app-accent)', opacity: w.type === 'stack' ? 0.5 + (i % 2) * 0.5 : 1 }} title={String(v)} />)}</div>; }
-  if (w.type === 'cdf' || w.type === 'pct') { const s = [...data].sort((a, b) => a - b); return <MockChart data={w.type === 'cdf' ? s.map((_, i) => (i + 1) / s.length * 100) : s} unit={w.type === 'cdf' ? '%' : k.unit} />; }
-  if (w.type === 'top' || w.type === 'table') return <div className="text-[12px] divide-y divide-border-subtle">{['0A1F', '0B07', '0C12', '0D3E', '0E44'].map((c, i) => <div key={c} className="flex py-1.5"><span className="font-mono text-ink-2">{t('Cellule')} {c}</span><span className="ml-auto tabular-nums">{fmtV(data[data.length - 1 - i * 3], k.unit)}</span></div>)}</div>;
-  if (w.type === 'heat') return <div className="grid grid-cols-12 gap-[2px] h-full content-start pt-1">{data.slice(0, 48).map((v, i) => <div key={i} className="h-4 rounded-[2px]" style={{ background: w.color || 'var(--app-accent)', opacity: 0.1 + (v - Math.min(...data)) / (Math.max(...data) - Math.min(...data) || 1) * 0.9 }} />)}</div>;
-  return <MockChart data={data} unit={k.unit} />;
-}
-
-function DashEditor(p) {
-  const { t, dash, setDashes, canWrite, byId, all, log, setOpenDash, setPage } = p;
-  const ro = dash.lib === 'SYSTEM' || !canWrite;
-  const [d, setD] = useState(dash); const [sel, setSel] = useState(null); const [dirty, setDirty] = useState(false);
-  const [filters, setFilters] = useState({ period: '15 min', run: 'Tous', rat: 'Tous', site: 'Tous', cell: 'Toutes', ifc: 'Toutes', dnn: 'Tous', nssai: 'Tous' });
-  const grid = useRef(null); const ROW = 80;
-  const upd = (id, ch) => { setD(x => ({ ...x, widgets: x.widgets.map(w => w.id === id ? { ...w, ...ch } : w) })); setDirty(true); };
-  const start = (e, w, mode) => { if (ro) return; e.preventDefault(); e.stopPropagation(); setSel(w.id); const col = grid.current.clientWidth / 12; const x0 = e.clientX, y0 = e.clientY, s = { ...w };
-    const mv = (ev) => { const dx = Math.round((ev.clientX - x0) / col), dy = Math.round((ev.clientY - y0) / ROW); if (mode === 'move') upd(w.id, { x: Math.max(0, Math.min(12 - s.w, s.x + dx)), y: Math.max(0, s.y + dy) }); else upd(w.id, { w: Math.max(2, Math.min(12 - s.x, s.w + dx)), h: Math.max(2, s.h + dy) }); };
-    const up = () => { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); }; addEventListener('pointermove', mv); addEventListener('pointerup', up); };
-  // compact vertical order to avoid overlaps
-  const placed = useMemo(() => { const out = []; [...d.widgets].sort((a, b) => a.y - b.y || a.x - b.x).forEach(w => { let y = w.y; const hit = (yy) => out.some(o => o.x < w.x + w.w && w.x < o.x + o.w && o.y < yy + w.h && yy < o.y + o.h); while (hit(y)) y++; out.push({ ...w, y }); }); return out; }, [d.widgets]);
-  const rows = Math.max(4, ...placed.map(w => w.y + w.h));
-  const save = () => { setDashes(x => x.map(y => y.id === d.id ? { ...d, widgets: placed } : y)); setDirty(false); log('Dashboard enregistré ' + d.name); };
-  const add = () => { const w = { id: 'w' + Date.now(), kpi: all[0].id, type: 'series', title: '', x: 0, y: rows, w: 4, h: 3, inherit: true, color: '', thr: '' }; setD(x => ({ ...x, widgets: [...x.widgets, w] })); setSel(w.id); setDirty(true); };
-  const sw = d.widgets.find(w => w.id === sel); const sk = sw && byId(sw.kpi);
-  const exportCsv = (w) => { const k = byId(w.kpi); const data = p.demo ? p.mockSeries(k, filters.period) : []; const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob(['index,value\n' + data.map((v, i) => i + ',' + v).join('\n')], { type: 'text/csv' })); a.download = (w.title || k.name) + '.csv'; a.click(); };
-  const FIL = [['run', 'Run', ['Tous', 'Run 5G #482', 'Run 4G #219']], ['rat', 'RAT', ['Tous', 'NR', 'LTE']], ['site', 'Site', ['Tous', 'Lab-Paris']], ['cell', 'Cellule', ['Toutes', '0A1F', '0B07']], ['ifc', 'Interface', ['Toutes', 'N1', 'N2', 'N4', 'SBI', 'S1-MME']], ['dnn', 'DNN', ['Tous', 'internet', 'ims']], ['nssai', 'S-NSSAI', ['Tous', '1-000001']]];
-  return <div className="space-y-3">
-    <div className="flex flex-wrap items-center gap-2">
-      <button onClick={() => setOpenDash(null)} className="text-[12.5px] text-muted-foreground hover:text-foreground">← Dashboards</button>
-      <input disabled={ro} value={d.name} onChange={e => { setD({ ...d, name: e.target.value }); setDirty(true); }} className="text-[18px] font-semibold bg-transparent outline-none border-b border-transparent focus:border-[var(--app-accent)] min-w-0" />
-      <Tag c={LIBC[d.lib]}>{d.lib}</Tag>{ro && <span className="text-[11.5px] text-subtle">{dash.lib === 'SYSTEM' ? t('Lecture seule — dupliquez pour modifier') : t('Consultation uniquement')}</span>}
-      <div className="ml-auto flex gap-1.5">{!ro && <><Btn onClick={add}>+ Widget</Btn><Btn primary disabled={!dirty} onClick={save}>{dirty ? t('Enregistrer') : t('Enregistré')}</Btn></>}</div>
-    </div>
-    <div className={card + ' px-3 py-2 flex flex-wrap items-center gap-2'}>
-      <span className="text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle mr-1">{t('Filtres globaux')}</span>
-      <div className="flex rounded-md border border-border overflow-hidden">{['1 min', '15 min', '1 h', '1 j'].map(g => <button key={g} onClick={() => setFilters({ ...filters, period: g })} className={`h-7 px-2.5 whitespace-nowrap text-[12px] ${filters.period === g ? 'bg-[var(--app-accent)] text-white' : 'text-ink-2'}`}>{g}</button>)}</div>
-      {FIL.map(([k, n, opts]) => <select key={k} value={filters[k]} onChange={e => setFilters({ ...filters, [k]: e.target.value })} className="h-7 rounded-md border border-border text-[12px] px-1.5 bg-white">{opts.map(o => <option key={o} value={o}>{t(n)}: {o}</option>)}</select>)}
-    </div>
-    <div className="flex gap-3 items-start">
-      <div ref={grid} className="flex-1 min-w-0 relative rounded-xl" style={{ height: rows * ROW, backgroundImage: ro ? 'none' : 'linear-gradient(to right, #F0F0F0 1px, transparent 1px)', backgroundSize: 'calc(100% / 12) 100%' }}>
-        {placed.length === 0 && <div className="absolute inset-0 rounded-xl border border-dashed border-border grid place-items-center text-[13px] text-subtle">{t('Ajoutez un widget pour commencer.')}</div>}
-        {placed.map(w => { const k = byId(w.kpi); return <div key={w.id} onClick={() => setSel(w.id)} className={`absolute p-1.5`} style={{ left: `${w.x / 12 * 100}%`, top: w.y * ROW, width: `${w.w / 12 * 100}%`, height: w.h * ROW }}>
-          <div className={`h-full ${card} flex flex-col overflow-hidden ${sel === w.id && !ro ? 'ring-2 ring-[var(--app-accent)]' : ''}`}>
-            <div onPointerDown={e => start(e, w, 'move')} className={`h-9 px-3 flex items-center gap-2 border-b border-border-subtle ${ro ? '' : 'cursor-move'}`}><span className="text-[12.5px] font-semibold truncate">{w.title || (k ? t(k.name) : w.kpi)}</span>{!w.inherit && <Tag c="#7C3AED">{t('filtres propres')}</Tag>}<span className="ml-auto flex gap-1.5 text-[11px] text-subtle"><button onPointerDown={e => e.stopPropagation()} onClick={() => exportCsv(w)} title="CSV">CSV</button><button onPointerDown={e => e.stopPropagation()} onClick={() => setPage('sessions')} title="Drill-down">↘</button></span></div>
-            <div className="flex-1 min-h-0 p-2"><Widget w={w} k={k} p={p} filters={filters} /></div>
-          </div>
-          {!ro && <div onPointerDown={e => start(e, w, 'resize')} className="absolute right-2 bottom-2 w-3 h-3 cursor-se-resize border-r-2 border-b-2 border-border-strong rounded-br" />}
-        </div>; })}
-      </div>
-      {sw && !ro && <div className={card + ' w-[300px] shrink-0 overflow-hidden sticky top-4'}>
-        <div className="h-11 px-4 flex items-center border-b border-border-subtle"><h3 className="text-[13px] font-semibold">{t('Configuration')}</h3><button onClick={() => { setD(x => ({ ...x, widgets: x.widgets.filter(y => y.id !== sw.id) })); setSel(null); setDirty(true); }} className="ml-auto text-[12px] text-danger">{t('Retirer')}</button></div>
-        <div className="p-4 space-y-3">
-          <Field label={t('Titre')}><input className={inp} value={sw.title} placeholder={sk && t(sk.name)} onChange={e => upd(sw.id, { title: e.target.value })} /></Field>
-          <Field label="KPI"><select className={inp} value={sw.kpi} onChange={e => upd(sw.id, { kpi: e.target.value })}>{all.map(k => <option key={k.id} value={k.id}>{t(k.name)}</option>)}</select></Field>
-          <Field label={t('Type de widget')}><div className="grid grid-cols-2 gap-1">{WTYPES.map(([id, n]) => { const why = sk && wCompat(id, sk.unit); return <button key={id} disabled={!!why} title={why ? t(why) : ''} onClick={() => upd(sw.id, { type: id })} className={`h-7 rounded-md border text-[11.5px] disabled:opacity-35 disabled:cursor-not-allowed ${sw.type === id ? 'border-[var(--app-accent)] text-[var(--app-accent)] font-semibold' : 'border-border'}`}>{n}</button>; })}</div></Field>
-          <Field label={t('Couleur de série')}><div className="flex gap-1.5">{['', '#0062A1', '#0F5B56', '#7C3AED', '#A15C07', '#B42318'].map(c => <button key={c} onClick={() => upd(sw.id, { color: c })} className={`w-6 h-6 rounded-full border-2 ${sw.color === c ? 'border-foreground' : 'border-white'}`} style={{ background: c || 'var(--app-accent)' }} />)}</div></Field>
-          <Field label={t('Seuil')}><input className={inp} value={sw.thr} onChange={e => upd(sw.id, { thr: e.target.value })} placeholder="ex. 95" /></Field>
-          <label className="flex items-center gap-2 text-[12.5px]"><input type="checkbox" checked={sw.inherit} onChange={e => upd(sw.id, { inherit: e.target.checked })} />{t('Hérite des filtres globaux')}</label>
-          <div className="text-[11px] text-subtle">{t('Glissez l’en-tête pour déplacer, le coin pour redimensionner.')}</div>
-        </div></div>}
-    </div>
-  </div>;
-}
-
-/* ===== Anomalies ===== */
 function Anomalies(p) {
   const { anomalies: ANOMS } = useKpiDemo();
   const { t, demo, byId, canWrite, log, setPage } = p;
