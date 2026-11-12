@@ -1,18 +1,16 @@
 # Changelog
 
+## 0.17.1
+
+- Retour arrière du thème bleu nuit : l'application retrouve son thème clair tel qu'il était avant la 0.17.0 (fond, cartes, tableaux, ladder, panneau JSON, pages d'erreur).
+- Le raccordement du Parcours abonné (0.17.0) est conservé tel quel.
+
 ## 0.17.0
 
 - Le Parcours abonné est raccordé aux routes OIRAN 2.13.0 : frise Abonné → Contextes UE → Sessions PDN/PDU → Procédures, liens `EXACT` ou `OUVERT`, et chaîne TMSI ordonnée par références paquet.
 - La colonne Abonné affiche `subscriber_pseudonym` et le badge `subscriber_session_count`; le tableau peut grouper les sessions par abonné et la fiche expose les sessions précédente/suivante.
 - La recherche d'identité et les valeurs en clair restent limitées au rôle operator via les routes `/identities` existantes. Le viewer ne reçoit et n'affiche que des pseudonymes.
 - Les événements et sessions conservent l'ordre de l'API ; aucun lien n'est inféré depuis l'heure, la cellule, l'IMEI ou l'adresse IP.
-- Thème bleu nuit sur toute l'application : fond de page `#081726`, coquille `#0B1F33`, cartes `#102A43`. Le mode clair est abandonné, aucune surface blanche ne subsiste.
-- Palette redéfinie dans `src/styles.css` (`:root`) : texte, cartes, bordures, pistes, pastilles succès/alerte/erreur, barre latérale et panneau de charge utile deviennent des déclinaisons bleu nuit (`--code-bg: #06111C`).
-- Signaux colorés réalignés sur le fond sombre : vert `#4ADE80`, ambre `#E9B949`, rouge `#F87171`, bleu `#4FA3E3`, sarcelle `#35B3A6`, violet `#A78BFA`, rose `#F472B6`, gris `#A8BCCF` ; les fonds de pastilles et les surbrillances de ligne deviennent des navy teintés.
-- Accent inchangé (Bleu `#0062A1`, Noir `#171717`, Vert `#0F5B56`) mais allégé automatiquement lorsqu'il sert de texte ou de trait fin via `--app-accent-ink`, pour rester lisible sur bleu nuit.
-- Sélecteur d'accent : chaque pastille reçoit un liseré pour rester visible, y compris l'option sombre, et la carte retenue est entourée d'un contour.
-- Classes de couleur brute remplacées par des tokens : `bg-[#16A34A]` → `bg-success`, `bg-[#0062A1]` → `bg-brand`, `border-r-[#E2E8F0]` → `border-r-border`.
-- Page d'erreur autonome alignée sur le même bleu nuit.
 
 ## 0.16.0
 

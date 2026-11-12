@@ -3,7 +3,7 @@ export type TopBarLiveState = "live" | "blocked" | "delayed" | "offline" | "demo
 export type TopBarLiveIndicator = {
   state: TopBarLiveState;
   label: "LIVE" | "BLOQUÉ" | "RETARD" | "HORS LIGNE" | "DÉMO";
-  color: "#4ADE80" | "#F87171" | "#E9B949" | "#A8BCCF";
+  color: "#15803D" | "#B42318" | "#A15C07" | "#8F8F8F";
   pulse: boolean;
 };
 
@@ -17,7 +17,7 @@ type LiveIndicatorInput = {
 const OFFLINE: TopBarLiveIndicator = {
   state: "offline",
   label: "HORS LIGNE",
-  color: "#A8BCCF",
+  color: "#8F8F8F",
   pulse: false,
 };
 
@@ -33,13 +33,13 @@ export function topBarLiveIndicator({
   captureState,
   pendingHistory = [],
 }: LiveIndicatorInput): TopBarLiveIndicator {
-  if (demo) return { state: "demo", label: "DÉMO", color: "#A8BCCF", pulse: false };
+  if (demo) return { state: "demo", label: "DÉMO", color: "#8F8F8F", pulse: false };
   if (!apiReachable) return OFFLINE;
   if (captureState === "BLOCKED")
-    return { state: "blocked", label: "BLOQUÉ", color: "#F87171", pulse: false };
+    return { state: "blocked", label: "BLOQUÉ", color: "#B42318", pulse: false };
   if (pendingGrewForThreePolls(pendingHistory))
-    return { state: "delayed", label: "RETARD", color: "#E9B949", pulse: false };
+    return { state: "delayed", label: "RETARD", color: "#A15C07", pulse: false };
   if (captureState === "CAPTURING")
-    return { state: "live", label: "LIVE", color: "#4ADE80", pulse: true };
+    return { state: "live", label: "LIVE", color: "#15803D", pulse: true };
   return OFFLINE;
 }

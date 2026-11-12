@@ -11,10 +11,10 @@ const pending = 'Non disponible : backend à venir';
 const th = 'h-8 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border-subtle';
 const td = 'h-10 px-4 border-b border-border-subtle';
 const recs = (d, k) => Array.isArray(d) ? d : Array.isArray(d?.[k]) ? d[k] : [];
-const Btn = ({children,primary,...p}) => <button type="button" disabled title={pending} {...p} className={`h-8 px-3 rounded-md text-[12.5px] font-medium disabled:opacity-50 disabled:cursor-not-allowed ${primary?'bg-[var(--app-accent)] text-white':'border border-border bg-card text-ink-2'}`}>{children}</button>;
+const Btn = ({children,primary,...p}) => <button type="button" disabled title={pending} {...p} className={`h-8 px-3 rounded-md text-[12.5px] font-medium disabled:opacity-50 disabled:cursor-not-allowed ${primary?'bg-[var(--app-accent)] text-white':'border border-border bg-white text-ink-2'}`}>{children}</button>;
 
 function Switch({on,label,disabled,onClick}) {
-  return <button type="button" role="switch" aria-checked={on} aria-label={label} disabled={disabled} onClick={onClick} className={`w-9 h-5 rounded-full relative transition shrink-0 ${on?'bg-[var(--app-accent)]':'bg-track'} disabled:opacity-60`}><span className={`absolute top-0.5 w-4 h-4 rounded-full bg-card transition-all ${on?'left-[18px]':'left-0.5'}`}/></button>;
+  return <button type="button" role="switch" aria-checked={on} aria-label={label} disabled={disabled} onClick={onClick} className={`w-9 h-5 rounded-full relative transition shrink-0 ${on?'bg-[var(--app-accent)]':'bg-track'} disabled:opacity-60`}><span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${on?'left-[18px]':'left-0.5'}`}/></button>;
 }
 
 // User creation: account fields + per-user module visibility, sent to the lab server which stores and enforces it.
@@ -29,8 +29,8 @@ function CreateUser({roles,onClose}) {
     try { await request('/users',{method:'POST',body:{...f,username:f.username.trim(),hidden_modules:sanitizeHidden(hidden),visible_modules:NAV_MODULES.filter(m=>isVisible(hidden,m.key)).map(m=>m.key)}}); client.invalidateQueries({queryKey:['polaris','api','/users']}); onClose(); }
     catch(x) { setErr(x); } finally { setBusy(false); } };
   const inp = 'h-9 w-full px-3 border border-border rounded-md text-[13px]';
-  return <div role="dialog" aria-modal="true" aria-label="Créer un utilisateur" className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" onClick={onClose}>
-    <form onSubmit={submit} onClick={e=>e.stopPropagation()} className="w-full max-w-[720px] max-h-[90vh] overflow-auto rounded-xl bg-card shadow-xl">
+  return <div role="dialog" aria-modal="true" aria-label="Créer un utilisateur" className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-4" onClick={onClose}>
+    <form onSubmit={submit} onClick={e=>e.stopPropagation()} className="w-full max-w-[720px] max-h-[90vh] overflow-auto rounded-xl bg-white shadow-xl">
       <div className="px-6 py-4 border-b border-border-subtle flex items-center justify-between"><h2 className="text-[16px] font-semibold">Créer un utilisateur</h2><button type="button" aria-label="Fermer" onClick={onClose} className="text-subtle text-[18px]">×</button></div>
       <div className="p-6 grid grid-cols-2 gap-6">
         <div className="space-y-3 text-[12.5px]">
@@ -77,7 +77,7 @@ function Modules({Card,hidden,onToggle}) {
   return <Card title="Visibilité des modules dans la navigation">
     <table className="w-full text-[12.5px]"><thead><tr>{['Module','Visible','État'].map(h=><th key={h} className={th}>{h}</th>)}</tr></thead>
       <tbody>{NAV_MODULES.map(m=>{ const on = isVisible(hidden,m.key); return <tr key={m.key}><td className={td}>{m.label}</td>
-        <td className={td}><button type="button" role="switch" aria-checked={on} aria-label={`Visibilité ${m.label}`} disabled={m.locked} onClick={()=>onToggle(m.key)} className={`w-9 h-5 rounded-full relative transition ${on?'bg-[var(--app-accent)]':'bg-track'} disabled:opacity-60`}><span className={`absolute top-0.5 w-4 h-4 rounded-full bg-card transition-all ${on?'left-[18px]':'left-0.5'}`}/></button></td>
+        <td className={td}><button type="button" role="switch" aria-checked={on} aria-label={`Visibilité ${m.label}`} disabled={m.locked} onClick={()=>onToggle(m.key)} className={`w-9 h-5 rounded-full relative transition ${on?'bg-[var(--app-accent)]':'bg-track'} disabled:opacity-60`}><span className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${on?'left-[18px]':'left-0.5'}`}/></button></td>
         <td className={`${td} text-muted-foreground`}>{m.locked ? 'Toujours visible (protection contre le verrouillage)' : on ? 'Affiché' : 'Masqué — module conservé'}</td></tr>; })}</tbody></table>
     <div className="px-4 py-3 text-[11.5px] text-subtle">Masquer un module ne retire pas l'accès. Réglage enregistré sur ce navigateur ; les modules masqués sur le compte (création d'utilisateur) s'y ajoutent.</div>
   </Card>;
@@ -90,7 +90,7 @@ function System({Card,onSettings}) {
   return <div className="space-y-5">
     <Card title="Plateforme"><div className="p-4 grid grid-cols-2 gap-x-8 gap-y-2 text-[12.5px]">{[['État',h.status??h.mode??'connecté'],['POLARIS',v.platform_core],['API',v.backend_api],['Disque disponible',diskFree]].map(([l,x])=><div key={l} className="flex justify-between border-b border-border-subtle py-1.5"><span className="text-muted-foreground">{l}</span><span className="font-mono">{available(x)}</span></div>)}</div>
       {(health.isError||version.isError) && <div className="px-4 pb-4"><Fail q={health.isError?health:version} path={health.isError?'/health':'/version'}/></div>}</Card>
-    <Card title="Préférences de l'interface" action={<button type="button" onClick={onSettings} className="h-8 px-3 rounded-md border border-border bg-card text-[12.5px] text-ink-2 hover:bg-surface-2">Ouvrir les paramètres</button>}><div className="p-4 text-[12.5px] text-muted-foreground">Langue, couleur et mot de passe.</div></Card>
+    <Card title="Préférences de l'interface" action={<button type="button" onClick={onSettings} className="h-8 px-3 rounded-md border border-border bg-white text-[12.5px] text-ink-2 hover:bg-surface-2">Ouvrir les paramètres</button>}><div className="p-4 text-[12.5px] text-muted-foreground">Langue, couleur et mot de passe.</div></Card>
   </div>;
 }
 
@@ -114,7 +114,7 @@ export default function Administration({Card, nodeManager, hidden, onToggle, onS
       <div className="text-[12px] text-muted-foreground">POLARIS</div>
       <h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Administration</h1>
       <div role="tablist" aria-label="Administration" className="flex gap-1 border-b border-border mt-4 mb-5 overflow-x-auto scroll-thin">
-        {TABS.map(x=><button key={x} role="tab" aria-selected={tab===x} onClick={()=>pick(x)} className={`relative shrink-0 h-10 px-3 text-[13px] ${tab===x?'text-foreground font-semibold':'text-muted-foreground hover:text-foreground'}`}>{x}{tab===x && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-[#4FA3E3]"/>}</button>)}
+        {TABS.map(x=><button key={x} role="tab" aria-selected={tab===x} onClick={()=>pick(x)} className={`relative shrink-0 h-10 px-3 text-[13px] ${tab===x?'text-foreground font-semibold':'text-muted-foreground hover:text-foreground'}`}>{x}{tab===x && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-[#0062A1]"/>}</button>)}
       </div>
       <div role="tabpanel" aria-label={tab}>
         {tab==='Node Manager' ? nodeManager : tab==='Network Topology' ? <NetworkTopology/> : tab==='Users & Roles' ? <Users Card={Card}/> : tab==='Modules Visibility' ? <Modules Card={Card} hidden={hidden} onToggle={onToggle}/> : tab==='System Settings' ? <System Card={Card} onSettings={onSettings}/> : <Audit Card={Card}/>}

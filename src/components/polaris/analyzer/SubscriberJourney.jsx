@@ -3,7 +3,7 @@ import { useSubscriberJourney, useSubscriberTmsi, useSessionIdentities, useIdent
 import { toJourney, toTmsiList, shortPseudo, refLabel } from './subscriber';
 
 // Procedure colours (light mode only).
-export const KIND = { attach:['#4FA3E3','Attach / Registration'], pdu:['#35B3A6','PDU / PDN'], release:['#8FA5BB','Idle / Release'], service:['#A78BFA','Service Request'], tau:['#F0B429','TAU'], handover:['#F472B6','Handover'], detach:['#F87171','Detach'], other:['#94A3B8','Autre'] };
+export const KIND = { attach:['#0062A1','Attach / Registration'], pdu:['#0F5B56','PDU / PDN'], release:['#64748B','Idle / Release'], service:['#7C3AED','Service Request'], tau:['#D97706','TAU'], handover:['#DB2777','Handover'], detach:['#DC2626','Detach'], other:['#94A3B8','Autre'] };
 const H = ({children}) => <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-1.5">{children}</div>;
 const pending = 'Non disponible : backend à venir';
 export function Fail({q, path}) {
@@ -59,8 +59,8 @@ export default function SubscriberJourney({s, role, onOpen}) {
         {journeyQ.data && (j.sessions.length===0 ? <div className="text-muted-foreground">Aucune session.</div> : <ol aria-label="Sessions de l'abonné" className="flex flex-col">
           {j.sessions.map((x,i)=>{ const l=j.links.find(k=>k.to===x.session_id); const cur=x.session_id===s.session_id;
             return <li key={x.session_id} className="flex flex-col items-stretch">
-              {i>0 && <div className="h-5 ml-5 border-l-2" title={l?`${l.status}${l.rule?` · ${l.rule}`:''}${l.proof?` · ${l.proof}`:''}${l.reason?` · ${l.reason}`:''}`:undefined} style={{borderColor:l?.status==='EXACT'?'#4ADE80':l?'#F0B429':'#24425F',borderStyle:l&&l.status!=='EXACT'?'dashed':'solid'}}/>}
-              <button type="button" onClick={()=>onOpen?.(x.session_id)} className={`text-left rounded-lg border px-3 py-2 transition ${cur?'border-[var(--app-accent)] bg-brand-soft':'border-border bg-card hover:bg-surface-2'}`}>
+              {i>0 && <div className="h-5 ml-5 border-l-2" title={l?`${l.status}${l.rule?` · ${l.rule}`:''}${l.proof?` · ${l.proof}`:''}${l.reason?` · ${l.reason}`:''}`:undefined} style={{borderColor:l?.status==='EXACT'?'#16A34A':l?'#D97706':'#E2E8F0',borderStyle:l&&l.status!=='EXACT'?'dashed':'solid'}}/>}
+              <button type="button" onClick={()=>onOpen?.(x.session_id)} className={`text-left rounded-lg border px-3 py-2 transition ${cur?'border-[var(--app-accent)] bg-brand-soft':'border-border bg-white hover:bg-surface-2'}`}>
                 <div className="flex items-baseline justify-between gap-2"><span className="font-mono text-[12px] text-foreground">{shortPseudo(x.session_id)}</span><span className="font-mono text-[11px] text-muted-foreground">({shortPseudo(x.capture_id)}, {x.seq ?? '—'})</span></div>
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5">{x.procedures.map((p,k)=><span key={k} className="inline-flex items-center gap-1 text-[11.5px] text-ink-2"><span className="w-2 h-2 rounded-sm" style={{background:KIND[p.kind][0]}}/>{p.name}</span>)}</div>
               </button></li>; })}

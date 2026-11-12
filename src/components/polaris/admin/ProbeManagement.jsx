@@ -65,11 +65,11 @@ export default function ProbeManagement({ mode, node, auth, onClose }) {
         </div>
       </Section>
       <Field label="Version cible" required>
-        <input aria-label="Version cible" value={targetVersion} onChange={event => setTargetVersion(event.target.value)} placeholder="2.12.0" className="h-10 w-full rounded-md border border-border bg-card px-3 text-[13px] outline-none focus:border-[var(--app-accent)]"/>
+        <input aria-label="Version cible" value={targetVersion} onChange={event => setTargetVersion(event.target.value)} placeholder="2.12.0" className="h-10 w-full rounded-md border border-border bg-white px-3 text-[13px] outline-none focus:border-[var(--app-accent)]"/>
       </Field>
     </>}
     <Field label="Confirmation" required help={`Tapez ${id} pour autoriser l'appel.`}>
-      <input aria-label={`Tapez ${id}`} value={confirmation} onChange={event => setConfirmation(event.target.value)} className="h-10 w-full rounded-md border border-border bg-card px-3 font-mono text-[13px] outline-none focus:border-[var(--app-accent)]"/>
+      <input aria-label={`Tapez ${id}`} value={confirmation} onChange={event => setConfirmation(event.target.value)} className="h-10 w-full rounded-md border border-border bg-white px-3 font-mono text-[13px] outline-none focus:border-[var(--app-accent)]"/>
     </Field>
 
     {permissionNote && <div className="rounded-lg border border-warning-line bg-warning-soft px-3 py-2 text-[12px] text-warning">{permissionNote}</div>}

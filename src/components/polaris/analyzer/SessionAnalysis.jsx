@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { OtherSessions } from './SubscriberJourney';
 import { toMs, steps, backgroundSteps, fmtSpan, overall, failures, sessionKpis, fmtDuration, fmtBytes, fmtRate, fmtUtc, timeOf } from './analysis';
 
-export const VERDICT_STYLE = { SUCCESS:['#4ADE80','#0F2A20'], FAILED:['#F87171','#2E1518'], PARTIAL:['#F0B429','#2B2110'], UNKNOWN:['#8FA5BB','#16344F'] };
+export const VERDICT_STYLE = { SUCCESS:['#16A34A','#ECFDF3'], FAILED:['#DC2626','#FEF2F2'], PARTIAL:['#D97706','#FFFBEB'], UNKNOWN:['#64748B','#F1F5F9'] };
 export const VerdictBadge = ({v}) => { const [c,b]=VERDICT_STYLE[v]||VERDICT_STYLE.UNKNOWN; return <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded text-[11px] font-semibold tracking-[0.03em]" style={{color:c,background:b}}><span className="w-1.5 h-1.5 rounded-full" style={{background:c}}/>{v}</span>; };
 const H = ({children}) => <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-1.5">{children}</div>;
 const Row = ({k,v}) => <><dt className="text-muted-foreground">{k}</dt><dd className="text-foreground truncate" title={String(v)}>{v}</dd></>;
@@ -21,7 +21,7 @@ export default function SessionAnalysis({s,width,onPick,onHide,loading,onOpenSes
   const end = iso(toMs(s.end_timestamp) ?? (times.length ? Math.max(...times) : null));
   const kpi = [['Durée session',fmtSpan(k.durationMs,k.multiCapture)],['Setup time',fmtDuration(k.setupMs)],['DL moyen',fmtRate(k.dlAvg)],['DL instantané',fmtRate(k.dlInst)],['DL max',fmtRate(k.dlMax)],['UL moyen',fmtRate(k.ulAvg)],['UL instantané',fmtRate(k.ulInst)],['UL max',fmtRate(k.ulMax)],['Volume DL',fmtBytes(k.dlVolume)],['Volume UL',fmtBytes(k.ulVolume)],['RTT',k.rttMs==null?'N/A':`${k.rttMs} ms`],['Retransmissions',k.retransmissions==null?'N/A':k.retransmissions],['Pertes',k.lossPct==null?'N/A':`${k.lossPct} %`]];
   return (
-    <aside style={{width}} aria-label="Analyse sessions" className="shrink-0 bg-card flex flex-col min-w-0 rounded-xl border border-border overflow-hidden">
+    <aside style={{width}} aria-label="Analyse sessions" className="shrink-0 bg-white flex flex-col min-w-0 rounded-xl border border-border overflow-hidden">
       <div className="h-10 shrink-0 flex items-center gap-2 px-3 border-b border-border">
         <span className="text-[13px] font-semibold text-foreground">Analyse sessions</span><VerdictBadge v={res}/>
         <button onClick={onHide} title="Masquer Analyse sessions" className="ml-auto w-7 h-7 rounded-md grid place-items-center text-muted-foreground hover:bg-muted">×</button>
