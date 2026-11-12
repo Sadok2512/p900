@@ -115,11 +115,11 @@ describe('main screens with simulated REST responses',()=>{
   it('registers a probe with the published OIRAN payload', async()=>{
     open('nodes');
     fireEvent.click(await screen.findByRole('button',{name:'Ajouter une sonde'}));
-    fireEvent.change(screen.getByLabelText('Probe name'),{target:{value:'Lab vProbe Site A'}});
-    fireEvent.change(screen.getByLabelText('Lab host'),{target:{value:'namespace.container.local'}});
-    fireEvent.change(screen.getByLabelText('Management address'),{target:{value:'10.77.0.1'}});
-    fireEvent.change(screen.getByLabelText('Site'),{target:{value:'Lab A'}});
-    fireEvent.click(screen.getByRole('button',{name:'Register'}));
+    fireEvent.change(screen.getByLabelText('Nom de la sonde'),{target:{value:'Lab vProbe Site A'}});
+    fireEvent.change(screen.getByLabelText('Serveur ou namespace'),{target:{value:'namespace.container.local'}});
+    fireEvent.change(screen.getByLabelText('Adresse de gestion'),{target:{value:'10.77.0.1'}});
+    fireEvent.change(screen.getByLabelText('Site de la sonde'),{target:{value:'Lab A'}});
+    fireEvent.click(screen.getByRole('button',{name:'Enregistrer la sonde'}));
     await waitFor(()=>expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/probes' && options?.method==='POST')).toBe(true));
     const request=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/probes' && options?.method==='POST');
     expect(JSON.parse(String(request?.[1]?.body))).toMatchObject({probe_id:'vprobe-lab-vprobe-site-a',probe_type:'virtual',host:'namespace.container.local',mgmt_ip:'10.77.0.1',site:'Lab A'});
@@ -134,9 +134,10 @@ describe('main screens with simulated REST responses',()=>{
     const edit=screen.getByRole('dialog',{name:'Modifier la sonde'});
     await waitFor(()=>expect(within(edit).getByLabelText('Serveur ou namespace')).toHaveValue('localhost'));
     fireEvent.change(within(edit).getByLabelText('Nom de la sonde'),{target:{value:'lab-probe-updated'}});
-    fireEvent.click(within(edit).getByRole('button',{name:'+ Ajouter'}));
+    fireEvent.click(within(edit).getByRole('button',{name:'+ Ajouter une interface'}));
     fireEvent.change(within(edit).getByLabelText('Interface 2'),{target:{value:'ens4'}});
     fireEvent.change(within(edit).getByLabelText('Filtre BPF 2'),{target:{value:'udp port 2152'}});
+    fireEvent.change(within(edit).getByLabelText('Rôle 2'),{target:{value:'N3'}});
     fireEvent.click(within(edit).getByRole('button',{name:'Enregistrer'}));
     await waitFor(()=>expect(screen.queryByRole('dialog',{name:'Modifier la sonde'})).not.toBeInTheDocument());
     const update=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/probes/p1'&&options?.method==='PUT');
@@ -213,7 +214,7 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByText('Non disponible : backend à venir — Live (WebSocket)')).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getByText('0.15.0')).toBeInTheDocument(); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.11.6 · API 2.11.6 · UI 0.15.0')).toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getByText('0.16.0')).toBeInTheDocument(); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.11.6 · API 2.11.6 · UI 0.16.0')).toBeInTheDocument();
   });
   it('Dashboard library is marked local and has no simulated saved queries outside Demo',()=>{
     open('templates'); expect(screen.getByText('local à ce navigateur')).toBeInTheDocument(); expect(screen.getByText('Aucune requête.')).toBeInTheDocument();

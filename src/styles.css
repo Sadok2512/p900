@@ -82,6 +82,13 @@
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
   --color-danger-line: var(--danger-line);
+  --color-code-bg: var(--code-bg);
+  --color-code-fg: var(--code-fg);
+  --color-code-key: var(--code-key);
+  --color-code-string: var(--code-string);
+  --color-code-number: var(--code-number);
+  --color-code-literal: var(--code-literal);
+  --color-code-border: var(--code-border);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -136,6 +143,14 @@
   --danger: oklch(0.505 0.19 27.5);
   --danger-soft: oklch(0.97 0.017 20);
   --danger-line: oklch(0.87 0.06 20);
+  /* Payload preview: the only dark surface in a light-mode application. */
+  --code-bg: oklch(0.235 0 89.88);
+  --code-fg: oklch(0.8699 0 89.88);
+  --code-key: oklch(0.8632 0.0801 232.08);
+  --code-string: oklch(0.7104 0.0825 43.17);
+  --code-number: oklch(0.8226 0.0586 134.91);
+  --code-literal: oklch(0.6713 0.1118 245.54);
+  --code-border: oklch(0.3211 0 89.88);
   --sidebar: oklch(0.984 0.003 247.858);
   --sidebar-foreground: oklch(0.129 0.042 264.695);
   --sidebar-primary: oklch(0.208 0.042 265.755);

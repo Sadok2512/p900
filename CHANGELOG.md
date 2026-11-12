@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.0
+
+- Formulaire de sonde unifié : la création et l'édition partagent le même composant `ProbeForm` (mêmes dimensions, même typographie, même aperçu de charge utile, mêmes boutons).
+- Fenêtre élargie à 1040 px (95vw max, 90vh max) : en-tête et pied fixes, le contenu est la seule zone qui défile.
+- Interfaces de capture : table compacte avec en-têtes de colonnes — Interface, Rôle de capture, Protocole, Filtre BPF, Retirer — au lieu de lignes de formulaire empilées.
+- Correction mapping des rôles : un rôle renvoyé par le serveur hors de l'énumération `N2 / N3 / N4 / S1 / N6` (S6a, S1-MME, S11, S5-C…) n'est plus réécrit en `N2`. Il est conservé tel quel, renvoyé tel quel, et signalé dans la ligne.
+- Aperçu de charge utile : panneau sombre type éditeur de code, toujours visible et déplié, coloration syntaxique JSON, bouton Copier JSON, hauteur 220–350 px avec défilement interne.
+- Validation : message sous le champ concerné, bordure rouge, résumé compact quand plusieurs champs sont en cause, et explication de l'action verrouillée dans le pied.
+
 ## 0.15.1
 
 - Fiche sonde (Administration → Node Manager) : « Interfaces et points de capture » n'est plus un onglet, la table s'affiche directement sous « Identité et état » et « Télémétrie de la sonde » dans l'onglet Général.

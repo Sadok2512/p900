@@ -1,9 +1,16 @@
 export type ProbeKind = 'virtual' | 'physical';
 
+// The registry only ever writes back the role it was given. POLARIS_ROLES is the
+// enumeration the UI offers when the server is silent; a server value outside it
+// (S6a, S1-MME, S11, S5-C …) is kept verbatim instead of being rewritten to N2.
+export const PROBE_ROLES = ['N2', 'N3', 'N4', 'S1', 'N6'] as const;
+export const isProbeRole = (role: string): boolean => (PROBE_ROLES as readonly string[]).includes(role);
+
 export type ProbeInterfaceInput = {
   interface: string;
-  role: 'N2' | 'N3' | 'N4' | 'S1' | 'N6';
+  role: string;
   bpf_filter: string;
+  protocol?: string;
 };
 
 export type ProbeRegistrationDraft = {
@@ -35,8 +42,9 @@ export function probeDraftFromRecord(record: Record<string, unknown> = {}, inter
     site: String(record['site'] ?? ''),
     interfaces: sourceInterfaces.map(item => ({
       interface: String(item['interface'] ?? item['name'] ?? item['device'] ?? ''),
-      role: (['N2','N3','N4','S1','N6'].includes(String(item['role'])) ? String(item['role']) : 'N2') as ProbeInterfaceInput['role'],
+      role: String(item['role'] ?? ''),
       bpf_filter: String(item['bpf_filter'] ?? item['filter'] ?? ''),
+      protocol: item['protocol'] == null ? undefined : String(item['protocol']),
     })),
   };
 }
@@ -73,16 +81,35 @@ export function probeUpdatePayload(probeId: string, draft: ProbeRegistrationDraf
   return { ...probePayload(draft), probe_id: probeId };
 }
 
+const IP = /^(?:\d{1,3}\.){3}\d{1,3}$|^[0-9a-f:]+$/i;
+
+// Per-field messages so the dialog can mark the affected control instead of
+// pushing every problem to the bottom of the form.
+export function probeFieldErrors(draft: ProbeRegistrationDraft): Record<string, string> {
+  const errors: Record<string, string> = {};
+  if (!draft.name.trim()) errors.name = 'Le nom de la sonde est obligatoire.';
+  if (!draft.host.trim()) errors.host = 'Le serveur / namespace est obligatoire.';
+  if (!draft.site.trim()) errors.site = 'Le site est exigé par OIRAN.';
+  if (!draft.mgmt_ip.trim()) errors.mgmt_ip = "L'adresse de gestion est exigée par OIRAN.";
+  else if (!IP.test(draft.mgmt_ip.trim())) errors.mgmt_ip = "L'adresse de gestion doit être une adresse IP.";
+  if (!draft.interfaces.length) errors.interfaces = 'Au moins une interface est requise.';
+  return errors;
+}
+
+export function probeInterfaceErrors(draft: ProbeRegistrationDraft): Array<Record<string, string>> {
+  return draft.interfaces.map(item => {
+    const errors: Record<string, string> = {};
+    if (!item.interface.trim()) errors.interface = 'Nom de l’interface requis.';
+    if (!item.role.trim()) errors.role = 'Rôle de capture requis.';
+    if (!item.bpf_filter.trim()) errors.bpf_filter = 'Filtre BPF requis.';
+    return errors;
+  });
+}
+
 export function probeDraftErrors(draft: ProbeRegistrationDraft): string[] {
-  const errors: string[] = [];
-  if (!draft.name.trim()) errors.push('Name is required');
-  if (!draft.host.trim()) errors.push('Host / namespace is required');
-  if (!draft.site.trim()) errors.push('Site is required by OIRAN');
-  if (!draft.mgmt_ip.trim()) errors.push('Management address is required by OIRAN');
-  else if (!/^(?:\d{1,3}\.){3}\d{1,3}$|^[0-9a-f:]+$/i.test(draft.mgmt_ip.trim())) errors.push('Management address must be an IP address');
-  if (!draft.interfaces.length) errors.push('At least one interface is required');
-  for (const item of draft.interfaces) {
-    if (!item.interface.trim() || !item.bpf_filter.trim()) errors.push('Every interface needs a name and BPF filter');
-  }
+  const fields = probeFieldErrors(draft);
+  const errors = Object.values(fields);
+  const incomplete = draft.interfaces.some(item => !item.interface.trim() || !item.role.trim() || !item.bpf_filter.trim());
+  if (incomplete) errors.push('Chaque interface doit avoir un nom, un rôle de capture et un filtre BPF.');
   return [...new Set(errors)];
 }
