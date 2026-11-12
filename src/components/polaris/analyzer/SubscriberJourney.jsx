@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { useSubscriberJourney, useSubscriberTmsi, useSessionIdentities, useIdentityLookup, apiPath, available } from '@/lib/polaris-api';
+import { useSubscriberJourney, useSubscriberTmsi, useSessionIdentities, useIdentityLookup, apiPath, observedIdentity, identityProofs } from '@/lib/polaris-api';
 import { toJourney, toTmsiList, shortPseudo, refLabel } from './subscriber';
 
 // Procedure colours (light mode only).
@@ -17,7 +17,7 @@ export function OtherSessions({s, onOpen}) {
   const prev = s.previous_session_id, next = s.next_session_id;
   return <section aria-label="Autres sessions de cet abonné"><H>Autres sessions de cet abonné</H>
     {!p ? <div className="text-[12px] text-subtle">{pending} (subscriber_pseudonym)</div> : <div className="space-y-1 text-[12px]">
-      <div className="text-muted-foreground">Abonné <span className="font-mono text-foreground">{shortPseudo(p)}</span>{s.subscriber_session_count!=null && <> · {s.subscriber_session_count} sessions</>}</div>
+      <div className="text-muted-foreground">Pseudonyme <span className="font-mono text-foreground">{shortPseudo(p)}</span>{s.subscriber_session_count!=null && <> · {s.subscriber_session_count} sessions</>}</div>
       {[['← Précédente',prev,s.previous_link],['Suivante →',next,s.next_link]].map(([l,id,link])=><button key={l} disabled={!id} onClick={()=>onOpen?.(id)} className="w-full text-left rounded-md border border-border px-2 py-1 disabled:opacity-50 hover:bg-surface-2">
         <span className="text-muted-foreground">{l}</span> <span className="font-mono">{id ?? '—'}</span>{link?.proof && <div className="text-[11px] text-muted-foreground">{link.status ?? 'EXACT'} · {link.proof}</div>}</button>)}
     </div>}
@@ -26,31 +26,31 @@ export function OtherSessions({s, onOpen}) {
 
 export default function SubscriberJourney({s, role, onOpen}) {
   const [query,setQuery] = useState(''); const [submitted,setSubmitted] = useState('');
-  const lookup = useIdentityLookup(submitted);
+  const operator = role === 'operator' || role === 'administrator';
+  const lookup = useIdentityLookup(submitted,operator);
   const looked = lookup.data?.data?.subscriber_pseudonym;
   const pseudo = looked ?? s.subscriber_pseudonym ?? null;
-  const operator = role === 'operator' || role === 'administrator';
-  const journeyQ = useSubscriberJourney(pseudo), tmsiQ = useSubscriberTmsi(pseudo), idQ = useSessionIdentities(s.session_id, operator);
+  const journeyQ = useSubscriberJourney(pseudo), tmsiQ = useSubscriberTmsi(pseudo,operator), idQ = useSessionIdentities(s.session_id, operator);
   const j = useMemo(()=>toJourney(journeyQ.data?.data),[journeyQ.data]);
   const ids = idQ.data?.data ?? {};
   const identityRows = [
-    ['IMSI',ids.imsi,ids.imsi_proof],['TMSI',ids.tmsi?.at(-1)?.value,ids.tmsi?.at(-1)],
-    ['S-TMSI',ids.s_tmsi?.at(-1)?.value,ids.s_tmsi?.at(-1)],['M-TMSI',ids.m_tmsi?.at(-1)?.value,ids.m_tmsi?.at(-1)],
-    ['IMEI(SV)',ids.imei?.value,ids.imei],['MSISDN',ids.msisdn,ids.msisdn_proof],
+    ['IMSI / SUPI','subscriber'],['TMSI / GUTI','temporary'],['S-TMSI','s_tmsi'],['M-TMSI','m_tmsi'],
+    ['IMEI(SV) / PEI','equipment'],['MSISDN / GPSI','directory'],
   ];
-  const tmsi = useMemo(()=>toTmsiList(tmsiQ.data?.data,false),[tmsiQ.data]);
+  const tmsi = useMemo(()=>toTmsiList(tmsiQ.data?.data,operator),[tmsiQ.data,operator]);
   return <div className="p-4 space-y-4 text-[12.5px]">
+    <h2 className="text-[16px] font-semibold font-mono break-all" title={pseudo??undefined}>{operator?observedIdentity(ids,'subscriber'):'connexion requise'}</h2>
     <form onSubmit={e=>{e.preventDefault(); setSubmitted(query.trim());}} className="flex gap-2">
-      <input aria-label="Rechercher un abonné" value={query} onChange={e=>setQuery(e.target.value)} placeholder="IMSI, TMSI, IMEI ou MSISDN" className="flex-1 h-8 rounded-md border border-border px-2 outline-none focus:border-[var(--app-accent)]"/>
-      <button className="h-8 px-3 rounded-md text-white text-[12px]" style={{background:'var(--app-accent)'}}>Ouvrir le parcours</button>
+      <input disabled={!operator} aria-label="Rechercher un abonné" value={query} onChange={e=>setQuery(e.target.value)} placeholder={operator?'IMSI, TMSI, S-TMSI, M-TMSI, IMEI ou MSISDN':'connexion requise'} className="flex-1 h-8 rounded-md border border-border px-2 outline-none focus:border-[var(--app-accent)] disabled:bg-surface-2"/>
+      <button disabled={!operator} className="h-8 px-3 rounded-md text-white text-[12px] disabled:opacity-50" style={{background:'var(--app-accent)'}}>Ouvrir le parcours</button>
     </form>
     {submitted && <Fail q={lookup} path={`/identities?q=…`}/>}
     {submitted && lookup.data && !looked && <div className="text-muted-foreground">Aucun abonné trouvé.</div>}
 
     <section><H>Identités</H>
       <dl className="grid grid-cols-[110px_1fr] gap-y-0.5 text-[12px]">
-        <dt className="text-muted-foreground">Abonné</dt><dd className="font-mono">{shortPseudo(pseudo)}</dd>
-        {identityRows.map(([label,value,proof])=><React.Fragment key={label}><dt className="text-muted-foreground">{label}</dt><dd className="font-mono" title={proof?.capture_id?`preuve ${proof.capture_id}·${proof.packet_number}`:undefined}>{operator ? available(value) : '—'}{operator&&proof?.event_id&&<span className="ml-1 text-[10px] text-[var(--app-accent)]">#{proof.packet_number}</span>}</dd></React.Fragment>)}
+        <dt className="text-muted-foreground">Pseudonyme</dt><dd className="font-mono" title={pseudo??undefined}>{shortPseudo(pseudo)}</dd>
+        {identityRows.map(([label,kind])=>{const proof=identityProofs(ids,kind).at(-1);return <React.Fragment key={label}><dt className="text-muted-foreground">{label}</dt><dd className="font-mono break-all" title={proof?.capture_id?`preuve ${proof.capture_id}·${proof.packet_number}`:undefined}>{operator ? observedIdentity(ids,kind) : 'connexion requise'}{operator&&proof?.event_id&&<span className="ml-1 text-[10px] text-[var(--app-accent)]">#{proof.packet_number}</span>}</dd></React.Fragment>;})}
       </dl>
       {operator && <div className="mt-1"><Fail q={idQ} path={`/sessions/${s.session_id}/identities`}/></div>}
     </section>

@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react';
 import { OtherSessions } from './SubscriberJourney';
-import { useSessionIdentities } from '@/lib/polaris-api';
+import { useSessionIdentities, observedIdentity } from '@/lib/polaris-api';
 import { toMs, steps, backgroundSteps, fmtSpan, overall, failures, sessionKpis, fmtDuration, fmtBytes, fmtRate, fmtUtc, timeOf } from './analysis';
 
 export const VERDICT_STYLE = { SUCCESS:['#16A34A','#ECFDF3'], FAILED:['#DC2626','#FEF2F2'], PARTIAL:['#D97706','#FFFBEB'], UNKNOWN:['#64748B','#F1F5F9'] };
 export const VerdictBadge = ({v}) => { const [c,b]=VERDICT_STYLE[v]||VERDICT_STYLE.UNKNOWN; return <span className="inline-flex items-center gap-1 h-5 px-1.5 rounded text-[11px] font-semibold tracking-[0.03em]" style={{color:c,background:b}}><span className="w-1.5 h-1.5 rounded-full" style={{background:c}}/>{v}</span>; };
 const H = ({children}) => <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-1.5">{children}</div>;
-const Row = ({k,v}) => <><dt className="text-muted-foreground">{k}</dt><dd className="text-foreground truncate" title={String(v)}>{v}</dd></>;
+const Row = ({k,v}) => <><dt className="text-muted-foreground">{k}</dt><dd className="text-foreground break-all" title={String(v)}>{v}</dd></>;
 
 export default function SessionAnalysis({s,role,width,onPick,onHide,loading,onOpenSession}) {
   const operator=role==='operator'||role==='administrator';
@@ -34,7 +34,7 @@ export default function SessionAnalysis({s,role,width,onPick,onHide,loading,onOp
         {loading && <div className="text-muted-foreground">Chargement des messages…</div>}
         <section><H>Synthèse</H>
           <dl className="grid grid-cols-[96px_1fr] gap-x-2 gap-y-1">
-            <Row k="Session ID" v={s.session_id ?? '—'}/><Row k="UE" v={!s.ue || /^unknown$/i.test(s.ue) ? '—' : s.ue}/><Row k="IMSI / SUPI" v={operator?(ids.imsi??'—'):'—'}/><Row k="TMSI" v={operator?(ids.tmsi?.at(-1)?.value??'—'):'—'}/><Row k="S-TMSI" v={operator?(ids.s_tmsi?.at(-1)?.value??'—'):'—'}/><Row k="M-TMSI" v={operator?(ids.m_tmsi?.at(-1)?.value??'—'):'—'}/><Row k="IMEI" v={operator?(ids.imei?.value??'—'):'—'}/><Row k="MSISDN" v={operator?(ids.msisdn??'—'):'—'}/><Row k="Technologie" v={s.rat ?? '—'}/>
+            <Row k="Session ID" v={s.session_id ?? '—'}/><Row k="UE" v={!s.ue || /^unknown$/i.test(s.ue) ? '—' : s.ue}/><Row k="IMSI / SUPI" v={operator?observedIdentity(ids,'subscriber'):'connexion requise'}/><Row k="TMSI / GUTI" v={operator?observedIdentity(ids,'temporary'):'connexion requise'}/><Row k="S-TMSI" v={operator?observedIdentity(ids,'s_tmsi'):'connexion requise'}/><Row k="M-TMSI" v={operator?observedIdentity(ids,'m_tmsi'):'connexion requise'}/><Row k="IMEI(SV) / PEI" v={operator?observedIdentity(ids,'equipment'):'connexion requise'}/><Row k="MSISDN / GPSI" v={operator?observedIdentity(ids,'directory'):'connexion requise'}/><Row k="Technologie" v={s.rat ?? '—'}/>
             <Row k="Début" v={start}/><Row k="Fin" v={end}/><Row k="Durée" v={fmtSpan(k.durationMs,k.multiCapture)}/>
             <Row k="Cellule" v={s.cell ?? '—'}/><Row k="MME / AMF" v={s.serving_node ?? '—'}/><Row k="Procédure" v={s.proc ?? '—'}/>
           </dl>

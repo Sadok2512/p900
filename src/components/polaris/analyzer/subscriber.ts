@@ -51,7 +51,7 @@ export function toTmsiList(data: unknown, clear: boolean): Tmsi[] {
     const r = x as Rec; const assigned = r['assigned'] ? ref(r['assigned']) : null;
     const st = String(r['status'] ?? '').toLowerCase();
     const status: TmsiStatus = !assigned || /never|jamais|not_observed|non/.test(st) ? 'attribution non capturée' : /replaced|remplac/.test(st) ? 'remplacé' : 'actif';
-    return { label: clear && s(r['tmsi']) ? String(r['tmsi']) : shortPseudo(r['tmsi_pseudonym']), assigned, presented: (Array.isArray(r['presented']) ? r['presented'] : []).map(ref), status };
+    return { label: clear ? (s(r['tmsi']) ?? 'non observé') : shortPseudo(r['tmsi_pseudonym']), assigned, presented: (Array.isArray(r['presented']) ? r['presented'] : []).map(ref), status };
   });
 }
 

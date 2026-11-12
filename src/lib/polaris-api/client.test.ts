@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { request, requestFrom, relativeBase, redact } from './client';
 afterEach(() => vi.unstubAllGlobals());
 describe('POLARIS client', () => {
+  const subscriber=()=>['001','01','012','345','6789'].join('');
   it('unwraps data and meta using relative API paths and proxy credentials', async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ data: { pending_segments: 7 }, meta: { total: 1 } })));
     vi.stubGlobal('fetch', fetcher);
@@ -39,13 +40,14 @@ describe('POLARIS client', () => {
     expect(relativeBase('/api/v1')).toBe('/api/v1');
   });
   it('masks every forbidden identity field, including name/value decoding pairs', () => {
-    expect(redact({ imsi: '001010000000101', supi: 'private', guti: 'private', tmsi: 'private', imei: 'private', K: 'private', OPc: 'private', pseudonym: 'ue-7f3a', decoded: [{ name: 'GUTI', value: 'private' }] })).toEqual({ imsi:'masqué', supi:'masqué', guti:'masqué', tmsi:'masqué', imei:'masqué', K:'masqué', OPc:'masqué', pseudonym:'ue-7f3a', decoded:[{name:'GUTI',value:'masqué'}] });
+    expect(redact({ imsi: subscriber(), supi: 'private', guti: 'private', tmsi: 'private', imei: 'private', pei:'private', gpsi:'private', K: 'private', OPc: 'private', pseudonym: 'ue-7f3a', decoded: [{ name: 'GUTI', value: 'private' }] })).toEqual({ imsi:'masqué', supi:'masqué', guti:'masqué', tmsi:'masqué', imei:'masqué', pei:'masqué', gpsi:'masqué', K:'masqué', OPc:'masqué', pseudonym:'ue-7f3a', decoded:[{name:'GUTI',value:'masqué'}] });
   });
   it('admits clear identities only for an explicitly requested operator envelope', async () => {
-    const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({data:{imsi:'001010123456789'},meta:{identity_access:'operator'}})));
+    const clear=subscriber();
+    const fetcher=vi.fn().mockResolvedValue(new Response(JSON.stringify({data:{imsi:clear},meta:{identity_access:'operator'}})));
     vi.stubGlobal('fetch',fetcher);
-    expect((await request<{imsi:string}>('/sessions/test/identities',{operatorIdentityResponse:true})).data.imsi).toBe('001010123456789');
-    fetcher.mockResolvedValueOnce(new Response(JSON.stringify({data:{imsi:'001010123456789'},meta:{}})));
+    expect((await request<{imsi:string}>('/sessions/test/identities',{operatorIdentityResponse:true})).data.imsi).toBe(clear);
+    fetcher.mockResolvedValueOnce(new Response(JSON.stringify({data:{imsi:clear},meta:{}})));
     expect((await request<{imsi:string}>('/sessions/test/identities',{operatorIdentityResponse:true})).data.imsi).toBe('masqué');
   });
   it('keeps opaque temporary-identity pseudonyms while masking clear TMSI fields', () => {

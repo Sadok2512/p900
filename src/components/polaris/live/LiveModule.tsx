@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { useLiveDemo, usePacketDissection, usePolarisMode } from '@/lib/polaris-api';
+import { useLiveDemo, usePacketDissection, usePolarisMode, observedIdentity } from '@/lib/polaris-api';
 import { apiPath, request } from '@/lib/polaris-api/client';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { InterfaceBadge } from '../ui/InterfaceBadge';
@@ -63,7 +63,7 @@ export default function LiveModule({ t, role, setPage }) {
     const receive=(kind)=>(event)=>{let data;try{data=JSON.parse(event.data)}catch{return} if(kind==='message'){const m={cap:data.capture_id,seq:data.packet_number,eventId:data.event_id,ts:new Date().toLocaleTimeString('fr-FR'),rel:'—',ifc:data.interface,proto:data.protocol,from:data.source,to:data.destination,name:data.message_name,proc:data.procedure||data.message_name,res:data.result||'En cours',cause:data.cause||'',kind:data.phase||'message',corr:'LIVE',decoded:data.decoded_ie_tree};if(runningRef.current)setMsgs(x=>[...x,m].slice(-2000));else setBuf(x=>[...x,{m}].slice(-2000));} else if(kind==='throughput'){const p={ts:Date.now(),dl:Number(data.dl_bytes_s||0)*8/1e6,ul:Number(data.ul_bytes_s||0)*8/1e6};if(runningRef.current)setThr(x=>[...x,p].filter(z=>Date.now()-z.ts<1800000));else setBuf(x=>[...x,{p}].slice(-2000));}else if(kind==='ue_info'){setRealUe({tech:data.technology||'5G',info:data});}else if(kind==='status'){setTtl(Math.max(0,Number(data.expires_at||0)-Math.floor(Date.now()/1000)));}};
     ['message','throughput','ue_info','procedure','marker','status'].forEach(k=>source.addEventListener(k,receive(k))); source.onerror=()=>setRes(r=>({...r,st:'Déconnecté',err:'Flux SSE interrompu'})); return()=>source.close(); },[traceId,demo]);
 
-  const find = async (e) => { e?.preventDefault(); const v=q.trim(); if(!v){setRes({st:'Invalide',err:t('Identifiant requis.')});return;} if(!demo){try{const out=await request('/live/traces',{method:'POST',body:{key_type:ttype,value:v,duration_s:1800,interfaces:[]}});setTraceId(out.data.trace_id);setTtl(Math.max(0,out.data.expires_at-Math.floor(Date.now()/1000)));setRes({st:out.data.armed?'ARMÉE':'OUVERT',ue:out.data.subscriber_pseudonyms?.[0]});setJournal(j=>[{ts:new Date().toLocaleTimeString('fr-FR'),who:'SD',role,a:`trace ${ttype}`,c:'valeur protégée',r:out.data.armed?'ARMÉE':'OUVERT'},...j]);}catch(error){setRes({st:'Indisponible',err:error?.message||'API Live indisponible'});}return;} let r;
+  const find = async (e) => { e?.preventDefault(); const v=q.trim(); if(!v){setRes({st:'Invalide',err:t('Identifiant requis.')});return;} if(!demo){try{const out=await request('/live/traces',{method:'POST',body:{key_type:ttype,value:v,duration_s:1800,interfaces:[]},operatorIdentityResponse:true});setTraceId(out.data.trace_id);setTtl(Math.max(0,out.data.expires_at-Math.floor(Date.now()/1000)));setRes({st:out.data.armed?'ARMÉE':'OUVERT',ue:out.data.subscriber_pseudonyms?.[0],identities:out.data.identities??out.data});setJournal(j=>[{ts:new Date().toLocaleTimeString('fr-FR'),who:'SD',role,a:`trace ${ttype}`,c:'valeur protégée',r:out.data.armed?'ARMÉE':'OUVERT'},...j]);}catch(error){setRes({st:'Indisponible',err:error?.message||'API Live indisponible'});}return;} let r;
     if (ttype === 'pseudo') { if (!/^ue-[0-9a-f]{4}$/.test(v)) r = { st:'Invalide', err:t('Format pseudonyme : ue-xxxx') }; else r = DIR[v] ? { st:DIR[v].st, ue:v } : { st:'Non trouvé' }; setJournal(j => [{ ts:new Date().toLocaleTimeString('fr-FR'), who:'SD', role, a:'recherche pseudo', c:v, r:r.st }, ...j]); }
     else if (ttype === 'guti') { r = /^[0-9A-F-]{8,}$/i.test(v) ? (v.toUpperCase().includes('0A7E91F0') ? { st:'Trouvé', ue:'ue-7f3a' } : { st:'Non trouvé' }) : { st:'Invalide', err:t('Format GUTI/TMSI invalide.') }; }
     else if (ttype === 'cell') { r = ['0A1F','0B07'].includes(v.toUpperCase()) ? { st:'Trouvé', ue: v.toUpperCase()==='0A1F'?'ue-7f3a':'ue-21c0' } : { st:'Non trouvé' }; }
@@ -114,7 +114,7 @@ export default function LiveModule({ t, role, setPage }) {
             <select value={ttype} onChange={e=>{setTtype(e.target.value);setQ('');}} className="h-full px-2 text-[12px] bg-surface-2 border-r border-border outline-none">
               <option value="pseudonym">{t('Pseudonyme')}</option>{op&&<><option value="imsi">IMSI / SUPI</option><option value="tmsi">TMSI / GUTI</option><option value="s_tmsi">S-TMSI</option><option value="m_tmsi">M-TMSI</option><option value="imei">IMEI</option><option value="msisdn">MSISDN</option></>}
             </select>
-            <input value={q} onChange={e=>setQ(e.target.value)} type={ttype==='pseudonym'?'text':'password'} autoComplete="off" placeholder={ttype==='pseudonym'?'UE-…':'identité protégée'} className="w-48 px-3 text-[13px] font-mono outline-none"/>
+            <input value={q} onChange={e=>setQ(e.target.value)} type="text" autoComplete="off" placeholder={ttype==='pseudonym'?'UE-…':'identité en clair'} className="w-48 px-3 text-[13px] font-mono outline-none"/>
             <button className="h-full px-3 bg-[var(--app-accent)] text-white text-[12.5px] font-medium hover:opacity-90">{t('Rechercher')}</button>
           </form>
           {res && <span className="flex items-center gap-1.5 text-[12px]"><Tag c={ST_C[res.st]||'#666'}>{t(res.st)}</Tag>{res.ue && <span className="font-mono text-foreground">{res.ue}</span>}{res.err && <span className="text-danger">{res.err}</span>}</span>}
@@ -130,7 +130,7 @@ export default function LiveModule({ t, role, setPage }) {
         {/* compact counters */}
         <div className="w-full px-6 h-8 flex items-center gap-5 text-[11.5px] text-muted-foreground border-t border-border-subtle">
           {[['Traces actives', tracking?'1 / 10':'—'],['Expiration', tracking?`${Math.floor(ttl/60)}:${String(ttl%60).padStart(2,'0')}`:'—'],['Messages',msgs.length],['Tampon',buf.length],['Marqueurs',marks.length],['Techno',ue?(ue.tech==='LTE'?'LTE':'5G SA'):'—']].map(([n,v])=><span key={n}>{t(n)} <b className="text-foreground tabular-nums">{v}</b></span>)}
-          {!op && <span className="text-subtle">· {t('viewer : recherche IMSI masquée, pseudonymes uniquement')}</span>}
+          {!op && <span className="text-subtle">· {t('viewer : connexion requise pour les identités, pseudonymes uniquement')}</span>}
           {demo && <span className="ml-auto text-warning">{t('Données de démo — API live POLARIS (WebSocket) non connectée')}</span>}
         </div>
       </div>
@@ -234,17 +234,19 @@ function Throughput({ t, data, running, delay, tracking, onFull, full, ue }) {
 function UeInfo({ t, ue, res, op, tracking, msgs, onHide }) {
   const last = msgs[msgs.length - 1]; const lastFail = [...msgs].reverse().find(m => m.res === 'Échec');
   const reg = msgs.find(m => /Registration Accept|Attach Accept/.test(m.name)); const pdu = [...msgs].reverse().find(m => /PDU Session Establishment (Accept|Reject)|Create Session Response/.test(m.name));
-  const Row = ({ n, v, s }) => <div className="flex items-baseline gap-2 py-[5px] text-[12px]"><span className="w-[120px] shrink-0 text-subtle">{n}</span>{v ? <span className="text-foreground font-mono text-[11.5px] truncate" title={s ? 'preuve : seq ' + s : ''}>{v}</span> : <span className="text-subtle italic">{t('Non disponible')}</span>}{v && s && <span className="ml-auto shrink-0 font-mono text-[11px] text-[var(--app-accent)]">#{s}</span>}</div>;
+  const Row = ({ n, v, s }) => <div className="flex items-baseline gap-2 py-[5px] text-[12px]"><span className="w-[120px] shrink-0 text-subtle">{n}</span>{v ? <span className="text-foreground font-mono text-[11.5px] break-all" title={s ? 'preuve : seq ' + s : ''}>{v}</span> : <span className="text-subtle italic">{t('Non disponible')}</span>}{v && s && <span className="ml-auto shrink-0 font-mono text-[11px] text-[var(--app-accent)]">#{s}</span>}</div>;
   const Sec = ({ title, children }) => <div className="px-4 py-2.5 border-b border-border-subtle"><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle mb-1">{t(title)}</div>{children}</div>;
   const [proof, setProof] = useState(false);
-  const I = ue?.info || {}; const has = (k) => { const v = I[k]; if (!tracking || !v || !v[0]) return [null, null]; if (v[1] == null) return v; const need = v[1] < 1000 ? v[1] + 400 : v[1]; return msgs.some(m => m.seq >= need) ? [v[0], need] : [null, null]; };
+  const I = ue?.info || {}; const clearIdentities={...(res?.identities??{}),...I}; const has = (k) => { const v = I[k]; if (!tracking || !v || !v[0]) return [null, null]; if (v[1] == null) return v; const need = v[1] < 1000 ? v[1] + 400 : v[1]; return msgs.some(m => m.seq >= need) ? [v[0], need] : [null, null]; };
   return <div className={card + ' overflow-hidden'}>
     <div className="h-10 px-4 flex items-center gap-2 border-b border-border-subtle"><h3 className="text-[13px] font-semibold">UE Info</h3>{tracking && <span className="text-[11px] text-subtle">{t('màj')} {last?.ts}</span>}<button onClick={onHide} className="ml-auto text-[12px] text-subtle hover:text-foreground">⟩</button></div>
     {!tracking ? <div className="px-4 py-6 text-[12.5px] text-subtle">{t('Aucun UE suivi.')}</div> : <>
       <Sec title="Identité">
         <Row n={t('Pseudonyme')} v={res.ue} s={null} />
-        <Row n="IMSI / SUPI" v={null} s={null} />
-        {!op && <div className="text-[11px] text-subtle -mt-0.5 mb-1">{t('masqué en rôle viewer')}</div>}
+        {op
+          ? <>{[['IMSI / SUPI','subscriber'],['TMSI / GUTI','temporary'],['S-TMSI','s_tmsi'],['M-TMSI','m_tmsi'],['IMEI(SV) / PEI','equipment'],['MSISDN / GPSI','directory']].map(([label,kind])=><Row key={kind} n={label} v={observedIdentity(clearIdentities,kind)} s={null}/>)}</>
+          : <Row n={t('Identités')} v="connexion requise" s={null}/>
+        }
         <div className="flex items-center gap-2 py-1 text-[12px]"><span className="w-[120px] text-subtle">{t('Rattachement')}</span><Tag c={res.st === 'Trouvé' ? '#15803D' : '#A15C07'}>{res.st === 'Trouvé' ? 'EXACT' : 'OUVERT'}</Tag><button onClick={() => setProof(!proof)} className="ml-auto text-[11px] text-[var(--app-accent)]">{proof ? t('masquer') : t('preuve')}</button></div>
         {proof && <div className="text-[11px] text-ink-2 bg-surface-2 rounded p-2 mb-1">{ue.proof}</div>}
       </Sec>

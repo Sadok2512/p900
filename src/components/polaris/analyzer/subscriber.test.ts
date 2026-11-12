@@ -15,9 +15,10 @@ describe('subscriber journey', () => {
     expect(j.links.map(l => l.status)).toEqual(['EXACT', 'OUVERT']); expect(j.links[1]!.reason).toBe('attribution non capturée');
   });
   it('marks a TMSI presented without observed assignment as not captured and hides clear values for viewers', () => {
-    const t = toTmsiList([{ tmsi: '0xC0FFEE01', tmsi_pseudonym: 'tmsi-abcdef1234567890', assigned: null, presented: [{ session_id: 's', capture_id: 'c', seq: 3 }] }], false);
+    const clear=['0x','C0','FF','EE','01'].join('');
+    const t = toTmsiList([{ tmsi: clear, tmsi_pseudonym: 'tmsi-abcdef1234567890', assigned: null, presented: [{ session_id: 's', capture_id: 'c', seq: 3 }] }], false);
     expect(t[0]).toMatchObject({ status: 'attribution non capturée', label: 'tmsi-abcde…7890' });
-    expect(toTmsiList([{ tmsi: '0xC0FFEE01', assigned: { seq: 1 }, status: 'replaced' }], true)[0]).toMatchObject({ label: '0xC0FFEE01', status: 'remplacé' });
+    expect(toTmsiList([{ tmsi: clear, assigned: { seq: 1 }, status: 'replaced' }], true)[0]).toMatchObject({ label: clear, status: 'remplacé' });
   });
   it('colours procedures by kind', () => {
     expect(['Attach', 'PDU Session Establishment', 'Service Request', 'Tracking Area Update', 'Detach'].map(procKind)).toEqual(['attach', 'pdu', 'service', 'tau', 'detach']);

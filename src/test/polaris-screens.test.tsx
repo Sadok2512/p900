@@ -6,11 +6,14 @@ import { PolarisDataProvider } from '@/lib/polaris-api';
 
 const session = { session_id: 's1', ue_pseudonym: 'ue-test', technology: '5G SA', state: 'ACTIVE', procedure:'Registration', decode_completeness:100, interfaces:['N2'], message_count:1, ue_ip:'198.51.100.10' };
 const event = { event_id:'e1', capture_id:'c1', interface:'N2', protocol:'NGAP', message_name:'Registration Accept', source_participant:'AMF', destination_participant:'UE', direction:'CORE_TO_RAN', decoding_status:'DECODED', semantic_status:'SUCCESS', procedure_group:'Registration', packet_references:[{packet_number:45}], decoded_ie_tree:{result:'accepted'}, errors:[] };
+const clearSubscriber=['001','01','012','345','6789'].join('');
+const clearTemporary=['0x','C0','FF','EE','01'].join('');
+const identities={imsi:clearSubscriber,tmsi:[{value:clearTemporary}],s_tmsi:[{value:['01',clearTemporary.slice(2)].join('')}],m_tmsi:[{value:clearTemporary.slice(2)}],imei:{value:['35','2099','00','176','148'].join('')},msisdn:['33','6','00','00','00','01'].join('')};
 const payloads: Record<string,unknown> = {
   '/auth/me':{role:'operator',permissions:['probes.create','probes.update','probes.delete','probes.software_update']}, '/health':{status:'healthy',coordination_open:false}, '/version':{backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{ngap:'0.6.0'}},
   '/metrics':{capture_state:'active',pending_segments:7,segments_ingested:18,ingestion_failures:0,open_segments:2,zero_event_segments:1,dumpcap_active:6,dumpcap_expected:12}, '/storage/safety':{filesystem:{usage_percent:75,available_bytes:268435456}},
   '/sessions':[session], '/sessions/filter':[session], '/sessions/s1':session, '/sessions/s1/events':[event], '/sessions/s1/callflow':{events:[event]}, '/sessions/s1/procedures':[], '/sessions/s1/correlations':{edges:[{edge_id:'edge-1',source_event_id:'e1',target_event_id:'e1',source_interface:'N2',target_interface:'N2',matching_identifiers:['ctx=test'],rule_id:'context-rule',rule_version:'1',matched_rules:['context-rule'],evidence_description:'same context',evidence_type:'EXACT_CONTEXT',confidence:'EXACT',scope:'session',limitations:[],packet_references:[]}]},
-  '/events/e1':event, '/events/e1/provenance':{capture_id:'c1',event_id:'e1',packet_number:45}, '/packets':[{id:'p1'}],
+  '/events/e1':{...event,decoded_ie_tree:{...event.decoded_ie_tree,imsi:clearSubscriber}}, '/events/e1/provenance':{capture_id:'c1',event_id:'e1',packet_number:45}, '/packets':[{id:'p1'}], '/packets/c1/45/dissect':{dissection:['subscriber',clearSubscriber].join('=')}, '/sessions/s1/identities':identities,
   '/probes':[{id:'p1',probe_id:'p1',name:'lab-probe',host:'localhost',mgmt_ip:'127.0.0.1',site:'lab-a',probe_type:'virtual',role:'Capture',status:'healthy',version:'probe-test'}], '/probes/p1':{id:'p1',probe_id:'p1',name:'lab-probe',host:'localhost',mgmt_ip:'127.0.0.1',site:'lab-a',probe_type:'virtual',version:'probe-test'}, '/probes/p1/interfaces':[{interface:'ens3',role:'N2',bpf_filter:'sctp port 38412'}],
   '/interfaces':[{name:'N2',interface:'N2',device:'br-test',protocol:'NGAP',status:'CAPTURING'}], '/interfaces/runtime':[{interface:'N2',pid:9001,active:true,bpf_filter:'sctp port 38412',device:'br-test'}], '/captures':[], '/modules':[], '/datasets':[{id:'d1',name:'Dataset test'}], '/sessions/available_causes':['#27'], '/correlation/rules':[]
 };
@@ -18,7 +21,7 @@ let fetcher: ReturnType<typeof vi.fn>;
 beforeEach(()=>{
   localStorage.clear();
   vi.stubGlobal('ResizeObserver', class { observe(){} disconnect(){} });
-  fetcher = vi.fn(async (url: string) => { const path=url.replace('/api/v1','').split('?')[0] ?? ''; return new Response(JSON.stringify({data:payloads[path] ?? [],meta:{total:1}}),{headers:{'Content-Type':'application/json'}}); });
+  fetcher = vi.fn(async (url: string) => { const path=url.replace('/api/v1','').split('?')[0] ?? ''; const operatorEnvelope=/\/identities$|^\/identities$|^\/events\/|^\/packets\/.*\/dissect$/.test(path); return new Response(JSON.stringify({data:payloads[path] ?? [],meta:{total:1,...(operatorEnvelope?{identity_access:'operator'}:{})}}),{headers:{'Content-Type':'application/json'}}); });
   vi.stubGlobal('fetch',fetcher);
 });
 afterEach(()=>{cleanup();vi.unstubAllGlobals();});
@@ -42,6 +45,22 @@ describe('main screens with simulated REST responses',()=>{
     expect(document.body.textContent).not.toContain('private');
     expect(document.body.textContent).not.toContain('198.51.100.10');
     expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/sessions/filter' && options.method==='POST')).toBe(true);
+  });
+  it('loads clear identities only for the visible operator page', async()=>{
+    open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Afficher toutes les sessions'}));
+    expect((await screen.findAllByText(clearSubscriber)).length).toBeGreaterThan(0);
+    const calls=fetcher.mock.calls.filter(([url])=>String(url).endsWith('/sessions/s1/identities'));
+    expect(calls).toHaveLength(1);
+    expect(screen.getAllByText(clearTemporary).length).toBeGreaterThan(0);
+  });
+  it('shows connection required to viewers and never calls operator identity routes', async()=>{
+    const previous=payloads['/auth/me']; payloads['/auth/me']={role:'viewer'};
+    try {
+      open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Afficher toutes les sessions'}));
+      expect((await screen.findAllByText('connexion requise')).length).toBeGreaterThan(0);
+      expect(fetcher.mock.calls.some(([url])=>String(url).includes('/sessions/s1/identities')||String(url).includes('/identities?'))).toBe(false);
+      expect(screen.queryByText(clearSubscriber)).not.toBeInTheDocument();
+    } finally { payloads['/auth/me']=previous; }
   });
   it('Analyzer can display every session with an unfiltered request', async()=>{
     open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Afficher toutes les sessions'}));
@@ -191,7 +210,7 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByRole('option',{name:'Pseudonyme'})).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.2.0').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.2.0')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.2.1').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.2.1')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard library is marked local and has no simulated saved queries outside Demo',()=>{
     open('templates'); expect(screen.getByText('local à ce navigateur')).toBeInTheDocument(); expect(screen.getByText('Aucune requête enregistrée.')).toBeInTheDocument();

@@ -14,7 +14,7 @@ export function apiPath(path: string, params: QueryParams = {}, base = relativeB
   return relativeBase(base) + path + (query.size ? '?' + query.toString() : '');
 }
 // Remove identity-bearing fields before anything can reach a component or Query cache.
-const privateField = /imsi|supi|suci|guti|tmsi|imei|msisdn|password|token|secret|^(k|opc)$/i;
+const privateField = /imsi|supi|suci|guti|tmsi|imei|imeisv|pei|msisdn|gpsi|password|token|secret|^(k|opc)$/i;
 const privateKey = (key: string) => privateField.test(key) && !/pseudonym/i.test(key);
 export function redact<T>(value: T): T {
   if (typeof value === 'string') return value.replace(/\b\d{14,16}\b/g, 'masqué') as T;

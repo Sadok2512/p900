@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.2.1
+
+- Le rôle operator authentifié affiche sans masque les identités observées IMSI/SUPI, TMSI/GUTI, S-TMSI, M-TMSI, IMEI(SV)/PEI et MSISDN/GPSI dans la liste des sessions, le Call Flow, le détail, le Parcours abonné et Live Trace ; une identité absente affiche « non observé ».
+- La liste charge `/sessions/:id/identities` uniquement pour les sessions de la page visible, faute de route d'identités en lot. La recherche et le tri globaux par identité restent donc limités à cette page.
+- Le viewer affiche « connexion requise » et ne déclenche aucune requête vers les routes operator. Les réponses claires restent acceptées uniquement avec l'enveloppe serveur `identity_access=operator` et après authentification Basic du proxy.
+- Les arbres de décodage operator et la dissection complète conservent les valeurs claires sans masque ni troncature ; les alias 4G/5G sont normalisés dans un adaptateur commun.
+
 ## 2.2.0
 
 - Le proxy n'injecte un jeton operator qu'après une authentification Basic réussie ; les lectures publiques restent viewer, les écritures publiques sont refusées et les routes d'identité, de dissection, de Live Trace et d'audit exigent Basic, y compris lors d'un upgrade.
