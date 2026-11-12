@@ -2,7 +2,7 @@ import KpiModule from './kpi/KpiModule';
 import { ConditionBadge } from './ui/ConditionBadge';
 import { conditionTone } from '@/lib/polaris-ui/conditionTone';
 import LiveModule from './live/LiveModule';
-import { useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionAnchors, useSessionFlows, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useSessionIdentityMap, useSessionIdentities, usePacketDissection, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator, identityValue, identityProofs, observedIdentity } from '@/lib/polaris-api';
+import { useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useSessionIdentities, usePacketDissection, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator, identityValue, identityProofs, observedIdentity } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
 import Administration from './admin/Administration';
@@ -18,7 +18,7 @@ import { INTERFACE_FAMILY_HEX, interfaceFamilyOf } from '@/lib/polaris-ui/interf
 import { APP_THEMES, DEFAULT_THEME, accentOf, normalizeTheme } from '@/lib/polaris-ui/appThemes';
 /* Ladder lines and chips are SVG: they take the family's reference hex. */
 const ifcHex = (name, part) => INTERFACE_FAMILY_HEX[interfaceFamilyOf(name)][part];
-import { visibleMessages, filterOptions, emptyFilter, filterActive, pageItems, pageSlice, verdict, timeOf, toMs, fmtUtc, fmtDuration, sessionSummary } from './analyzer/analysis';
+import { visibleMessages, filterOptions, emptyFilter, filterActive, pageItems, pageSlice, verdict, timeOf, toMs, fmtUtc, fmtDuration } from './analyzer/analysis';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 /* Données fictives — PLMN de test 001/01. Tri canonique (capture_id, seq). */
@@ -203,7 +203,7 @@ const GRID_COLS = [
   {k:'ex',l:'Liens EXACT',g:'correlation',w:90,v:r=>r.ex,mono:true},
   {k:'comp',l:'Compl.',g:'correlation',w:68,v:r=>r.comp==='—'?'—':`${r.comp} %`,sort:r=>Number(r.comp)||-1},
 ];
-function Grid({rows,sel,setSel,conds,setConds,onEdit,height}) {
+function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={}}) {
   const { demo } = usePolarisMode(); const sessions = useSessions({ page:1, page_size:100, sort:'capture_id', order:'asc' },false);
   const [more,setMore] = useState(false);
   const [manageCols,setManageCols] = useState(false);
@@ -234,15 +234,14 @@ function Grid({rows,sel,setSel,conds,setConds,onEdit,height}) {
   useEffect(()=>{ setPage(1); },[q,condKey,size]);
   const pages = Math.max(1,Math.ceil(shown.length/size)); const cur = Math.min(page,pages);
   const rawPageRows = pageSlice(shown,cur,size);
-  const identityMap=useSessionIdentityMap(rawPageRows.map(row=>row.session_id),!demo);
   const pageRows=useMemo(()=>rawPageRows.map(row=>({...row,identities:identityMap[row.session_id]})),[rawPageRows,identityMap]);
   const ko = rows.filter(r=>verdict(r.res)==='FAILED').length;
   const cell = (c,r) => {
     const v = c.v(r);
     if (c.k==='res') return <VerdictBadge v={v}/>;
-    if (c.k==='sub') { const subscriber=observedIdentity(r.identities,'subscriber'); return subscriber==='—' ? <span className="text-subtle">—</span> : <span className="inline-flex items-center gap-1" title={r.subscriber_pseudonym}>{subscriber}{r.subscriber_session_count!=null && <span className="rounded bg-brand-soft text-brand px-1 text-[11px] font-sans font-semibold">{r.subscriber_session_count} sessions</span>}</span>; }
+    if (c.k==='sub') { if (!r.identities) return <span className="text-subtle">ouvrir la session</span>; const subscriber=observedIdentity(r.identities,'subscriber'); return subscriber==='—' ? <span className="text-subtle">non observé</span> : <span className="inline-flex items-center gap-1" title={r.subscriber_pseudonym}>{subscriber}{r.subscriber_session_count!=null && <span className="rounded bg-brand-soft text-brand px-1 text-[11px] font-sans font-semibold">{r.subscriber_session_count} sessions</span>}</span>; }
     if (c.k==='ifc') return <span className="flex gap-1">{[...new Set(r.interfaces ?? [])].map(i=><Tag key={i} i={i}/>)}</span>;
-    if (c.identity) { const values=identityProofs(r.identities,c.kind); const extra=Math.max(0,values.length-1); const title=values.map(x=>`${x.value} — ${x.role} — ${x.capture_id}·${x.packet_number}`).join('\n'); return <span className="font-mono whitespace-normal break-all" title={title||undefined}>{v}{extra>0&&<span className="ml-1 rounded bg-brand-soft text-brand px-1 font-sans text-[10px]">+{extra}</span>}</span>; }
+    if (c.identity) { if (!r.identities) return <span className="text-subtle font-sans">ouvrir la session</span>; const values=identityProofs(r.identities,c.kind); const extra=Math.max(0,values.length-1); const title=values.map(x=>`${x.value} — ${x.role} — ${x.capture_id}·${x.packet_number}`).join('\n'); return <span className="font-mono whitespace-normal break-all" title={title||undefined}>{v==='—'?'non observé':v}{extra>0&&<span className="ml-1 rounded bg-brand-soft text-brand px-1 font-sans text-[10px]">+{extra}</span>}</span>; }
     if (c.k==='cause') return <span className={verdict(r.res)==='FAILED'?'text-danger':'text-muted-foreground'}>{v}</span>;
     return v;
   };
@@ -426,7 +425,7 @@ function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
   return (
     <section className="flex-1 min-h-0 flex flex-col bg-white rounded-xl border border-border overflow-hidden">
       <div className="px-3 border-b border-border">
-        {s.detailErrors?.map(error => <div key={error.endpoint} role="alert" className="pt-1.5 text-[12px] text-danger">Détail indisponible · {error.endpoint} · HTTP {error.status}</div>)}
+        {s.detailErrors?.map(error => <div key={error.endpoint} role="alert" className="pt-1.5 text-[12px] text-danger">Détail indisponible · {error.endpoint} · {error.message}</div>)}
         <div className="min-h-[42px] flex flex-wrap items-center gap-x-4 gap-y-1 min-w-0">
           {['Ladder','Messages','Corrélation','Plan usager','Comparer'].map(t => <button key={t} onClick={()=>setTab(t)} className={`h-[42px] shrink-0 whitespace-nowrap text-[12.5px] border-b-2 ${tab===t?'border-[var(--app-accent)] text-foreground font-medium':'border-transparent text-muted-foreground hover:text-foreground'}`}>{t}</button>)}
           <div className="ml-auto flex items-center gap-1 shrink-0">
@@ -1155,24 +1154,23 @@ function App() {
   const setConds = c => active && setTabs(ts=>ts.map(x=>x.id===active.id?{...x,conds:c.map(y=>y.length>2?y:[y[0],y[1],'='])}:x));
   const sessionsQuery = useSessions({ page:1, page_size:100, sort:'capture_id', order:'asc' }, page==='sessions');
   const listedSessions = records(sessionsQuery.data?.data, 'sessions');
-  const anchorCandidates = demo ? [] : (active?.apiRows || listedSessions);
-  const sessionAnchors = useSessionAnchors(anchorCandidates, page==='sessions' && view==='results' && !demo);
-  const sessionFlows = useSessionFlows(anchorCandidates, page==='sessions' && view==='results' && !demo);
-  const adaptSession = x => { const base = toLegacySession(x, sessionAnchors[String(x.session_id)]); const f = sessionFlows[String(x.session_id)]; if (!f) return base; const sm = sessionSummary(x, f); return { ...base, res: sm.res, durMs: sm.durationMs, multiCapture: sm.multiCapture }; };
+  const adaptSession = x => toLegacySession(x);
   const sourceRows = listedSessions.map(x=>demo ? x : adaptSession(x));
   const rows = useMemo(()=>{
     if (!active) return [];
     const ue = active.ue;
     const data = demo ? sourceRows : (active.apiRows ? active.apiRows.map(adaptSession) : sourceRows);
     return demo ? data.filter(s=>(!ue || (Array.isArray(ue)?ue.includes(s.ue):s.ue===ue)) && matchQ(s,active.conds,active.join)) : data;
-  },[active,demo,sessionsQuery.data,sessionAnchors,sessionFlows]);
+  },[active,demo,sessionsQuery.data]);
   const [sel,setSel] = useState(3);
   const s = rows.find(r=>r.id===sel) || rows.find(r=>r.id!=null);
+  const selectedIdentities = useSessionIdentities(page==='sessions' && view==='results' && !demo ? s?.session_id : null);
+  const listIdentityMap = useMemo(()=>s?.session_id && selectedIdentities.data?.data ? {[s.session_id]:selectedIdentities.data.data} : {},[s?.session_id,selectedIdentities.data]);
   const bundle = useSessionBundle(page==='sessions' && view==='results' ? s?.id : null);
   const detailSession = bundle.session.data?.data ? toLegacySession(bundle.session.data.data) : null;
   const detailErrors = s?.id == null ? [] : [['session',bundle.session],['events',bundle.events],['procedures',bundle.procedures],['callflow',bundle.callflow],['correlations',bundle.correlations]]
     .filter(([,query])=>query.isError)
-    .map(([endpoint,query])=>({endpoint:`/sessions/${encodeURIComponent(String(s.id))}${endpoint==='session'?'':`/${endpoint}`}`,status:query.error?.status ?? '—'}));
+    .map(([endpoint,query])=>({endpoint:`/sessions/${encodeURIComponent(String(s.id))}${endpoint==='session'?'':`/${endpoint}`}`,message:query.error?.message ?? 'Cause inconnue'}));
   const selected = s ? (demo ? s : {...s,...Object.fromEntries(Object.entries(detailSession ?? {}).filter(([key,v])=>key!=='d' && v!=null && v!=='—' && !(Array.isArray(v)&&!v.length))),id:detailSession?.id ?? s.id,session_id:detailSession?.session_id ?? s.session_id,d:bundle.detail || s.d,detailErrors}) : null;
   const nameOf = c => `${c.length?c.map(x=>x[1]).join(' · '):'Toutes les sessions'}${demo ? ' · run 482' : ''}`;
   const patch = (id,o) => setTabs(ts=>ts.map(x=>x.id===id?{...x,...o}:x));
@@ -1257,7 +1255,7 @@ function App() {
       {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">
         <main ref={mainRef} className={`flex-1 min-w-0 flex-col ${geoMax && selected && !geoHidden && !full ? 'hidden' : 'flex'}`}>
           {!full && !gridHidden && <>
-            <Grid rows={rows} sel={s?.id} setSel={setSel} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`}/>
+            <Grid rows={rows} sel={s?.id} setSel={setSel} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`} identityMap={listIdentityMap}/>
             <div onMouseDown={e=>drag(e,'h')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group h-2 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[2px] w-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
           </>}
           <div ref={lowRef} className="flex-1 min-h-0 flex">

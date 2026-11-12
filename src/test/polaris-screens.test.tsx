@@ -4,7 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import PolarisApp from '@/components/polaris/PolarisApp';
 import { PolarisDataProvider } from '@/lib/polaris-api';
 
-const session = { session_id: 's1', ue_pseudonym: 'ue-test', technology: '5G SA', state: 'ACTIVE', procedure:'Registration', decode_completeness:100, interfaces:['N2'], message_count:1, ue_ip:'198.51.100.10' };
+const session = { session_id: 's1', anchor_capture_id:'c1', first_packet_number:45, ue_pseudonym: 'ue-test', technology: '5G SA', state: 'ACTIVE', procedure:'Registration', decode_completeness:100, interfaces:['N2'], message_count:1, ue_ip:'198.51.100.10' };
 const event = { event_id:'e1', capture_id:'c1', interface:'N2', protocol:'NGAP', message_name:'Registration Accept', source_participant:'AMF', destination_participant:'UE', direction:'CORE_TO_RAN', decoding_status:'DECODED', semantic_status:'SUCCESS', procedure_group:'Registration', packet_references:[{packet_number:45}], decoded_ie_tree:{result:'accepted'}, errors:[] };
 const clearSubscriber=['001','01','012','345','6789'].join('');
 const clearTemporary=['0x','C0','FF','EE','01'].join('');
@@ -53,6 +53,18 @@ describe('main screens with simulated REST responses',()=>{
     const calls=fetcher.mock.calls.filter(([url])=>String(url).endsWith('/sessions/s1/identities'));
     expect(calls).toHaveLength(1);
     expect(screen.getAllByText(clearTemporary).length).toBeGreaterThan(0);
+  });
+  it('loads callflow and identities lazily for only the opened session', async()=>{
+    const previousSessions=payloads['/sessions']; const previousFilter=payloads['/sessions/filter'];
+    const second={...session,session_id:'s2',anchor_capture_id:'c2',first_packet_number:46,ue_pseudonym:'ue-second'};
+    payloads['/sessions']=[session,second]; payloads['/sessions/filter']=[session,second];
+    try {
+      open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Afficher toutes les sessions'}));
+      await screen.findAllByText('ue-second');
+      await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url).endsWith('/sessions/s1/callflow'))).toBe(true));
+      expect(fetcher.mock.calls.some(([url])=>String(url).endsWith('/sessions/s2/callflow'))).toBe(false);
+      expect(fetcher.mock.calls.some(([url])=>String(url).endsWith('/sessions/s2/identities'))).toBe(false);
+    } finally { payloads['/sessions']=previousSessions; payloads['/sessions/filter']=previousFilter; }
   });
   it('keeps identities directly accessible without deriving access from auth/me', async()=>{
     const previous=payloads['/auth/me']; payloads['/auth/me']={role:'viewer'};
@@ -104,7 +116,7 @@ describe('main screens with simulated REST responses',()=>{
       return new Response(JSON.stringify({data:payloads[path] ?? [],meta:{total:1}}),{headers:{'Content-Type':'application/json'}});
     });
     open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'})); fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Détail indisponible · /sessions/s1 · HTTP 404');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Détail indisponible · /sessions/s1 · GET /sessions/s1 · HTTP 404');
   });
   it('renders repeated procedure group names without duplicate React keys', async()=>{
     const previous=payloads['/sessions/s1/callflow'];
@@ -245,7 +257,7 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByRole('option',{name:'Pseudonyme'})).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.3.0').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.3.0')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.3.1').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.3.1')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard sits under KPI and is gone from the top menu', async()=>{
     open('kpi');
@@ -260,7 +272,7 @@ describe('main screens with simulated REST responses',()=>{
     await waitFor(()=>expect(window.location.hash).toBe('#kpi'));
   });
   it('offline remains empty, no automatic demo fallback', async()=>{
-    fetcher.mockRejectedValue(new TypeError('offline')); open('home'); await screen.findAllByText('POLARIS non connecté');
+    fetcher.mockRejectedValue(new TypeError('offline')); open('home'); await screen.findAllByText(/Erreur réseau pour GET \/health/);
     expect(screen.queryByText('18')).not.toBeInTheDocument(); expect(screen.queryByText('Données de démo')).not.toBeInTheDocument();
   });
   it('Demo switch shows isolated data and does not grant a role', async()=>{

@@ -1,10 +1,23 @@
 # Changelog
 
+## 2.3.1
+
+- Intègre le correctif Analyzer 2.2.4 à la branche du référentiel cellules : aucun préchargement des callflows, identités paresseuses, file bornée à quatre requêtes et priorité aux détails ouverts.
+- Les détails et identités disposent de 60 secondes ; navigation annulée, délai, réseau et statut HTTP sont distingués, sans « HTTP 0 ».
+- Le bandeau de connexion s'appuie sur la santé de POLARIS Control `/polaris-api/v1/health`.
+
 ## 2.3.0
 
 - Administration ajoute l’onglet « Référentiel cellules » : sélection d’un CSV de 5 Mo maximum, validation à blanc automatique, compteurs par technologie et aperçu des cellules normalisées.
 - Les erreurs de validation sont affichées en rouge avec ligne, colonne, code et message. « Confirmer l’import » reste désactivé tant que la validation contient une erreur.
 - La liste des snapshots indique le snapshot actif et permet l’activation directe. Les fichiers CSV sont envoyés tels quels à `/api/v1/cell-reference`; aucun contenu de référentiel n’est inventé côté interface.
+
+## 2.2.4
+
+- L'Analyzer ne précharge plus le callflow de chaque session : seuls les cinq détails de la session ouverte sont prioritaires, et les identités sont chargées paresseusement pour cette session.
+- Le client limite les lectures API à quatre requêtes simultanées, accorde 60 secondes aux détails et aux identités, et conserve le délai de 8 secondes uniquement pour les contrôles de santé.
+- Une navigation annulée ne produit plus d'erreur ; les échecs visibles distinguent désormais un délai dépassé, une erreur réseau et le statut HTTP réel au lieu d'afficher « HTTP 0 ».
+- Le bandeau de connexion consulte la santé de POLARIS Control via `/polaris-api/v1/health`, et non la santé de l'API OIRAN utilisée par l'Analyzer.
 
 ## 2.2.3
 

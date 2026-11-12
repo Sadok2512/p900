@@ -22,13 +22,13 @@ describe('POLARIS client', () => {
     expect(fetcher.mock.calls[0]?.[0]).toBe('/polaris-api/v1/nodes');
     expect(fetcher.mock.calls[0]?.[1].headers).not.toHaveProperty('Authorization');
   });
-  it('maps failed network to POLARIS non connecté', async () => {
+  it('reports the failed network request instead of an HTTP 0 label', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('offline')));
-    await expect(request('/health')).rejects.toMatchObject({ code: 'NETWORK_ERROR', status: 0, message: 'POLARIS non connecté' });
+    await expect(request('/health')).rejects.toMatchObject({ code: 'NETWORK_ERROR', status: 0, message: 'Erreur réseau pour GET /health' });
   });
-  it('maps the preview missing API response to disconnected', async () => {
+  it('reports the real preview HTTP status', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'Only HTML requests are supported here' }), { status: 406 })));
-    await expect(request('/health')).rejects.toMatchObject({ status: 406, message: 'POLARIS non connecté' });
+    await expect(request('/health')).rejects.toMatchObject({ status: 406, message: 'GET /health · HTTP 406' });
   });
   it('does not accept preview HTML as an API response', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html/>')));
@@ -57,12 +57,32 @@ describe('POLARIS client', () => {
     vi.stubGlobal('fetch', fetcher);
     expect((await request('/sessions/s/identities', { clearIdentityResponse: true })).data).toEqual({ imsi: 'test-value' });
   });
+  it('limits concurrency to four and lets an opened-session detail jump the queue', async () => {
+    const resolvers: Array<(value: Response) => void> = [];
+    const fetcher = vi.fn(() => new Promise<Response>(resolve => resolvers.push(resolve)));
+    vi.stubGlobal('fetch', fetcher);
+    const normal = Array.from({ length: 6 }, (_, index) => request(`/background-${index}`, { priority: 'background' }));
+    await Promise.resolve();
+    expect(fetcher).toHaveBeenCalledTimes(4);
+    const detail = request('/sessions/opened', { priority: 'detail' });
+    resolvers.shift()?.(new Response(JSON.stringify({ data: {}, meta: {} })));
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(5));
+    expect(fetcher.mock.calls[4]?.[0]).toBe('/api/v1/sessions/opened');
+    while (resolvers.length) resolvers.shift()?.(new Response(JSON.stringify({ data: {}, meta: {} })));
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(7));
+    while (resolvers.length) resolvers.shift()?.(new Response(JSON.stringify({ data: {}, meta: {} })));
+    await Promise.all([...normal, detail]);
+  });
+  it('keeps navigation cancellation as AbortError', async () => {
+    const controller = new AbortController(); controller.abort();
+    await expect(request('/sessions/left', { signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' });
+  });
 });
 
 import { it as itU, expect as expectU, vi as viU } from 'vitest';
-itU('treats the relay unreachable marker as POLARIS non connecté (502)', async () => {
+itU('reports the relay unreachable marker with its real cause (502)', async () => {
   viU.stubGlobal('fetch', viU.fn(async () => new Response(JSON.stringify({ error: { code: 'BACKEND_UNREACHABLE' } }), { status: 200, headers: { 'x-polaris-unreachable': '1' } })));
   const { request } = await import('./client');
-  await expectU(request('/health')).rejects.toMatchObject({ status: 502, message: 'POLARIS non connecté' });
+  await expectU(request('/health')).rejects.toMatchObject({ status: 502, message: 'Relais indisponible pour GET /health (HTTP 502)' });
   viU.unstubAllGlobals();
 });

@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react';
-import { queryOptions, useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { request, requestFrom, PolarisApiError } from './client';
+import { queryOptions, useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { request, requestFrom, PolarisApiError, type RequestOptions } from './client';
 import { demoResponse } from './demo';
 import { ALL_KPIS, mockSeries, seedRand, SAVED } from './demo/catalogue';
 import { TR_CATS, TR_APPS, TR_CELLS, TR_V, TR_FLOWS } from './demo/traffic';
@@ -11,38 +11,24 @@ import type { Health, Version, Metrics, Safety, Session, Event, Probe, RecordDat
 const Mode = createContext({ demo: false, setDemo: (_value: boolean) => {} });
 export function PolarisDataProvider({ children }: { children: ReactNode }) { const [demo, setDemo] = useState(false); return <Mode.Provider value={{ demo, setDemo }}>{children}</Mode.Provider>; }
 export const usePolarisMode = () => useContext(Mode);
-export const resourceOptions = <T,>(path: string, params: QueryParams = {}, demo = false) => queryOptions({ queryKey: ['polaris', demo ? 'demo' : 'api', path, params], queryFn: ({ signal }) => { const fixture = demo ? demoResponse<T>(path, params) : undefined; return fixture ? Promise.resolve(fixture) : request<T>(path, { params, signal }); }, staleTime: path === '/auth/me' ? 30_000 : 15_000, retry: false, refetchOnWindowFocus: false });
-export function useResource<T>(path: string, params: QueryParams = {}, enabled = true, allowDemo = true) {
+export const resourceOptions = <T,>(path: string, params: QueryParams = {}, demo = false, requestOptions: RequestOptions = {}) => queryOptions({ queryKey: ['polaris', demo ? 'demo' : 'api', path, params], queryFn: ({ signal }) => { const fixture = demo ? demoResponse<T>(path, params) : undefined; return fixture ? Promise.resolve(fixture) : request<T>(path, { ...requestOptions, params, signal }); }, staleTime: path === '/auth/me' ? 30_000 : 15_000, retry: false, refetchOnWindowFocus: false });
+export function useResource<T>(path: string, params: QueryParams = {}, enabled = true, allowDemo = true, requestOptions: RequestOptions = {}) {
   const { demo } = usePolarisMode();
-  return useQuery({ ...resourceOptions<T>(path, params, allowDemo && demo), enabled });
+  return useQuery({ ...resourceOptions<T>(path, params, allowDemo && demo, requestOptions), enabled });
 }
-export const useHealth = () => useQuery({ ...resourceOptions<Health>('/health', {}, false), refetchInterval: 5_000, refetchIntervalInBackground: true });
+export const useHealth = () => useQuery({ ...resourceOptions<Health>('/health', {}, false, { timeoutMs: 8_000 }), refetchInterval: 5_000, refetchIntervalInBackground: true });
 export const useVersion = () => useQuery({ ...resourceOptions<Version>('/version', {}, false), refetchInterval: 30_000, refetchIntervalInBackground: true });
 export const useMetrics = () => useResource<Metrics>('/metrics');
 export const useLiveMetrics = () => useQuery({ ...resourceOptions<Metrics>('/metrics', {}, false), refetchInterval: 5_000, refetchIntervalInBackground: true });
 export const useStorageSafety = () => useQuery({ ...resourceOptions<Safety>('/storage/safety', {}, false), refetchInterval: 15_000, refetchIntervalInBackground: true });
 export const useSessions = (params: QueryParams = {}, enabled = true) => useResource<Session[]>('/sessions', params, enabled);
 const idPath = (id: string | number | null | undefined) => encodeURIComponent(String(id ?? ''));
-export const useSession = (id?: string | number | null) => useResource<Session>(`/sessions/${idPath(id)}`, {}, id != null);
-export const useEvents = (id?: string | number | null) => useResource<Event[]>(`/sessions/${idPath(id)}/events`, {}, id != null);
-export const useProcedures = (id?: string | number | null) => useResource<RecordData[]>(`/sessions/${idPath(id)}/procedures`, {}, id != null);
-export const useCallflow = (id?: string | number | null) => useResource<RecordData | Event[]>(`/sessions/${idPath(id)}/callflow`, {}, id != null);
-export const useCorrelations = (id?: string | number | null) => useResource<Correlation[] | { edges: Correlation[] }>(`/sessions/${idPath(id)}/correlations`, {}, id != null);
-// Same cached callflow queries as useSessionAnchors, adapted to the legacy flow shape for per-row results.
-export function useSessionFlows(sessions: Session[], enabled = true): Record<string, ReturnType<typeof toLegacyCallflow> | undefined> {
-  const rows = sessions.filter(session => session.session_id);
-  const queries = useQueries({ queries: rows.map(session => ({ ...resourceOptions<RecordData | Event[]>(`/sessions/${idPath(session.session_id)}/callflow`, {}, false), enabled })) });
-  return Object.fromEntries(rows.map((session, index) => { const v = queries[index]?.data?.data; return [String(session.session_id), v == null ? undefined : toLegacyCallflow(v, null, null)]; }));
-}
-export function useSessionAnchors(sessions: Session[], enabled = true): Record<string, Event | undefined> {
-  const rows = sessions.filter(session => session.session_id);
-  const queries = useQueries({ queries: rows.map(session => ({ ...resourceOptions<RecordData | Event[]>(`/sessions/${idPath(session.session_id)}/callflow`, {}, false), enabled })) });
-  return Object.fromEntries(rows.map((session, index) => {
-    const value = queries[index]?.data?.data;
-    const body = value && typeof value === 'object' && !Array.isArray(value) ? value as RecordData : {};
-    return [String(session.session_id), records<Event>(Array.isArray(value) ? value : body['events'] ?? body['messages'])[0]];
-  }));
-}
+const detailRequest = { priority: 'detail' as const, timeoutMs: 60_000 };
+export const useSession = (id?: string | number | null) => useResource<Session>(`/sessions/${idPath(id)}`, {}, id != null, true, detailRequest);
+export const useEvents = (id?: string | number | null) => useResource<Event[]>(`/sessions/${idPath(id)}/events`, {}, id != null, true, detailRequest);
+export const useProcedures = (id?: string | number | null) => useResource<RecordData[]>(`/sessions/${idPath(id)}/procedures`, {}, id != null, true, detailRequest);
+export const useCallflow = (id?: string | number | null) => useResource<RecordData | Event[]>(`/sessions/${idPath(id)}/callflow`, {}, id != null, true, detailRequest);
+export const useCorrelations = (id?: string | number | null) => useResource<Correlation[] | { edges: Correlation[] }>(`/sessions/${idPath(id)}/correlations`, {}, id != null, true, detailRequest);
 export const useEvent = (id?: string | number | null, clearIdentities=false) => useQuery({ queryKey:['polaris','api','event',id,clearIdentities?'clear':'redacted'], queryFn:({signal})=>request<Event>(`/events/${idPath(id)}`,{signal,clearIdentityResponse:clearIdentities}), enabled:id!=null, retry:false, refetchOnWindowFocus:false });
 export const useProvenance = (id?: string | number | null) => useResource<RecordData>(`/events/${idPath(id)}/provenance`, {}, id != null);
 export const usePackets = (params: QueryParams = {}, enabled = true) => useResource<RecordData[]>('/packets', params, enabled);
@@ -104,12 +90,7 @@ export function useKpiDemo() { const { demo } = usePolarisMode(); return { dashb
 const pseudoPath = (p?: string | null) => encodeURIComponent(String(p ?? ''));
 export const useSubscriberJourney = (p?: string | null) => useResource<RecordData>(`/subscribers/${pseudoPath(p)}/journey`, {}, !!p, true);
 export const useSubscriberTmsi = (p?: string | null, clearIdentities=false) => useQuery({ queryKey:['polaris','api','subscriber-tmsi',p,clearIdentities?'clear':'redacted'], queryFn:({signal})=>request<RecordData[]>(`/subscribers/${pseudoPath(p)}/tmsi`,{signal,clearIdentityResponse:clearIdentities}), enabled:!!p, retry:false, refetchOnWindowFocus:false });
-export const useSessionIdentities = (id?: string | null, enabled = true) => useQuery({ queryKey:['polaris','clear-identities','session',id], queryFn:({signal})=>request<SessionIdentities>(`/sessions/${idPath(id)}/identities`,{signal,clearIdentityResponse:true}), enabled:!!id&&enabled, retry:false, refetchOnWindowFocus:false });
-export function useSessionIdentityMap(ids: Array<string | null | undefined>, enabled=true): Record<string,SessionIdentities|undefined> {
-  const unique=[...new Set(ids.filter((id):id is string=>!!id))];
-  const queries=useQueries({queries:unique.map(id=>({queryKey:['polaris','clear-identities','session',id],queryFn:({signal}:{signal:AbortSignal})=>request<SessionIdentities>(`/sessions/${idPath(id)}/identities`,{signal,clearIdentityResponse:true}),enabled,retry:false,refetchOnWindowFocus:false}))});
-  return Object.fromEntries(unique.map((id,index)=>[id,queries[index]?.data?.data]));
-}
+export const useSessionIdentities = (id?: string | null, enabled = true) => useQuery({ queryKey:['polaris','clear-identities','session',id], queryFn:({signal})=>request<SessionIdentities>(`/sessions/${idPath(id)}/identities`,{signal,clearIdentityResponse:true,...detailRequest}), enabled:!!id&&enabled, retry:false, refetchOnWindowFocus:false });
 export const useIdentityLookup = (q: string, enabled=true) => useQuery({ queryKey:['polaris','clear-identities','lookup',q], queryFn:({signal})=>request<RecordData>('/identities',{params:{q},signal,clearIdentityResponse:true}), enabled:enabled&&q.trim().length>=4, retry:false, refetchOnWindowFocus:false });
 export const usePacketDissection = (captureId?: string | null, packetNumber?: number | null, enabled=true) => useQuery({ queryKey:['polaris','api','dissect',captureId,packetNumber], queryFn:({signal})=>request<RecordData>(`/packets/${idPath(captureId)}/${packetNumber}/dissect`,{signal,clearIdentityResponse:true}), enabled:enabled&&!!captureId&&packetNumber!=null, retry:false, refetchOnWindowFocus:false });
 // Administration (no demo): users, roles and audit come only from the lab server, which enforces permissions.
@@ -128,7 +109,8 @@ export function useCellReferenceActivation() {
   const client=useQueryClient();
   return useMutation({mutationFn:(snapshotId:string)=>request<RecordData>(`/cell-reference/${idPath(snapshotId)}/activate`,{method:'POST'}),onSuccess:()=>client.invalidateQueries({queryKey:['polaris']})});
 }
-const polarisOptions = <T,>(path: string) => queryOptions({ queryKey: ['polaris-control', path], queryFn: ({ signal }) => requestFrom<T>('/polaris-api/v1', path, { signal }), staleTime: 5_000, retry: false, refetchOnWindowFocus: false });
+const polarisOptions = <T,>(path: string, options: RequestOptions = {}) => queryOptions({ queryKey: ['polaris-control', path], queryFn: ({ signal }) => requestFrom<T>('/polaris-api/v1', path, { ...options, signal }), staleTime: 5_000, retry: false, refetchOnWindowFocus: false });
+export const usePolarisControlHealth = () => useQuery({ ...polarisOptions<Health>('/health', { timeoutMs: 8_000 }), refetchInterval: 5_000, refetchIntervalInBackground: true });
 // Unreachable simulator: back off to 60 s so the topology stops flickering every 5 s.
 const simulatorPoll = (q: { state: { status: string } }) => (q.state.status === 'error' ? 60_000 : 15_000);
 export const usePolarisLab = () => useQuery({ ...polarisOptions<RecordData>('/lab'), refetchInterval: simulatorPoll });
