@@ -81,8 +81,8 @@ function TopBarLive({metrics,demo,onOpen}) {
 
 function TopBarVersion({version}) {
   const data=version.data?.data;
-  const title=`backend_api: ${available(data?.backend_api)}\nsession_engine: ${available(data?.session_engine)}\ncorrelation_engine: ${available(data?.correlation_engine)}\nevent_schema: ${available(data?.event_schema)}\ndecoders: ${decoderVersions(data?.decoders)}`;
-  return <div title={title} className="flex flex-col justify-center leading-none whitespace-nowrap"><span className="text-[17px] font-semibold tracking-tight text-foreground leading-[20px]">POLARIS</span><span className="text-[10.5px] text-muted-foreground font-mono leading-[14px] mt-0.5">{UI_VERSION}</span></div>;
+  const title=`product: ${available(data?.product)}\nversion: ${available(data?.version)}\napi_commit: ${available(data?.api_commit)}\nui_commit: ${available(data?.ui_commit)}`;
+  return <div title={title} className="flex flex-col justify-center leading-none whitespace-nowrap"><span className="text-[17px] font-semibold tracking-tight text-foreground leading-[20px]">POLARIS</span><span className="text-[10.5px] text-muted-foreground font-mono leading-[14px] mt-0.5">{data?.version??UI_VERSION}</span></div>;
 }
 
 function TopBar({page,setPage,onAnalyzer,accent,onSettings,metrics,version,demo,hidden=[]}) {
@@ -1115,6 +1115,8 @@ function MockChart({data,unit}){
 function App() {
   const { demo } = usePolarisMode();
   const version = useVersion(), metrics = useLiveMetrics();
+  const apiProductVersion = version.data?.data?.version;
+  const versionMismatch = typeof apiProductVersion === 'string' && apiProductVersion !== UI_VERSION;
   const kpis = useKpiCatalogue(); const demoLibrary = useDemoLibrary(); const sessionFilter = useSessionFilter();
   const [requestError,setRequestError] = useState('');
 
@@ -1249,6 +1251,7 @@ function App() {
     <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-surface-2 text-foreground text-base">
       <TopBar page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')} metrics={metrics} version={version} demo={demo} hidden={navHidden}/>
       <DataStatus t={t}/>
+      {versionMismatch && <div role="alert" className="shrink-0 border-b border-warning-line bg-warning-soft px-4 py-2 text-[12px] text-warning">Versions incohérentes · API {apiProductVersion} · UI {UI_VERSION}</div>}
       {requestError && <div role="alert" className="shrink-0 border-b border-warning-line bg-warning-soft px-4 py-2 text-[12px] text-warning">{requestError}</div>}
       {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={navHidden} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV} DashboardView={<QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/>}/> : page==='live' ? <LiveModule t={t} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : <>
       {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}

@@ -74,6 +74,10 @@ export type Metrics = Evidence & { capture_state?: string; pending_segments?: nu
 export type Safety = Evidence & { free_bytes?: number; total_bytes?: number; free_percent?: number; filesystem?: RecordData; policy?: RecordData; decision?: RecordData };
 export type Probe = RecordData & { id?: string | number; probe_id?: string; name?: string; role?: string; probe_type?: string; status?: string; health?: string; online?: boolean; version?: string; cpu_percent?: number; cpu_usage_percent?: number; disk_percent?: number; disk_usage_percent?: number; memory_used_gb?: number; memory_total_gb?: number; memory_usage_bytes?: number; memory_anon_bytes?: number; memory_file_bytes?: number; last_seen?: string; last_heartbeat_epoch_s?: number; connected_interfaces?: string[] };
 export type Version = RecordData & {
+  product?: string;
+  version?: string;
+  api_commit?: string;
+  ui_commit?: string;
   backend_api?: string;
   web_frontend?: string;
   platform_core?: string;

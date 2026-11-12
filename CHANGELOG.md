@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.0.0
+
+- Renumérotation exacte de l’Analyzer de production : API OIRAN
+  `7ad769e48937c54e801e573c3f22b0d7ab9f122f` et UI p900
+  `666847332d3a8345605189df200e430a79f6c360`.
+- Cette release exclut les lots OIRAN 2.15/2.16 et p900 2.3/2.4. POLARIS
+  Control 8020 reste une application et une version séparées.
+- Le contrôle de cohérence compare uniquement la version Analyzer annoncée
+  par l’API 8091 à la version du package UI.
+
 ## 2.2.4
 
 - L'Analyzer ne précharge plus le callflow de chaque session : seuls les cinq détails de la session ouverte sont prioritaires, et les identités sont chargées paresseusement pour cette session.

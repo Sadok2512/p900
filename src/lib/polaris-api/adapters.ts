@@ -49,6 +49,13 @@ function procedureGroups(events: Event[]) {
 }
 
 export function versionComponents(version: import('./types').Version | null | undefined, uiVersion: string) {
+  if (version?.product || version?.version || version?.api_commit || version?.ui_commit) return [
+    ['Produit', str(version?.product)],
+    ['POLARIS', str(version?.version)],
+    ['API commit', str(version?.api_commit)],
+    ['UI commit', str(version?.ui_commit)],
+    ['UI package.json', str(uiVersion)],
+  ];
   const base: Array<[string, string | number]> = [
     ['POLARIS', str(version?.platform_core)],
     ['API', str(version?.backend_api)],

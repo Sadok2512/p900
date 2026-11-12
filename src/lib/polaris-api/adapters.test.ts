@@ -66,6 +66,11 @@ describe('POLARIS data rules', () => {
     const rows = versionComponents({backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{diameter:'0.2.6',gtpu:'0.2.1'}},'0.9.1');
     expect(Object.fromEntries(rows)).toMatchObject({'POLARIS':'2.11.6','API':'2.11.6','Web frontend':'2.11.6','UI package.json':'0.9.1','Session engine':'0.5.7','Correlation engine':'0.6.6','Event schema':'1.6.1','Callflow schema':'1.3.2',diameter:'0.2.6',gtpu:'0.2.1'});
   });
+  it('lists only Analyzer API and UI release metadata for POLARIS 3', () => {
+    const rows = versionComponents({product:'POLARIS',version:'3.0.0',api_commit:'api-source',ui_commit:'ui-source'},'3.0.0');
+    expect(Object.fromEntries(rows)).toEqual({'Produit':'POLARIS','POLARIS':'3.0.0','API commit':'api-source','UI commit':'ui-source','UI package.json':'3.0.0'});
+    expect(Object.fromEntries(rows)).not.toHaveProperty('Control commit');
+  });
   it('computes only available probe health metrics, with guarded denominators', () => {
     expect(healthKpi('kpi.probe.dumpcap',{dumpcap_active:6,dumpcap_expected:12})).toBe(50);
     expect(healthKpi('kpi.probe.disk',undefined,{free_bytes:25,total_bytes:100})).toBe(25);

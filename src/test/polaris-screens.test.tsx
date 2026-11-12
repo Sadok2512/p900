@@ -10,7 +10,7 @@ const clearSubscriber=['001','01','012','345','6789'].join('');
 const clearTemporary=['0x','C0','FF','EE','01'].join('');
 const identities={imsi:clearSubscriber,tmsi:[{value:clearTemporary}],s_tmsi:[{value:['01',clearTemporary.slice(2)].join('')}],m_tmsi:[{value:clearTemporary.slice(2)}],imei:{value:['35','2099','00','176','148'].join('')},msisdn:['33','6','00','00','00','01'].join('')};
 const payloads: Record<string,unknown> = {
-  '/auth/me':{role:'operator',permissions:['probes.create','probes.update','probes.delete','probes.software_update']}, '/health':{status:'healthy',coordination_open:false}, '/version':{backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{ngap:'0.6.0'}},
+  '/auth/me':{role:'operator',permissions:['probes.create','probes.update','probes.delete','probes.software_update']}, '/health':{status:'healthy',coordination_open:false}, '/version':{product:'POLARIS',version:'3.0.0',api_commit:'api-source',ui_commit:'ui-source'},
   '/metrics':{capture_state:'active',pending_segments:7,segments_ingested:18,ingestion_failures:0,open_segments:2,zero_event_segments:1,dumpcap_active:6,dumpcap_expected:12}, '/storage/safety':{filesystem:{usage_percent:75,available_bytes:268435456}},
   '/sessions':[session], '/sessions/filter':[session], '/sessions/s1':session, '/sessions/s1/events':[event], '/sessions/s1/callflow':{events:[event]}, '/sessions/s1/procedures':[], '/sessions/s1/correlations':{edges:[{edge_id:'edge-1',source_event_id:'e1',target_event_id:'e1',source_interface:'N2',target_interface:'N2',matching_identifiers:['ctx=test'],rule_id:'context-rule',rule_version:'1',matched_rules:['context-rule'],evidence_description:'same context',evidence_type:'EXACT_CONTEXT',confidence:'EXACT',scope:'session',limitations:[],packet_references:[]}]},
   '/events/e1':{...event,decoded_ie_tree:{...event.decoded_ie_tree,imsi:clearSubscriber}}, '/events/e1/provenance':{capture_id:'c1',event_id:'e1',packet_number:45}, '/packets':[{id:'p1'}], '/packets/c1/45/dissect':{dissection:['subscriber',clearSubscriber].join('=')}, '/sessions/s1/identities':identities,
@@ -237,7 +237,7 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByRole('option',{name:'Pseudonyme'})).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.2.4').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.2.4')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); expect(await screen.findByText('api-source')).toBeInTheDocument(); expect(screen.getByText('ui-source')).toBeInTheDocument(); expect(screen.getAllByText('3.0.0').length).toBeGreaterThan(0); expect(screen.getByText('POLARIS 3.0.0')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard sits under KPI and is gone from the top menu', async()=>{
     open('kpi');
