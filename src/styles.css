@@ -89,6 +89,27 @@
   --color-code-number: var(--code-number);
   --color-code-literal: var(--code-literal);
   --color-code-border: var(--code-border);
+  --color-ifc-blue-fg: var(--ifc-blue-fg);
+  --color-ifc-blue-bg: var(--ifc-blue-bg);
+  --color-ifc-blue-line: var(--ifc-blue-line);
+  --color-ifc-green-fg: var(--ifc-green-fg);
+  --color-ifc-green-bg: var(--ifc-green-bg);
+  --color-ifc-green-line: var(--ifc-green-line);
+  --color-ifc-amber-fg: var(--ifc-amber-fg);
+  --color-ifc-amber-bg: var(--ifc-amber-bg);
+  --color-ifc-amber-line: var(--ifc-amber-line);
+  --color-ifc-purple-fg: var(--ifc-purple-fg);
+  --color-ifc-purple-bg: var(--ifc-purple-bg);
+  --color-ifc-purple-line: var(--ifc-purple-line);
+  --color-ifc-pink-fg: var(--ifc-pink-fg);
+  --color-ifc-pink-bg: var(--ifc-pink-bg);
+  --color-ifc-pink-line: var(--ifc-pink-line);
+  --color-ifc-teal-fg: var(--ifc-teal-fg);
+  --color-ifc-teal-bg: var(--ifc-teal-bg);
+  --color-ifc-teal-line: var(--ifc-teal-line);
+  --color-ifc-gray-fg: var(--ifc-gray-fg);
+  --color-ifc-gray-bg: var(--ifc-gray-bg);
+  --color-ifc-gray-line: var(--ifc-gray-line);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -151,6 +172,31 @@
   --code-number: oklch(0.8226 0.0586 134.91);
   --code-literal: oklch(0.6713 0.1118 245.54);
   --code-border: oklch(0.3211 0 89.88);
+  /* Interface families: a colour identifies the interface, never its state.
+   * Authored from the harmonization brief's hexes (#2563EB/#EFF6FF blue,
+   * #15803D/#DCFCE7 green, #B45309/#FEF3C7 amber, #7C3AED/#F3E8FF purple,
+   * #BE185D/#FCE7F3 pink, #0F766E/#CCFBF1 teal, #64748B/#F1F5F9 gray). */
+  --ifc-blue-fg: oklch(0.546 0.215 262.9);
+  --ifc-blue-bg: oklch(0.970 0.014 254.6);
+  --ifc-blue-line: oklch(0.882 0.057 254.1);
+  --ifc-green-fg: oklch(0.527 0.137 150.1);
+  --ifc-green-bg: oklch(0.962 0.043 156.7);
+  --ifc-green-line: oklch(0.925 0.081 156.0);
+  --ifc-amber-fg: oklch(0.555 0.146 49.0);
+  --ifc-amber-bg: oklch(0.962 0.058 95.6);
+  --ifc-amber-line: oklch(0.924 0.115 95.7);
+  --ifc-purple-fg: oklch(0.541 0.247 293.0);
+  --ifc-purple-bg: oklch(0.946 0.033 307.2);
+  --ifc-purple-line: oklch(0.902 0.060 306.7);
+  --ifc-pink-fg: oklch(0.525 0.199 4.0);
+  --ifc-pink-bg: oklch(0.948 0.028 342.3);
+  --ifc-pink-line: oklch(0.899 0.059 343.2);
+  --ifc-teal-fg: oklch(0.511 0.086 186.4);
+  --ifc-teal-bg: oklch(0.953 0.050 180.8);
+  --ifc-teal-line: oklch(0.910 0.093 180.4);
+  --ifc-gray-fg: oklch(0.554 0.041 257.4);
+  --ifc-gray-bg: oklch(0.968 0.007 247.9);
+  --ifc-gray-line: oklch(0.929 0.013 255.5);
   --sidebar: oklch(0.984 0.003 247.858);
   --sidebar-foreground: oklch(0.129 0.042 264.695);
   --sidebar-primary: oklch(0.208 0.042 265.755);

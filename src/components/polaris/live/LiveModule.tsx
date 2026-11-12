@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { useLiveDemo, usePolarisMode } from '@/lib/polaris-api';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { InterfaceBadge } from '../ui/InterfaceBadge';
 
 /* ---------- Scripts (demo) : [ifc, proto, from, to, message, procedure, result, cause, kind] ---------- */
 const fingerprint = (s) => { let h = 5381; for (const c of s) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return 'sha256:' + h.toString(16).padStart(8,'0') + '…'; };
@@ -9,7 +10,6 @@ const useStore = (key, init) => { const [v,setV] = useState(init); useEffect(()=
 const card = 'bg-white rounded-xl border border-border';
 const Btn = ({ primary, on, children, className='', ...p }) => <button {...p} className={`h-8 px-3 rounded-md text-[12.5px] font-medium whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${primary?'bg-[var(--app-accent)] text-white hover:opacity-90':on?'bg-muted text-foreground border border-border':'border border-border bg-white text-foreground hover:bg-surface-2'} ${className}`}>{children}</button>;
 const Tag = ({ c='#666666', children }) => <span className="text-[11px] font-medium rounded px-1.5 py-[1px] border whitespace-nowrap" style={{ color:c, borderColor:c+'33', background:c+'0D' }}>{children}</span>;
-const IFC_C = { N2:'#0062A1', SBI:'#0F5B56', N4:'#A15C07', 'S1-MME':'#0062A1', S6a:'#7C3AED', S11:'#A15C07', S5:'#DB2777' };
 const RES_C = (r) => r==='Échec'?'#B42318':r==='Succès'||r==='Accepted'||/^2\d\d/.test(r)?'#15803D':'#8F8F8F';
 const fmtRate = (v) => v>=1000?(v/1000).toFixed(2)+' Gb/s':v>=1?v.toFixed(1)+' Mb/s':(v*1000).toFixed(0)+' kb/s';
 
@@ -89,7 +89,7 @@ export default function LiveModule({ t, role, setPage }) {
             <td className="px-2.5"><button onClick={e=>{e.stopPropagation();setSel(m.seq);setMode('ladder');}} className="text-[11px] text-[var(--app-accent)]">{t('→ ladder')}</button></td></tr>)}</tbody></table>}
     </div>
     {selM && <div className="border-t border-border-subtle px-4 py-3 grid grid-cols-[1fr_auto] gap-3 text-[12px] bg-surface-2">
-      <div className="min-w-0"><div className="flex items-center gap-2"><b className="text-[13px]">{selM.name}</b><Tag c={IFC_C[selM.ifc]}>{selM.ifc}</Tag><Tag c={selM.corr==='EXACT'?'#15803D':'#A15C07'}>{selM.corr}</Tag>{selM.cause&&<Tag c="#B42318">{selM.cause}</Tag>}</div>
+      <div className="min-w-0"><div className="flex items-center gap-2"><b className="text-[13px]">{selM.name}</b><InterfaceBadge name={selM.ifc}/><Tag c={selM.corr==='EXACT'?'#15803D':'#A15C07'}>{selM.corr}</Tag>{selM.cause&&<Tag c="#B42318">{selM.cause}</Tag>}</div>
         <pre className="mt-2 font-mono text-[11px] text-ink-2 whitespace-pre-wrap">{`capture_id=${selM.cap}  seq=${selM.seq}  t_rel=${selM.rel}s\n${selM.proto.split('/').map((l,i)=>'  '.repeat(i)+'▸ '+l).join('\n')}\n${'  '.repeat(selM.proto.split('/').length)}▸ ${selM.name}  (${selM.from} → ${selM.to})`}</pre></div>
       <div className="flex flex-col gap-1.5"><Btn onClick={()=>setPage('sessions')}>{t('Décodage complet')} →</Btn><Btn onClick={()=>setPage('sessions')}>{t('Preuves')} →</Btn><Btn onClick={()=>setSel(null)}>✕</Btn></div>
     </div>}

@@ -84,7 +84,7 @@ const SESS = [
 ];
 
 const NODES = [
-  {n:'polaris-capture-01',role:'Capture',st:'ok',ver:'—',exp:'',cpu:31,mem:[2.1,4],disk:76,seen:'il y a 2 s',info:'12/12 dumpcap · PID stables'},
+  {n:'polaris-capture-01',role:'Capture',st:'ok',ver:'—',exp:'',cpu:31,mem:[2.1,4],disk:76,seen:'il y a 2 s',info:'12/12 dumpcap · PID stables',connected_interfaces:['N2','SBI','S6a']},
   {n:'polaris-import-01',role:'Import et décodage',st:'ok',ver:'—',exp:'',cpu:58,mem:[2.9,4],disk:76,seen:'il y a 2 s',info:'retard 4 s · 0 segment ignoré'},
   {n:'polaris-dataset',role:'Base / dataset',st:'warn',ver:'schéma 7',exp:'7',cpu:22,mem:[1.4,4],disk:76,seen:'il y a 5 s',info:'~1,5 M événements · disque en hausse'},
   {n:'analyzer-api',role:'API Analyzer',st:'ok',ver:'—',exp:'',cpu:9,mem:[0.4,1],disk:41,seen:'il y a 1 s',info:'p95 requête 0,8 s'},

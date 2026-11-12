@@ -10,14 +10,14 @@ import ProbeManagement from './admin/ProbeManagement';
 import { loadHidden, saveHidden, toggleHidden, isVisible, sanitizeHidden } from './admin/modules';
 import SubscriberJourney, { OtherSessions } from './analyzer/SubscriberJourney';
 import { shortPseudo, groupBySubscriber } from './analyzer/subscriber';
+import { InterfaceBadge, AvailabilityStatus, TechnicalValue, BpfFilterDisplay } from './ui/InterfaceBadge';
+import { INTERFACE_FAMILY_HEX, interfaceFamilyOf } from '@/lib/polaris-ui/interfaceColors';
+/* Ladder lines and chips are SVG: they take the family's reference hex. */
+const ifcHex = (name, part) => INTERFACE_FAMILY_HEX[interfaceFamilyOf(name)][part];
 import { visibleMessages, filterOptions, emptyFilter, filterActive, pageItems, pageSlice, verdict, timeOf, toMs, fmtUtc, fmtDuration, sessionSummary } from './analyzer/analysis';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 /* Données fictives — PLMN de test 001/01. Tri canonique (capture_id, seq). */
-const IFC = {
-  'N2':['#1D4ED8','#EFF4FF'],'SBI':['#6D28D9','#F4F0FF'],'N4':['#A15C07','#FDF6E7'],'N3':['#15803D','#ECF8F0'],
-  'S1-MME':['#1D4ED8','#EFF4FF'],'S6a':['#BE185D','#FDEEF5'],'S11':['#A15C07','#FDF6E7'],'S5-C':['#A15C07','#FDF6E7'],'S1-U':['#15803D','#ECF8F0'],
-};
 const nodeIdx = (nodes, n) => nodes.indexOf(n==='AUSF'||n==='UDM' ? 'AUSF/UDM' : n);
 const fmtV = (v,u) => u==='%'?v.toFixed(1)+' %':u==='ms'?Math.round(v)+' ms':u==='s'?v.toFixed(1)+' s':String(Math.round(v));
 const FIELDS = [
@@ -44,7 +44,13 @@ const ic = {
   lens:'M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6Zm9 2.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z', pin:'M9 4h6l-1 6 4 3H6l4-3zM12 13v7',
   split:'M4 5h16v14H4zM12 5v14',
 };
-const Tag = ({i}) => <span className="inline-block font-mono text-[11px] font-semibold leading-none rounded-[3px] px-1.5 py-[3px]" style={{color:(IFC[i] || IFC.N2)[0],background:(IFC[i] || IFC.N2)[1]}}>{i}</span>;
+const Tag = ({i}) => <InterfaceBadge name={i}/>;
+/* Badge strip for a probe row: compact, capped, the overflow in a tooltip. */
+const InterfaceStrip = ({names}) => {
+  const list = [...new Set((Array.isArray(names) ? names : []).filter(Boolean))];
+  if (!list.length) return <span className="text-[11px] text-faint">aucune interface remontée</span>;
+  return <span className="mt-1 flex flex-wrap items-center gap-1">{list.slice(0,4).map(i=><InterfaceBadge key={i} name={i}/>)}{list.length>4 && <span className="text-[11px] text-subtle" title={list.slice(4).join(', ')}>+{list.length-4}</span>}</span>;
+};
 const Res = ({r}) => <span className="inline-flex items-center gap-1.5"><span className={`w-[7px] h-[7px] rounded-full ${r==='Succès'||r==='success'?'bg-success':r==='Échec'||r==='failed'?'bg-warning':'bg-track'}`}/>{r}</span>;
 const Stat = ({s}) => {
   const m = {'EXACT':'text-success bg-success-soft border-success-line','OUVERT':'text-warning bg-warning-soft border-warning-line','OUVERT':'text-danger bg-danger-soft border-danger-line'}[s];
@@ -336,7 +342,7 @@ function Ladder({d,sel,setSel,lens,hidden,collapsed,width,zoom=1,timers=false,al
       {vis.map((k,row) => {
         const m = d.msgs[k];
         const [a,b] = m[2].split(' → ').map(s=>nodeIdx(d.nodes,s));
-        const y = TOP + row*ROW + 18, x1 = x(a), x2 = x(b), dir = x2>x1?1:-1, c = (IFC[m[0]] || IFC.N2)[0];
+        const y = TOP + row*ROW + 18, x1 = x(a), x2 = x(b), dir = x2>x1?1:-1, c = ifcHex(m[0],'fg');
         const on = sel===k, lit = lens && m[5]===lens, cause = isCause(m);
         const full = m[1] + (m[3] ? '  ·  '+m[3] : '');
         const maxc = Math.max(8, Math.floor((Math.abs(x2-x1)-14)/6.1));
@@ -349,7 +355,7 @@ function Ladder({d,sel,setSel,lens,hidden,collapsed,width,zoom=1,timers=false,al
             {on && <rect x="0" y={y-18} width="3" height={ROW} fill="var(--app-accent)"/>}
             <text x="12" y={y+4} fontSize="10.5" fill="#94A3B8" fontFamily="Geist Mono">{String(d.evidence?.[k]?.seq ?? k+1).padStart(2,'0')}</text>
             <text x="40" y={y+4} fontSize="10.5" fill="#64748B" fontFamily="Geist Mono">{fmtUtc(timeOf(d.evidence?.[k]))}</text>
-            <rect x="128" y={y-7} width="34" height="14" rx="3" fill={(IFC[m[0]]||IFC.N2)[1]}/><text x="145" y={y+3.5} textAnchor="middle" fontSize="9.5" fontWeight="600" fill={c} fontFamily="Geist Mono">{String(m[0]).slice(0,6)}</text>
+            <rect x="128" y={y-7} width="34" height="14" rx="3" fill={ifcHex(m[0],'bg')}/><text x="145" y={y+3.5} textAnchor="middle" fontSize="9.5" fontWeight="600" fill={c} fontFamily="Geist Mono">{String(m[0]).slice(0,6)}</text>
             {pstart && <text x="168" y={y+4} fontSize="10.5" fill="#334155" fontWeight="600">{String(pstart[0]).slice(0,7)}</text>}
             {timers && row>0 && (()=>{const a=timeOf(d.evidence?.[vis[row-1]]), b=timeOf(d.evidence?.[k]); return a!=null&&b!=null ? <text x={W-8} y={y+4} textAnchor="end" fontSize="10" fill="#94A3B8" fontFamily="Geist Mono">+{fmtDuration(b-a)}</text> : null;})()}
             <line x1={x1} x2={x2 - dir*7} y1={y} y2={y} stroke={c} strokeWidth={on?2.5:1.2}/>
@@ -721,8 +727,8 @@ function ProbeDetails({ node, onBack }) {
         </div>
         <Card title="Interfaces et points de capture">
           <table className="w-full text-[12.5px]"><thead><tr>{['Interface','Protocole','Source de capture','Filtre BPF','Disponibilité'].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border-subtle">{h}</th>)}</tr></thead>
-            <tbody>{ifaceRows.map(x=><tr key={x.name}><td className="h-10 px-4 border-b border-border-subtle font-mono">{x.name}</td><td className="px-4 border-b border-border-subtle">{available(x.protocol)}</td><td className="px-4 border-b border-border-subtle font-mono text-[11.5px]">{available(x.source)}</td><td className="px-4 border-b border-border-subtle font-mono text-[11.5px] max-w-[220px] truncate" title={String(available(x.bpf))}>{available(x.bpf)}</td>
-              <td className="px-4 border-b border-border-subtle">{x.active==null ? <span className="text-subtle">—</span> : <span className="inline-flex items-center gap-1.5"><Dot st={x.active?'ok':'error'}/>{x.active?'Disponible':'Indisponible'}</span>}</td></tr>)}
+            <tbody>{ifaceRows.map(x=><tr key={x.name} className="hover:bg-surface-2"><td className="h-10 px-4 border-b border-border-subtle"><InterfaceBadge name={x.name}/></td><td className="px-4 border-b border-border-subtle text-[12px] text-ink-2">{available(x.protocol)}</td><td className="px-4 border-b border-border-subtle"><TechnicalValue value={x.source}/></td><td className="px-4 border-b border-border-subtle"><BpfFilterDisplay filter={x.bpf}/></td>
+              <td className="px-4 border-b border-border-subtle"><AvailabilityStatus active={x.active}/></td></tr>)}
               {!ifaceRows.length && <tr><td colSpan="5" className="p-4 text-subtle">{resources.probeInterfaces.isPending || resources.interfaces.isPending ? 'Connexion POLARIS…' : 'Aucune interface renvoyée par /probes/{id}/interfaces ni /interfaces'}</td></tr>}
             </tbody></table>
           <div className="px-4 py-3 text-[11.5px] text-subtle">{ifaceRows.length ? (records(resources.probeInterfaces.data?.data,'interfaces').length ? 'Liste fournie par /probes/{id}/interfaces · disponibilité par /interfaces/runtime.' : 'Liste fournie par /interfaces · disponibilité par /interfaces/runtime.') : (failure(resources.probeInterfaces,'/probes/'+String(node.id ?? node.n)+'/interfaces') ?? failure(resources.interfaces,'/interfaces'))}</div>
@@ -781,7 +787,7 @@ function Nodes() {
           <tbody>
             {nodes.map(n => (
               <tr key={n.n} onClick={()=>setOpen(n.n)} className="cursor-pointer hover:bg-surface-2">
-                <td className="h-11 px-4 border-b border-border-subtle"><div className="font-mono text-[12px] text-foreground">{n.n}</div><div className="text-[11.5px] text-subtle">{n.info}</div></td>
+                <td className="h-11 px-4 border-b border-border-subtle"><div className="font-mono text-[12px] text-foreground">{n.n}</div><div className="text-[11.5px] text-subtle">{n.info}</div><InterfaceStrip names={n.interfaces ?? n.connected_interfaces}/></td>
                 <td className="px-4 border-b border-border-subtle text-ink-2">{n.role}</td>
                 <td className="px-4 border-b border-border-subtle"><span className="inline-flex items-center gap-1.5"><Dot st={n.st}/>{n.st==='ok'?'Opérationnel':n.st==='warn'?'Vigilance':'—'}</span></td>
                 <td className="px-4 border-b border-border-subtle"><span className="font-mono text-[11.5px]">{n.ver}</span>{n.exp && n.ver.includes(n.exp) && <span className="ml-1.5 text-[11px] text-success">✓ attendue</span>}</td>

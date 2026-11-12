@@ -16,9 +16,9 @@ const demoProbe = (id: string) => {
   };
 };
 const demoProbeInterfaces = (id: string) => [
-  { interface: 'br-n2', role: 'N2', bpf_filter: 'sctp port 38412', protocol: 'NGAP' },
-  { interface: 'br-sbi', role: 'SBI', bpf_filter: 'tcp port 7777', protocol: 'HTTP/2' },
-  { interface: 'br-s6a', role: 'S6a', bpf_filter: 'tcp port 36412', protocol: 'DIAMETER' },
+  { interface: 'N2', role: 'N2', bpf_filter: 'sctp port 38412', protocol: 'NGAP', device: 'br-n2' },
+  { interface: 'SBI', role: 'SBI', bpf_filter: 'tcp port 7777', protocol: 'HTTP/2', device: 'br-sbi' },
+  { interface: 'S6a', role: 'S6a', bpf_filter: 'tcp port 36412', protocol: 'DIAMETER', device: 'br-s6a' },
 ];
 
 export function demoResponse<T>(path: string, params: Record<string, unknown> = {}): Envelope<T> | undefined {

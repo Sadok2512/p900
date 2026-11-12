@@ -1,3 +1,9 @@
+import { INTERFACE_FAMILY_HEX, interfaceFamilyOf } from '../../polaris-ui/interfaceColors';
+
+/* Interface colours come from the shared family map, so a ladder line, a chip
+ * and a badge never disagree about what N2 or SBI looks like. */
+const ifcColor = name => INTERFACE_FAMILY_HEX[interfaceFamilyOf(name)].fg;
+
 const S5G = [
   ['N2','NGAP/NAS-5GMM','UE','AMF','Registration Request','Registration','—','', 'start'],
   ['SBI','HTTP/2','AMF','AUSF','POST /ue-authentications','Authentication','—','', ''],
@@ -42,7 +48,7 @@ const SLTE = [
   ['S1-MME','S1AP/NAS-EMM','MME','UE','Tracking Area Update Reject','TAU','Échec','EMM #9 UE identity cannot be derived', 'end'],
 ];
 const NODES = { '5G': ['UE','gNB','AMF','AUSF','UDM','SMF','UPF'], 'LTE': ['UE','eNB','MME','HSS','SGW','PGW'] };
-const IFC_C = { N2:'#0062A1', SBI:'#0F5B56', N4:'#A15C07', 'S1-MME':'#0062A1', S6a:'#7C3AED', S11:'#A15C07', S5:'#DB2777' };
+const IFC_C = { N2: ifcColor('N2'), SBI: ifcColor('SBI'), N4: ifcColor('N4'), 'S1-MME': ifcColor('S1-MME'), S6a: ifcColor('S6a'), S11: ifcColor('S11'), S5: ifcColor('S5') };
 /* Known identities (demo lookup table, stands in for the correlated identity chain API) */
 const DIR = {
   'ue-7f3a': { tech:'5G', st:'Trouvé', imsiMask:'masqué', proof:'Registration Request · SUCI→SUPI (SBI Nausf, capture 482 seq 1 204)', cap:482,

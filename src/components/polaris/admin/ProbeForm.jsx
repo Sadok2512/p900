@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { available } from '@/lib/polaris-api';
 import { PROBE_ROLES, isProbeRole, probeDraftErrors, probeFieldErrors, probeInterfaceErrors } from './probeRegistration';
+import { InterfaceBadge } from '../ui/InterfaceBadge';
 
 /*
  * Shared shell for the two POLARIS probe forms (create + edit) and for the
@@ -96,6 +97,7 @@ export function InterfaceTable({ interfaces, onPatch, onRemove, protocols = {}, 
             {!isProbeRole(item.role) && <option value={item.role}>{item.role || '— choisir —'}</option>}
             {PROBE_ROLES.map(role => <option key={role} value={role}>{role}</option>)}
           </select>
+          {item.role && <div className="mt-1.5"><InterfaceBadge name={item.role}/></div>}
           {show(`i${index}-role`, error.role) && <span className="mt-1 block text-[12px] text-danger">{error.role}</span>}
           {item.role && !isProbeRole(item.role) && <span className="mt-1 block text-[11.5px] text-subtle">Valeur renvoyée par le serveur · conservée telle quelle</span>}
         </td>
