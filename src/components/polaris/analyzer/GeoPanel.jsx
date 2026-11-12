@@ -2,6 +2,8 @@ import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { extractGeo, radioContext } from './geo';
 
 const GeoMap = lazy(() => import('./GeoMap'));
+// A map load failure must never blank the Analyzer.
+class MapBoundary extends React.Component { constructor(p) { super(p); this.state = { err: false }; } static getDerivedStateFromError() { return { err: true }; } render() { return this.state.err ? <div className="absolute inset-0 grid place-items-center text-[12px] text-muted-foreground p-4 text-center">Carte indisponible — rechargez la page.</div> : this.props.children; } }
 const KIND_L = { 'ue-actual': 'Position UE réelle', 'ue-estimated': 'Position UE estimée', cell: 'Site de la cellule' };
 const Row = ({ k, v }) => <div className="flex justify-between gap-3 py-[3px] text-[12px]"><span className="text-muted-foreground">{k}</span><span className="font-mono text-foreground text-right truncate">{v ?? '—'}</span></div>;
 const H = ({ children }) => <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-1">{children}</div>;
@@ -32,7 +34,7 @@ export default function GeoPanel({ s, msg, setMsg, onHide, max, setMax }) {
       <span className="ml-auto flex items-center gap-2"><i className="inline-block w-2.5 h-2.5 rotate-45 rounded-[2px]" style={{ background: '#2563EB' }} />NR<i className="inline-block w-2.5 h-2.5 rotate-45 rounded-[2px]" style={{ background: '#16A34A' }} />LTE<i className="inline-block w-2.5 h-2.5 rounded-full bg-foreground" />UE réelle<i className="inline-block w-2.5 h-2.5 rounded-full border border-dashed border-foreground" />UE estimée</span>
     </div>
     <div className="relative flex-1 min-h-[220px] bg-surface-2">
-      {hydrated && <Suspense fallback={null}><GeoMap points={shown} trajectory={layers.traj ? geo.trajectory : []} theme={theme} activeCell={activeCell} onPick={p => { setPicked(p); if (p.eventIndex != null) setMsg(p.eventIndex); }} /></Suspense>}
+      {hydrated && <MapBoundary><Suspense fallback={null}><GeoMap points={shown} trajectory={layers.traj ? geo.trajectory : []} theme={theme} activeCell={activeCell} onPick={p => { setPicked(p); if (p.eventIndex != null) setMsg(p.eventIndex); }} /></Suspense></MapBoundary>}
       {!s ? <Empty t="Sélectionnez une session" d="La carte suit la session et le message sélectionnés." /> : geo.points.length === 0 && <Empty t="Aucune donnée géographique" d="Cette session ne contient ni coordonnées de cellule ni position UE. Aucune position n'est déduite (Timing Advance, mesures radio)." />}
     </div>
     <div className="shrink-0 max-h-[45%] overflow-auto scroll-thin border-t border-border px-3 py-2 space-y-2">
