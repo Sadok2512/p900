@@ -843,50 +843,57 @@ const mkDraft = (o={}) => ({tpl:'Parcourir',scope:'',conds:[],join:'ET',group:'A
 function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
   const [q,setQ] = useState(''); const [flt,setFlt] = useState('Toutes');
   const list = saved.filter(x=>(flt==='Toutes'||(flt==='Favoris'?x.fav:x.shared)) && x.n.toLowerCase().includes(q.toLowerCase()));
+  const empty = saved.length===0 ? 'Aucune requête enregistrée.' : q ? `Aucune requête ne correspond à « ${q} ».` : flt==='Favoris' ? 'Aucune requête en favori.' : flt==='Partagées' ? 'Aucune requête partagée.' : 'Aucune requête.';
+  const focus = 'outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-1';
   return (
     <div className="flex-1 overflow-auto scroll-thin">
-      <div className="w-full px-8 py-8 space-y-6">
-        <div className="flex items-end gap-4">
-          <div><div className="text-[12px] text-muted-foreground">POLARIS Analyzer</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Requêtes</h1>
+      <div className="w-full px-8 py-6 space-y-5">
+        <header className="rounded-xl border border-border bg-white px-6 py-5 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <div className="min-w-0"><div className="text-[12px] font-medium text-muted-foreground">POLARIS Analyzer</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-0.5">Requêtes</h1>
             <div className="text-[13px] text-muted-foreground mt-1">Consulte et lance tes requêtes. La création s’ouvre dans un nouvel onglet.</div></div>
-          {onDisplayAll && <button onClick={onDisplayAll} disabled={displayingAll} className="ml-auto h-10 px-5 rounded-lg border border-border bg-white text-foreground text-[14px] font-medium hover:border-[var(--app-accent)] disabled:opacity-50">{t("Afficher toutes les sessions")}</button>}
-          <button onClick={()=>onNew()} className={`${onDisplayAll?'':'ml-auto'} h-10 px-5 rounded-lg bg-[var(--app-accent)] text-white text-[14px] font-medium flex items-center gap-2 hover:opacity-90`}><I d={ic.plus} c="w-4 h-4"/>Nouvelle requête</button>
+          <div className="ml-auto flex items-center gap-2">
+            {onDisplayAll && <button onClick={onDisplayAll} disabled={displayingAll} className={`h-9 px-4 rounded-lg border border-border bg-white text-foreground text-[13px] font-medium hover:border-[var(--app-accent)] disabled:opacity-50 ${focus}`}>{t("Afficher toutes les sessions")}</button>}
+            <button onClick={()=>onNew()} className={`h-9 px-4 rounded-lg bg-[var(--app-accent)] text-white text-[13px] font-semibold flex items-center gap-2 hover:opacity-90 ${focus}`}><I d={ic.plus} c="w-4 h-4"/>Nouvelle requête</button>
+          </div>
+        </header>
+        <div className="flex items-center gap-3">
+          <div className="flex-1 h-10 rounded-lg border border-border bg-white flex items-center gap-2.5 px-3 focus-within:border-[var(--app-accent)] focus-within:ring-2 focus-within:ring-[var(--app-accent)]/15"><I d={ic.search} c="w-4 h-4 text-subtle shrink-0"/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher une requête…" aria-label="Rechercher une requête" className="flex-1 outline-none text-[13px] bg-transparent text-foreground placeholder:text-subtle"/></div>
+          <div role="tablist" className="flex rounded-lg border border-border p-[3px] bg-white">{['Toutes','Favoris','Partagées'].map(f=><button key={f} role="tab" aria-selected={flt===f} onClick={()=>setFlt(f)} className={`h-8 px-3.5 rounded-md text-[13px] transition-colors ${focus} ${flt===f?'bg-[var(--app-accent)] text-white font-semibold':'text-muted-foreground hover:text-foreground hover:bg-surface-2'}`}>{f}</button>)}</div>
         </div>
-        <div className="flex items-center gap-2">
-          <div className="flex-1 h-9 rounded-md border border-border bg-white flex items-center gap-2 px-3 focus-within:border-[var(--app-accent)]"><I d={ic.search} c="w-4 h-4 text-subtle"/><input value={q} onChange={e=>setQ(e.target.value)} placeholder="Rechercher une requête…" className="flex-1 outline-none text-[13px] bg-transparent"/></div>
-          <div className="flex rounded-md border border-border p-[2px] bg-white">{['Toutes','Favoris','Partagées'].map(f=><button key={f} onClick={()=>setFlt(f)} className={`h-8 px-3 rounded-[4px] text-[12.5px] ${flt===f?'bg-[var(--app-accent)] text-white font-medium':'text-muted-foreground'}`}>{f}</button>)}</div>
-        </div>
-        <div>
-          <div className="text-[13px] font-semibold mb-3">Démarrer depuis un modèle</div>
-          <div className="grid grid-cols-4 gap-3">
+        <section>
+          <div className="flex items-baseline gap-3 mb-2.5"><h2 className="text-[15px] font-semibold text-foreground">Démarrer depuis un modèle</h2><span className="text-[12.5px] text-muted-foreground">Crée une nouvelle requête préconfigurée</span></div>
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
             {STARTERS.map(([tt,d,c]) => (
-              <button key={tt} onClick={()=>onNew(mkDraft({tpl:'Parcourir',conds:c.map(x=>[x[0],x[1],'=']),name:tt,group:c[0][0]==='Résultat'?'Cause':'Résultat'}),tt)} className="text-left bg-white rounded-lg border border-border hover:border-[var(--app-accent)] p-4 transition">
-                <div className="text-[13px] font-medium">{tt}</div><div className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{d}</div>
-                <div className="flex flex-wrap gap-1 mt-3">{c.map(x=><span key={x[1]} className="text-[11px] rounded border border-border px-1.5 py-0.5 text-ink-2">{x[0]} = {x[1]}</span>)}</div>
+              <button key={tt} onClick={()=>onNew(mkDraft({tpl:'Parcourir',conds:c.map(x=>[x[0],x[1],'=']),name:tt,group:c[0][0]==='Résultat'?'Cause':'Résultat'}),tt)} className={`group h-full flex flex-col text-left bg-white rounded-xl border border-border hover:border-[var(--app-accent)] hover:bg-surface-2/50 px-4 py-3.5 transition-colors ${focus}`}>
+                <div className="flex items-center gap-2"><span className="w-7 h-7 shrink-0 rounded-md grid place-items-center bg-surface-2 text-muted-foreground group-hover:text-[var(--app-accent)]"><I d={ic.plus} c="w-3.5 h-3.5"/></span><span className="text-[14px] font-semibold text-foreground">{tt}</span></div>
+                <div className="text-[12.5px] text-muted-foreground mt-2 leading-snug flex-1">{d}</div>
+                <div className="flex flex-wrap gap-1 mt-3">{c.map(x=><span key={x[1]} className="text-[11.5px] h-[22px] inline-flex items-center rounded-md border border-border bg-surface-2 px-2 text-ink-2">{x[0]} = {x[1]}</span>)}</div>
               </button>
             ))}
           </div>
-        </div>
-        <section className="bg-white rounded-lg border border-border overflow-hidden">
-          <div className="px-5 h-12 flex items-center border-b border-border-subtle"><h3 className="text-[14px] font-semibold">Requêtes enregistrées</h3><span className="ml-auto text-[12px] text-muted-foreground">{list.length} requêtes</span></div>
-          <table className="w-full text-[12.5px]">
-            <thead><tr>{['','Nom','Gabarit','Portée','Conditions','Dernière exécution','Résultats',''].map((h,k)=><th key={k} className="h-9 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border">{h}</th>)}</tr></thead>
+        </section>
+        <section className="bg-white rounded-xl border border-border overflow-hidden">
+          <div className="px-5 h-12 flex items-center gap-3 border-b border-border"><h2 className="text-[15px] font-semibold text-foreground">Requêtes enregistrées</h2><span className="text-[12.5px] text-muted-foreground">Rouvrir une requête existante</span><span className="ml-auto text-[12px] font-medium text-muted-foreground tabular-nums">{list.length} requête{list.length>1?'s':''}</span></div>
+          <div className="overflow-x-auto scroll-thin">
+          <table className="w-full text-[13px]">
+            <thead><tr>{[['',''],['Nom',''],['Gabarit',''],['Portée',''],['Conditions',''],['Dernière exécution',''],['Résultats','text-right'],['','']].map(([h,a],k)=><th key={k} className={`h-9 px-4 font-semibold text-[12px] text-muted-foreground bg-surface-2 border-b border-border whitespace-nowrap ${a||'text-left'}`}>{h}</th>)}</tr></thead>
             <tbody>
-              {list.length===0 && <tr><td colSpan={8} className="h-16 text-center text-subtle">Aucune requête.</td></tr>}
+              {list.length===0 && <tr><td colSpan={8} className="h-14 px-5 text-[13px] text-muted-foreground">{empty}{saved.length===0 && <button onClick={()=>onNew()} className="ml-2 font-medium text-[var(--app-accent)] hover:underline">Nouvelle requête →</button>}</td></tr>}
               {list.map(x => (
-                <tr key={x.n} onClick={()=>onOpen(x)} className="cursor-pointer hover:bg-surface-2 group">
-                  <td className="h-11 pl-4 border-b border-border-subtle w-8"><I d={ic.star} c={`w-3.5 h-3.5 ${x.fav?'text-foreground':'text-faint'}`}/></td>
-                  <td className="px-4 border-b border-border-subtle font-medium text-foreground">{x.n}{x.shared && <span className="ml-2 text-[11px] rounded border border-border px-1.5 py-0.5 text-muted-foreground">partagée</span>}</td>
-                  <td className="px-4 border-b border-border-subtle text-ink-2">{x.g}</td>
-                  <td className="px-4 border-b border-border-subtle font-mono text-[11.5px] text-muted-foreground">{x.p}</td>
-                  <td className="px-4 border-b border-border-subtle"><span className="flex flex-wrap gap-1">{x.c.map((y,k)=><span key={k} className="text-[11px] rounded border border-border px-1.5 py-0.5 text-ink-2">{y[0]} {y[2]||'='} {y[1]}</span>)}</span></td>
-                  <td className="px-4 border-b border-border-subtle text-muted-foreground">{x.last}</td>
-                  <td className="px-4 border-b border-border-subtle tabular-nums">{x.r}</td>
-                  <td className="px-4 border-b border-border-subtle text-right"><span className="inline-flex items-center gap-1 text-[12px] font-medium text-foreground opacity-0 group-hover:opacity-100">Ouvrir<I d={ic.chev} c="w-3.5 h-3.5 -rotate-90"/></span></td>
+                <tr key={x.n} tabIndex={0} onClick={()=>onOpen(x)} onKeyDown={ev=>{ if(ev.key==='Enter') onOpen(x); }} className="cursor-pointer hover:bg-surface-2 focus-visible:bg-surface-2 outline-none group">
+                  <td className="h-10 pl-4 border-b border-border-subtle w-8" title={x.fav?'Favori':''}><I d={ic.star} c={`w-3.5 h-3.5 ${x.fav?'text-warning':'text-faint'}`}/></td>
+                  <td className="px-4 border-b border-border-subtle max-w-[320px]"><span className="flex items-center gap-2 min-w-0"><span title={x.n} className="truncate font-semibold text-foreground group-hover:text-[var(--app-accent)]">{x.n}</span>{x.shared && <span className="shrink-0 text-[11px] h-5 inline-flex items-center rounded-md border border-border px-1.5 text-muted-foreground">partagée</span>}</span></td>
+                  <td className="px-4 border-b border-border-subtle text-muted-foreground whitespace-nowrap">{x.g}</td>
+                  <td className="px-4 border-b border-border-subtle font-mono text-[11.5px] text-muted-foreground whitespace-nowrap">{x.p}</td>
+                  <td className="px-4 py-1.5 border-b border-border-subtle"><span className="flex flex-wrap gap-1">{x.c.map((y,k)=><span key={k} className="text-[11.5px] h-[22px] inline-flex items-center rounded-md border border-border bg-surface-2 px-2 text-ink-2 whitespace-nowrap">{y[0]} {y[2]||'='} {y[1]}</span>)}</span></td>
+                  <td className="px-4 border-b border-border-subtle text-ink-2 whitespace-nowrap">{x.last}</td>
+                  <td className="px-4 border-b border-border-subtle text-right tabular-nums font-medium text-foreground">{x.r==null||x.r===''?<span className="text-subtle" title="Résultat indisponible">—</span>:x.r}</td>
+                  <td className="px-4 border-b border-border-subtle text-right w-24"><span className="inline-flex items-center gap-1 text-[12.5px] font-medium text-[var(--app-accent)] opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100">Ouvrir<I d={ic.chev} c="w-3.5 h-3.5 -rotate-90"/></span></td>
                 </tr>
               ))}
             </tbody>
           </table>
+          </div>
         </section>
         <div className="text-[11.5px] text-subtle">local à ce navigateur</div>
       </div>
