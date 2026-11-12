@@ -68,6 +68,20 @@ const LTE = { nodes:N4n, procs:[['Attach',0,15],['Bearer par défaut',9,17],['Tr
   ],
   links:[[12,13,'S11','S1-MME','UL TEID 0x00001c3a','EXACT'],[12,18,'S11','S1-U','UL TEID 0x00001c3a','EXACT'],[14,16,'S1-MME','S11','eNB TEID 0x0000e214','EXACT'],[16,19,'S11','S1-U','eNB TEID 0x0000e214','EXACT'],[1,7,'S6a','S6a','Session-Id','EXACT']],
 };
+// Positions de démonstration (labo, valeurs fictives) : site de la cellule + trace UE.
+// Jamais déduites de mesures radio — elles simulent des coordonnées rapportées.
+const GEO5 = { cell_site:{name:'gNB-1',cell_id:'0x001',latitude:48.8924,longitude:2.2369,rat:'NR'},
+  ue_track:[
+    {latitude:48.8901,longitude:2.2411,source:'GNSS',accuracy_m:12,event_index:0,timestamp:'10:42:01.204'},
+    {latitude:48.8908,longitude:2.2396,source:'GNSS',accuracy_m:9,event_index:8,timestamp:'10:42:01.318'},
+    {latitude:48.8916,longitude:2.2382,source:'GNSS',accuracy_m:15,event_index:17,timestamp:'10:42:01.562'},
+  ]};
+const GEO4 = { cell_site:{name:'eNB-1',cell_id:'0x007',latitude:48.8738,longitude:2.2950,rat:'LTE'},
+  ue_track:[
+    {latitude:48.8719,longitude:2.2981,source:'GNSS',accuracy_m:18,event_index:0,timestamp:'09:15:12.044'},
+    {latitude:48.8727,longitude:2.2968,source:'GNSS',accuracy_m:11,event_index:12,timestamp:'09:15:12.402'},
+    {latitude:48.8734,longitude:2.2957,source:'GNSS',accuracy_m:14,event_index:19,timestamp:'09:15:12.571'},
+  ]};
 const SESS = [
   {id:1,cap:41,seq:18204,ue:'UE-7f3a',rat:'5G SA',proc:'Registration + PDU Session',res:'Succès',cause:'',cell:'gNB-1 / 0x001',ex:'3/5',comp:96,dur:'412 ms',d:OK5},
   {id:2,cap:41,seq:18877,ue:'UE-2c90',rat:'LTE',proc:'Attach + bearer par défaut',res:'Succès',cause:'',cell:'eNB-1 / 0x007',ex:'5/5',comp:100,dur:'538 ms',d:LTE},
@@ -164,3 +178,4 @@ const MOCK_TOP = [['Cellule 001-01-0A1F',0],['Cellule 001-01-0B07',0],['DNN inte
 export { SESS, NODES, SAVED, ALL_KPIS, mockSeries, seedRand };
 
 for (const session of SESS) for (const link of session.d.links) { if (!link[6]) link[6] = []; }
+for (const session of SESS) Object.assign(session, session.rat === 'LTE' ? GEO4 : GEO5);
