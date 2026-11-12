@@ -94,7 +94,7 @@ function TopBar({role,page,setPage,onAnalyzer,accent,onSettings,metrics,version,
         <TopBarVersion version={version}/>
       </div>
       <nav className="flex h-full min-w-0 overflow-x-auto scroll-thin gap-1 lg:gap-2">
-        {[['home','Accueil'],['templates','Dashboard'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],...(TRAFFIC_ENABLED ? [['trafic','Traffic']] : [])].filter(([k])=>isVisible(hidden,k)).map(([k,n]) => {
+        {[['home','Accueil'],['templates','Dashboard'],['sessions','Analyzer'],['kpi','KPI'],['live','Live'],...(TRAFFIC_ENABLED && demo ? [['trafic','Traffic']] : [])].filter(([k])=>isVisible(hidden,k)).map(([k,n]) => {
           const on = page===k, ok = ['home','sessions','nodes','templates','kpi','live','trafic'].includes(k);
           return <button key={k} type="button" onClick={()=>{ if(ok) { setPage(k); if((k==='sessions'||k==='templates') && onAnalyzer) onAnalyzer(); } }} className={`relative shrink-0 px-3 h-full flex items-center text-[14px] outline-none focus-visible:bg-muted rounded-sm transition-colors ${ok?'cursor-pointer':'cursor-default'} ${on?'text-foreground font-semibold':'text-muted-foreground font-medium hover:text-foreground'}`} aria-current={on?'page':undefined}>{t(n)}{on && <span style={{background:accent}} className="absolute inset-x-3 bottom-0 h-[3px] rounded-t-sm"/>}</button>;
         })}
@@ -781,7 +781,7 @@ function ProbeDetails({ node, onBack }) {
               {actionError && <div role="alert" className="text-[12px] text-danger">{actionError}</div>}
               {!health.data?.data?.coordination_open && <div className="text-[11.5px] text-warning">coordination_open absent de /health : actions de capture désactivées.</div>}
             </div> : <div className="text-[12px] text-muted-foreground">Actions de capture réservées au rôle operator.</div>}
-            <div><Lbl>Cycle de vie</Lbl><div className="text-[12px] text-subtle">Non disponible : backend à venir (démarrer, arrêter, redémarrer la sonde).</div></div>
+            {demo && <div><Lbl>Cycle de vie</Lbl><div className="text-[12px] text-subtle">Données de démo</div></div>}
           </div>
         </Card>}
       </div>
@@ -823,7 +823,7 @@ function Nodes({ initialOpen = null } = {}) {
                 <td className="px-4 border-b border-border-subtle">{n.memoryBytes==null?<span className="text-faint">—</span>:<div><div className="font-mono text-[11.5px]">{fmtBytes(n.memoryBytes)}</div><div className="text-[11px] text-subtle mt-0.5">anon {fmtBytes(n.memoryAnonBytes)} · file {fmtBytes(n.memoryFileBytes)}</div></div>}</td>
                 <td className="px-4 border-b border-border-subtle">{n.disk==null?<span className="text-faint">—</span>:<div><Bar v={Math.round(n.disk)} warn={95} crit={99}/><div className="text-[11px] text-subtle mt-0.5">{fmtBytes(n.diskFreeBytes)} libres · seuils 95 / 99 %</div></div>}</td>
                 <td className="px-4 border-b border-border-subtle text-muted-foreground">{n.seen}</td>
-                <td className="relative px-4 border-b border-border-subtle text-right"><button type="button" aria-label={`Actions ${n.n}`} onClick={event=>{event.stopPropagation();setMenu(menu===n.n?null:n.n);}} className="h-8 w-8 rounded-md text-[18px] leading-none hover:bg-muted">⋯</button>{menu===n.n&&<><button type="button" aria-label="Fermer le menu" onClick={event=>{event.stopPropagation();setMenu(null);}} className="fixed inset-0 z-40 cursor-default"/><div className="absolute right-3 top-9 z-50 w-52 rounded-md border border-border bg-white py-1 text-left shadow-lg"><button type="button" onClick={event=>{event.stopPropagation();setOpen(n.n);setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Détails</button><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'edit',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Modifier</button><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'software',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Mettre à jour le logiciel</button><div className="my-1 border-t border-border"/><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'delete',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] text-danger hover:bg-danger-soft">Supprimer</button></div></>}</td>
+                <td className="relative px-4 border-b border-border-subtle text-right">{demo && <><button type="button" aria-label={`Actions ${n.n}`} onClick={event=>{event.stopPropagation();setMenu(menu===n.n?null:n.n);}} className="h-8 w-8 rounded-md text-[18px] leading-none hover:bg-muted">⋯</button>{menu===n.n&&<><button type="button" aria-label="Fermer le menu" onClick={event=>{event.stopPropagation();setMenu(null);}} className="fixed inset-0 z-40 cursor-default"/><div className="absolute right-3 top-9 z-50 w-52 rounded-md border border-border bg-white py-1 text-left shadow-lg"><button type="button" onClick={event=>{event.stopPropagation();setOpen(n.n);setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Détails</button><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'edit',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Modifier</button><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'software',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] hover:bg-surface-2">Mettre à jour le logiciel</button><div className="my-1 border-t border-border"/><button type="button" onClick={event=>{event.stopPropagation();setManaging({mode:'delete',node:n});setMenu(null);}} className="w-full px-3 py-2 text-[12.5px] text-danger hover:bg-danger-soft">Supprimer</button></div></>}</>}</td>
               </tr>
             ))}
             {!nodes.length && <tr><td colSpan="9" className="px-4 py-8 text-center text-subtle">{probes.isPending ? 'Connexion au Node Manager…' : failure(probes,'/probes') ? `${failure(probes,'/probes')} · nouvelle tentative dans 5 s` : 'Aucune sonde renvoyée par /probes'}</td></tr>}
@@ -976,9 +976,7 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]})
             </div>
           </div>
         </QSec>
-        <QSec n={4} title="Regrouper par" sub="facultatif">
-          <div className="flex flex-wrap gap-2">{!demo && <span>Non disponible : backend à venir</span>}{GROUPS.map(g=><button disabled={!demo && g!=='Aucun'} key={g} onClick={()=>up({group:g})} className={`h-8 px-3 rounded-md border text-[12.5px] ${draft.group===g?'border-[var(--app-accent)] text-foreground ring-1 ring-[var(--app-accent)]':'border-border text-muted-foreground hover:border-border-strong'}`}>{g}</button>)}</div>
-        </QSec>
+        {demo && <QSec n={4} title="Regrouper par" sub="facultatif"><div className="flex flex-wrap gap-2">{GROUPS.map(g=><button key={g} onClick={()=>up({group:g})} className={`h-8 px-3 rounded-md border text-[12.5px] ${draft.group===g?'border-[var(--app-accent)] text-foreground ring-1 ring-[var(--app-accent)]':'border-border text-muted-foreground hover:border-border-strong'}`}>{g}</button>)}</div></QSec>}
         <section className="bg-white rounded-lg border border-border px-5 h-14 flex items-center gap-2">
           <span className="w-5 h-5 rounded-full bg-muted text-[11px] font-semibold grid place-items-center text-ink-2">5</span><span className="text-[13px] font-semibold mr-3">Actions</span>
           {err && <span className="text-[12px] text-danger">{err}</span>}
@@ -994,13 +992,14 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,role,sessionRows=[]})
 const THEMES = APP_THEMES.map(t => [t.id, t.label, t.hex]);
 function Settings({theme,setTheme,lang,setLang,onClose}) {
   const version = useVersion();
+  const { demo } = usePolarisMode();
   const [sec,setSec]=useState('apparence');
   const [cur,setCur]=useState(''),[nw,setNw]=useState(''),[cf,setCf]=useState(''),[pm,setPm]=useState(null);
   const accent = accentOf(theme);
   const save = e => { e.preventDefault(); if(!cur||nw.length<8) return setPm(['err',t("Mot de passe actuel requis et 8 caractères minimum.")]); if(nw!==cf) return setPm(['err',t("Les mots de passe ne correspondent pas.")]); setPm(['err',t("Non disponible : backend à venir — authentification gérée par le proxy.")]); setCur('');setNw('');setCf(''); };
   const strength = Math.min(4,[/.{8,}/,/[A-Z]/,/[0-9]/,/[^A-Za-z0-9]/].filter(r=>r.test(nw)).length);
   const inp = "w-full h-11 rounded-lg border border-border bg-white px-3.5 text-[14px] outline-none transition focus:border-transparent focus:ring-2";
-  const SECS=[['apparence','Apparence','Couleur et thème'],['securite','Sécurité','Mot de passe'],['langue','Langue','Français ou English'],['apropos','À propos','Version et build']];
+  const SECS=[['apparence','Apparence','Couleur et thème'],...(demo ? [['securite','Sécurité','Mot de passe']] : []),['langue','Langue','Français ou English'],['apropos','À propos','Version et build']];
   const Card = ({title,desc,children}) => <section className="bg-white rounded-xl border border-border shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
     <div className="px-7 pt-6 pb-5 border-b border-border-subtle"><h2 className="text-[18px] font-semibold tracking-[-0.01em] text-foreground">{title}</h2><p className="mt-1 text-[14px] text-muted-foreground">{desc}</p></div>
     <div className="p-7">{children}</div></section>;
@@ -1043,7 +1042,7 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
                     {on && <span className="w-5 h-5 rounded-full grid place-items-center text-white text-[11px]" style={{background:c}}>✓</span>}</div>
                 </button>);})}</div>
             </Card>}
-            {sec==='securite' && <Card title={t("Mot de passe")} desc={t("Non disponible : backend à venir — authentification gérée par le proxy.")}>
+            {demo && sec==='securite' && <Card title={t("Mot de passe")} desc={t("Données de démo")}>
               <form onSubmit={save} className="space-y-5 max-w-[460px]" style={{'--tw-ring-color':accent+'55'}}>
                 {[['Mot de passe actuel',cur,setCur],['Nouveau mot de passe',nw,setNw],['Confirmer le mot de passe',cf,setCf]].map(([l,v,fn],i)=>(
                   <label key={l} className="block"><span className="block text-[13px] font-medium mb-1.5">{t(l)}</span>

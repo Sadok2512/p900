@@ -1,5 +1,6 @@
 import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import { extractGeo, radioContext } from './geo';
+import { usePolarisMode } from '@/lib/polaris-api';
 
 const GeoMap = lazy(() => import('./GeoMap'));
 // A map load failure must never blank the Analyzer.
@@ -9,6 +10,7 @@ const Row = ({ k, v }) => <div className="flex justify-between gap-3 py-[3px] te
 const H = ({ children }) => <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-1">{children}</div>;
 
 export default function GeoPanel({ s, msg, setMsg, onHide, max, setMax }) {
+  const { demo } = usePolarisMode();
   const [theme, setTheme] = useState('light'); const [hydrated, setHydrated] = useState(false); const [picked, setPicked] = useState(null);
   const [layers, setLayers] = useState({ cell: true, ue: true, traj: true });
   useEffect(() => setHydrated(true), []);
@@ -35,7 +37,7 @@ export default function GeoPanel({ s, msg, setMsg, onHide, max, setMax }) {
     </div>
     <div className="relative flex-1 min-h-[220px] bg-surface-2">
       {hydrated && <MapBoundary><Suspense fallback={null}><GeoMap points={shown} trajectory={layers.traj ? geo.trajectory : []} theme={theme} activeCell={activeCell} onPick={p => { setPicked(p); if (p.eventIndex != null) setMsg(p.eventIndex); }} /></Suspense></MapBoundary>}
-      {!s ? <Empty t="Sélectionnez une session" d="La carte suit la session et le message sélectionnés." /> : geo.points.length === 0 && <Empty t="Aucune donnée géographique" d="Cette session ne contient ni coordonnées de cellule ni position UE. Aucune position n'est déduite (Timing Advance, mesures radio)." />}
+      {!s ? <Empty t="Sélectionnez une session" d="La carte suit la session et le message sélectionnés." /> : geo.points.length === 0 && <Empty t={demo ? "Aucune donnée géographique" : "Référentiel cellules non chargé"} d={demo ? "Cette session ne contient ni coordonnées de cellule ni position UE." : "Aucune position n'est inventée en mode réel."} />}
     </div>
     <div className="shrink-0 max-h-[45%] overflow-auto scroll-thin border-t border-border px-3 py-2 space-y-2">
       <section><H>Contexte session</H>

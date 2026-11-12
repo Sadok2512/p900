@@ -53,11 +53,12 @@ export default function KpiModule({ t, role, setPage, KPIS, mockSeries, MockChar
   const [bk, setBk] = useState(0);
   const canWrite = role === 'operator';
   const log = (a) => setAudit(x => [{ ts: new Date().toLocaleString('fr-FR'), who: 'SD', role, a }, ...x].slice(0, 100));
-  const all = useMemo(() => [...KPIS.map(k => ({ ...k, lib: 'SYSTEM', owner: 'system', tech: TECH(k.id) })), ...custom], [KPIS, custom]);
+  const all = useMemo(() => [...KPIS.filter(k => demo || k.id.startsWith('kpi.probe.')).map(k => ({ ...k, lib: 'SYSTEM', owner: 'system', tech: TECH(k.id) })), ...(demo ? custom : [])], [KPIS, custom, demo]);
   const byId = (id) => all.find(k => k.id === id);
   const metricEvidence = metrics.data?.data; const storageEvidence = safety.data?.data;
   const ctx = { metricEvidence, storageEvidence, measurement, t, role, canWrite, demo, all, byId, custom, setCustom, favs, setFavs, dashes, setDashes, log, audit, mockSeries, MockChart, fmtV, setPage, setTab, setEditKpi, setOpenDash };
-  const TABS = [['catalog', 'Catalogue KPI'], ['builder', 'KPI Builder'], ['dash', 'Dashboards'], ['anom', 'Anomalies']];
+  const TABS = demo ? [['catalog', 'Catalogue KPI'], ['builder', 'KPI Builder'], ['dash', 'Dashboards'], ['anom', 'Anomalies']] : [['catalog', 'Catalogue KPI']];
+  useEffect(() => { if (!demo && tab !== 'catalog') setTab('catalog'); }, [demo, tab, setTab]);
   return (
     <div className="flex-1 overflow-auto scroll-thin bg-surface-2">
       <div className="bg-white border-b border-border">

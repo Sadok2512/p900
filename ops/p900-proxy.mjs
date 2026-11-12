@@ -52,16 +52,26 @@ export function basicAuthorized(headers, user=basicUser, password=basicPassword)
   return sameSecret(decoded.slice(0,separator),user) && sameSecret(decoded.slice(separator+1),password);
 }
 
-function requireBasic(request,response) {
-  if (!basicAuthRequired) return true;
-  if (!basicPassword) { sendJson(response,503,{error:{code:'BASIC_AUTH_NOT_CONFIGURED',message:'Proxy authentication is not configured'}}); return false; }
-  if (basicAuthorized(request.headers)) return true;
-  response.writeHead(401,{'www-authenticate':'Basic realm="POLARIS", charset="UTF-8"','content-type':'application/json; charset=utf-8','cache-control':'no-store'});
-  response.end(JSON.stringify({error:{code:'AUTHENTICATION_REQUIRED',message:'Authentication required'}}));
-  return false;
+const SAFE_METHODS = new Set(['GET','HEAD','OPTIONS']);
+
+export function operatorOnlyPath(rawUrl = '/') {
+  const pathname=parsedUrl(rawUrl)?.pathname ?? '';
+  return /^\/api\/v1\/identities(?:\/|$)/.test(pathname)
+    || /^\/api\/v1\/sessions\/[^/]+\/identities(?:\/|$)/.test(pathname)
+    || /^\/api\/v1\/packets\/[^/]+\/[^/]+\/dissect(?:\/|$)/.test(pathname)
+    || /^\/api\/v1\/live\/traces(?:\/|$)/.test(pathname)
+    || /^\/api\/v1\/audit(?:\/|$)/.test(pathname);
 }
 
-export function forwardedHeaders(headers, target, method = 'GET', tokenOverride) {
+export function proxyAccess(rawUrl, method = 'GET', headers = {}, user=basicUser, password=basicPassword, enabled=basicAuthRequired) {
+  const authenticated=enabled && basicAuthorized(headers,user,password);
+  if (authenticated) return {authenticated:true,status:200};
+  if (operatorOnlyPath(rawUrl)) return {authenticated:false,status:401};
+  if (!SAFE_METHODS.has(String(method).toUpperCase())) return {authenticated:false,status:403};
+  return {authenticated:false,status:200};
+}
+
+export function forwardedHeaders(headers, target, method = 'GET', options = {}) {
   const forwarded = { ...headers };
   delete forwarded.authorization;
   delete forwarded['x-csrf-token'];
@@ -70,7 +80,7 @@ export function forwardedHeaders(headers, target, method = 'GET', tokenOverride)
   delete forwarded['accept-encoding'];
   delete forwarded.host;
   forwarded.host = `${target.host}:${target.port}`;
-  const token = tokenOverride ?? tokens[target.scope];
+  const token = options.operatorAuthenticated ? (options.tokenOverride ?? tokens[target.scope]) : null;
   if (token) forwarded.authorization = `Bearer ${token}`;
   if (token && target.scope === 'oiran' && !['GET','HEAD','OPTIONS'].includes(String(method).toUpperCase())) forwarded['x-csrf-token'] = csrfForToken(token);
   return forwarded;
@@ -133,8 +143,8 @@ function captureDisk() {
 
 function sendJson(response,status,payload) { response.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}); response.end(JSON.stringify(payload)); }
 
-function proxy(request,response,target) {
-  const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target,request.method)}, upstreamResponse=>{
+function proxy(request,response,target,operatorAuthenticated) {
+  const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target,request.method,{operatorAuthenticated})}, upstreamResponse=>{
     const pathname=parsedUrl(request.url)?.pathname ?? '/';
     const transform=target.scope==='polaris'||pathname==='/api/v1/probes';
     if (!transform) {
@@ -159,21 +169,24 @@ function proxy(request,response,target) {
 
 export function createServer() {
   const server=http.createServer((request,response)=>{
-    if(!requireBasic(request,response)) return;
     const parsed=parsedUrl(request.url);
     if(!parsed) return sendJson(response,400,{error:{code:'INVALID_URL',message:'Invalid request target'}});
+    const access=proxyAccess(request.url,request.method,request.headers);
+    if(access.status===401) { response.setHeader('www-authenticate','Basic realm="POLARIS", charset="UTF-8"'); return sendJson(response,401,{error:{code:'AUTHENTICATION_REQUIRED',message:'Basic authentication required'}}); }
+    if(access.status===403) return sendJson(response,403,{error:{code:'OPERATOR_REQUIRED',message:'Operator authentication required for this method'}});
     const pathname=parsed.pathname;
     if (pathname==='/api/v1/interfaces/runtime') {
       if (request.method!=='GET') return sendJson(response,405,{error:{code:'METHOD_NOT_ALLOWED',message:'GET required'}});
       return sendJson(response,200,{data:dumpcapRuntime(),meta:{observed_at:new Date().toISOString()}});
     }
-    proxy(request,response,targetFor(request.url));
+    proxy(request,response,targetFor(request.url),access.authenticated);
   });
   server.on('upgrade',(request,socket,head)=>{
-    if(basicAuthRequired && !basicAuthorized(request.headers)) { socket.end('HTTP/1.1 401 Unauthorized\r\nWWW-Authenticate: Basic realm="POLARIS"\r\nConnection: close\r\n\r\n'); return; }
+    const access=proxyAccess(request.url,request.method,request.headers);
+    if(access.status!==200) { const label=access.status===401?'Unauthorized':'Forbidden'; socket.end(`HTTP/1.1 ${access.status} ${label}\r\n${access.status===401?'WWW-Authenticate: Basic realm="POLARIS"\r\n':''}Connection: close\r\n\r\n`); return; }
     const target=targetFor(request.url);
     if(!target) { socket.end('HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n'); return; }
-    const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target,request.method)});
+    const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target,request.method,{operatorAuthenticated:access.authenticated})});
     upstream.on('upgrade',(upstreamResponse,upstreamSocket,upstreamHead)=>{
       const status=upstreamResponse.statusCode??101;
       const lines=[`HTTP/${upstreamResponse.httpVersion} ${status} ${upstreamResponse.statusMessage}`];

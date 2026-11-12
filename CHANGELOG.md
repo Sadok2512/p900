@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.18.1
+
+- Le proxy n'injecte un jeton operator qu'après une authentification Basic réussie ; les lectures publiques restent viewer, les écritures publiques sont refusées et les routes d'identité, de dissection, de Live Trace et d'audit exigent Basic, y compris lors d'un upgrade.
+- Le mode réel masque les contrôles sans route OIRAN (utilisateurs, rôles, cycle de vie et mise à jour des sondes, changement de mot de passe et regroupement) au lieu d'afficher des erreurs 404.
+- Le catalogue KPI réel est limité aux mesures `kpi.probe.*`, Traffic et les fonctions KPI synthétiques restent en démo avec leur libellé, et la géolocalisation réelle n'invente aucune donnée.
+- L'audit Administration indique sa source operator et présente proprement le statut 401 lorsque Basic manque.
+
 ## 2.2.0
 
 - Version applicative POLARIS unifiée à `2.2.0` dans les métadonnées du paquet, l'écran À propos et le pied de page.

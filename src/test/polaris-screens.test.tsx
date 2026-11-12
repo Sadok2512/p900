@@ -124,41 +124,17 @@ describe('main screens with simulated REST responses',()=>{
     const request=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/probes' && options?.method==='POST');
     expect(JSON.parse(String(request?.[1]?.body))).toMatchObject({probe_id:'vprobe-lab-vprobe-site-a',probe_type:'virtual',host:'namespace.container.local',mgmt_ip:'10.77.0.1',site:'Lab A'});
   });
-  it('offers details, full edit, software update and deletion from the row menu', async()=>{
+  it('hides unsupported probe mutation controls in real mode', async()=>{
     open('nodes'); await screen.findByText('lab-probe');
-    fireEvent.click(screen.getByRole('button',{name:'Actions lab-probe'}));
-    expect(screen.getByRole('button',{name:'Détails'})).toBeInTheDocument();
-    expect(screen.getByRole('button',{name:'Mettre à jour le logiciel'})).toBeInTheDocument();
-    expect(screen.getByRole('button',{name:'Supprimer'})).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button',{name:'Modifier'}));
-    const edit=screen.getByRole('dialog',{name:'Modifier la sonde'});
-    await waitFor(()=>expect(within(edit).getByLabelText('Serveur ou namespace')).toHaveValue('localhost'));
-    fireEvent.change(within(edit).getByLabelText('Nom de la sonde'),{target:{value:'lab-probe-updated'}});
-    fireEvent.click(within(edit).getByRole('button',{name:'+ Ajouter une interface'}));
-    fireEvent.change(within(edit).getByLabelText('Interface 2'),{target:{value:'ens4'}});
-    fireEvent.change(within(edit).getByLabelText('Filtre BPF 2'),{target:{value:'udp port 2152'}});
-    fireEvent.change(within(edit).getByLabelText('Rôle 2'),{target:{value:'N3'}});
-    fireEvent.click(within(edit).getByRole('button',{name:'Enregistrer'}));
-    await waitFor(()=>expect(screen.queryByRole('dialog',{name:'Modifier la sonde'})).not.toBeInTheDocument());
-    const update=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/probes/p1'&&options?.method==='PUT');
-    expect(JSON.parse(String(update?.[1]?.body))).toMatchObject({probe_id:'p1',name:'lab-probe-updated',host:'localhost',interfaces:[{interface:'ens3'},{interface:'ens4',bpf_filter:'udp port 2152'}]});
-
-    fireEvent.click(screen.getByRole('button',{name:'Actions lab-probe'}));
-    fireEvent.click(screen.getByRole('button',{name:'Mettre à jour le logiciel'}));
-    const software=screen.getByRole('dialog',{name:'Mettre à jour le logiciel'});
-    fireEvent.change(within(software).getByLabelText('Version cible'),{target:{value:'2.12.0'}});
-    fireEvent.change(within(software).getByLabelText('Tapez p1'),{target:{value:'p1'}});
-    fireEvent.click(within(software).getByRole('button',{name:'Mettre à jour'}));
-    await waitFor(()=>expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/probes/p1/software-update'&&options?.method==='POST')).toBe(true));
-
-    fireEvent.click(screen.getByRole('button',{name:'Actions lab-probe'}));
-    fireEvent.click(screen.getByRole('button',{name:'Supprimer'}));
-    const removal=screen.getByRole('dialog',{name:'Supprimer la sonde'});
-    fireEvent.change(within(removal).getByLabelText('Tapez p1'),{target:{value:'p1'}});
-    fireEvent.click(within(removal).getByRole('button',{name:'Supprimer'}));
-    await waitFor(()=>expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/probes/p1'&&options?.method==='DELETE')).toBe(true));
-    const deletion=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/probes/p1'&&options?.method==='DELETE');
-    expect(JSON.parse(String(deletion?.[1]?.body))).toEqual({confirmation:'p1',preserve_segments:true});
+    expect(screen.queryByRole('button',{name:'Actions lab-probe'})).not.toBeInTheDocument();
+    expect(fetcher.mock.calls.some(([url,options])=>String(url).includes('/probes/p1')&&['PUT','DELETE'].includes(String(options?.method)))).toBe(false);
+  });
+  it('shows proxy-managed account information without calling users or roles', async()=>{
+    open('nodes');
+    fireEvent.click(await screen.findByRole('tab',{name:'Users & Roles'}));
+    expect(screen.getByText('Compte unique géré par le proxy')).toBeInTheDocument();
+    expect(fetcher.mock.calls.some(([url])=>/\/api\/v1\/(users|roles)(?:\?|$)/.test(String(url)))).toBe(false);
+    fireEvent.click(screen.getByRole('tab',{name:'Node Manager'}));
   });
   it('keeps POLARIS connected when only probes fails and names the failing endpoint', async()=>{
     fetcher.mockImplementation(async (url: string) => {
@@ -206,15 +182,16 @@ describe('main screens with simulated REST responses',()=>{
     expect(JSON.parse(String(remove?.[1]?.body))).toEqual({confirmation:'TEST-FICTIVE',preserve_segments:true});
   });
   it('KPI displays health ratio from metrics, not a generated series', async()=>{
-    open('kpi'); await screen.findByText('50.0 %'); fireEvent.click(screen.getByRole('button',{name:'KPI Builder'}));
-    expect(screen.getByText('Non disponible : backend à venir')).toBeInTheDocument();
+    open('kpi'); await screen.findByText('50.0 %');
+    expect(screen.queryByRole('button',{name:'KPI Builder'})).not.toBeInTheDocument();
+    expect(screen.queryByText('Succès Registration')).not.toBeInTheDocument();
   });
   it('Live exposes the real trace search without enabling Demo', async()=>{
     open('live'); expect(screen.getByRole('button',{name:'Rechercher'})).toBeEnabled();
     expect(screen.getByRole('option',{name:'Pseudonyme'})).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.2.0').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.2.0')).toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('0.18.1').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 0.18.1')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard library is marked local and has no simulated saved queries outside Demo',()=>{
     open('templates'); expect(screen.getByText('local à ce navigateur')).toBeInTheDocument(); expect(screen.getByText('Aucune requête enregistrée.')).toBeInTheDocument();

@@ -64,13 +64,10 @@ export default function LiveModule({ t, role, setPage }) {
     ['message','throughput','ue_info','procedure','marker','status'].forEach(k=>source.addEventListener(k,receive(k))); source.onerror=()=>setRes(r=>({...r,st:'Déconnecté',err:'Flux SSE interrompu'})); return()=>source.close(); },[traceId,demo]);
 
   const find = async (e) => { e?.preventDefault(); const v=q.trim(); if(!v){setRes({st:'Invalide',err:t('Identifiant requis.')});return;} if(!demo){try{const out=await request('/live/traces',{method:'POST',body:{key_type:ttype,value:v,duration_s:1800,interfaces:[]}});setTraceId(out.data.trace_id);setTtl(Math.max(0,out.data.expires_at-Math.floor(Date.now()/1000)));setRes({st:out.data.armed?'ARMÉE':'OUVERT',ue:out.data.subscriber_pseudonyms?.[0]});setJournal(j=>[{ts:new Date().toLocaleTimeString('fr-FR'),who:'SD',role,a:`trace ${ttype}`,c:'valeur protégée',r:out.data.armed?'ARMÉE':'OUVERT'},...j]);}catch(error){setRes({st:'Indisponible',err:error?.message||'API Live indisponible'});}return;} let r;
-    if (!v) r = { st:'Invalide', err:t('Identifiant requis.') };
-    else if (ttype === 'imsi' || ttype === 'guti') r = {st:'Indisponible',err:t('Non disponible : backend à venir')};
-    else if (ttype === 'pseudo') { if (!/^ue-[0-9a-f]{4}$/.test(v)) r = { st:'Invalide', err:t('Format pseudonyme : ue-xxxx') }; else r = DIR[v] ? { st:DIR[v].st, ue:v } : { st:'Non trouvé' }; setJournal(j => [{ ts:new Date().toLocaleTimeString('fr-FR'), who:'SD', role, a:'recherche pseudo', c:v, r:r.st }, ...j]); }
+    if (ttype === 'pseudo') { if (!/^ue-[0-9a-f]{4}$/.test(v)) r = { st:'Invalide', err:t('Format pseudonyme : ue-xxxx') }; else r = DIR[v] ? { st:DIR[v].st, ue:v } : { st:'Non trouvé' }; setJournal(j => [{ ts:new Date().toLocaleTimeString('fr-FR'), who:'SD', role, a:'recherche pseudo', c:v, r:r.st }, ...j]); }
     else if (ttype === 'guti') { r = /^[0-9A-F-]{8,}$/i.test(v) ? (v.toUpperCase().includes('0A7E91F0') ? { st:'Trouvé', ue:'ue-7f3a' } : { st:'Non trouvé' }) : { st:'Invalide', err:t('Format GUTI/TMSI invalide.') }; }
     else if (ttype === 'cell') { r = ['0A1F','0B07'].includes(v.toUpperCase()) ? { st:'Trouvé', ue: v.toUpperCase()==='0A1F'?'ue-7f3a':'ue-21c0' } : { st:'Non trouvé' }; }
     else { r = /482/.test(v) ? { st:'Trouvé', ue:'ue-7f3a' } : /219/.test(v) ? { st:'Trouvé', ue:'ue-21c0' } : { st:'Non trouvé' }; }
-    if (!demo && r.ue) r = { st:'Indisponible', err:t('API de recherche POLARIS non connectée.') };
     setRes(r); };
   const addMarker=async()=>{if(!traceId)return;await request(`/live/traces/${encodeURIComponent(traceId)}/markers`,{method:'POST',body:{label:`Marqueur ${marks.length+1}`}});const s=msgs.at(-1)?.seq;if(s!=null)setMarks(m=>[...m,s]);};
 
