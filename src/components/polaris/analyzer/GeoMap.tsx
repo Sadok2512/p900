@@ -47,5 +47,5 @@ export default function GeoMap({ points, trajectory, theme, activeCell, onPick }
     if (points.length) { const b = new maplibregl.LngLatBounds(); points.forEach(p => b.extend([p.lon, p.lat])); m.fitBounds(b, { padding: 50, maxZoom: 15, duration: 0 }); }
     return () => { m.off('styledata', draw); };
   }, [points, trajectory, activeCell]);
-  return <div ref={box} className="absolute inset-0" />;
+  return <div className="absolute inset-0"><div ref={box} style={{ position: "absolute", inset: 0 }} /></div>;
 }
