@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.0
+
+- Administration ajoute l’onglet « Référentiel cellules » : sélection d’un CSV de 5 Mo maximum, validation à blanc automatique, compteurs par technologie et aperçu des cellules normalisées.
+- Les erreurs de validation sont affichées en rouge avec ligne, colonne, code et message. « Confirmer l’import » reste désactivé tant que la validation contient une erreur.
+- La liste des snapshots indique le snapshot actif et permet l’activation directe. Les fichiers CSV sont envoyés tels quels à `/api/v1/cell-reference`; aucun contenu de référentiel n’est inventé côté interface.
+
 ## 2.2.3
 
 - L’interface ne consulte plus le rôle pour afficher, masquer ou désactiver une action : capture, téléchargement PCAP, identités, dissection et gestion des sondes sont directement disponibles.

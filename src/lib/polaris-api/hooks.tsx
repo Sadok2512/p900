@@ -7,7 +7,7 @@ import { TR_CATS, TR_APPS, TR_CELLS, TR_V, TR_FLOWS } from './demo/traffic';
 import { SYS_DASH, ANOMS } from './demo/kpi';
 import { DIR, S5G, SLTE, NODES, IFC_C } from './demo/live';
 import { records, toLegacyCallflow, filterBody, querySupport, type Draft } from './adapters';
-import type { Health, Version, Metrics, Safety, Session, Event, Probe, RecordData, QueryParams, Envelope, Correlation, SessionIdentities } from './types';
+import type { Health, Version, Metrics, Safety, Session, Event, Probe, RecordData, QueryParams, Envelope, Correlation, SessionIdentities, CellReferenceList, CellReferenceReport } from './types';
 const Mode = createContext({ demo: false, setDemo: (_value: boolean) => {} });
 export function PolarisDataProvider({ children }: { children: ReactNode }) { const [demo, setDemo] = useState(false); return <Mode.Provider value={{ demo, setDemo }}>{children}</Mode.Provider>; }
 export const usePolarisMode = () => useContext(Mode);
@@ -116,6 +116,18 @@ export const usePacketDissection = (captureId?: string | null, packetNumber?: nu
 export const useAdminUsers = () => useResource<RecordData[]>('/users', {}, true, false);
 export const useAdminRoles = () => useResource<RecordData[]>('/roles', {}, true, false);
 export const useAuditLog = () => useResource<RecordData[]>('/audit', {}, true, false);
+export const useCellReference = () => useResource<CellReferenceList>('/cell-reference', {}, true, false);
+export function useCellReferenceValidation() {
+  return useMutation({mutationFn:(csv:string)=>request<CellReferenceReport>('/cell-reference',{method:'POST',params:{dry_run:true},rawBody:csv,contentType:'text/csv'})});
+}
+export function useCellReferenceImport() {
+  const client=useQueryClient();
+  return useMutation({mutationFn:(csv:string)=>request<RecordData>('/cell-reference',{method:'POST',rawBody:csv,contentType:'text/csv'}),onSuccess:()=>client.invalidateQueries({queryKey:['polaris']})});
+}
+export function useCellReferenceActivation() {
+  const client=useQueryClient();
+  return useMutation({mutationFn:(snapshotId:string)=>request<RecordData>(`/cell-reference/${idPath(snapshotId)}/activate`,{method:'POST'}),onSuccess:()=>client.invalidateQueries({queryKey:['polaris']})});
+}
 const polarisOptions = <T,>(path: string) => queryOptions({ queryKey: ['polaris-control', path], queryFn: ({ signal }) => requestFrom<T>('/polaris-api/v1', path, { signal }), staleTime: 5_000, retry: false, refetchOnWindowFocus: false });
 // Unreachable simulator: back off to 60 s so the topology stops flickering every 5 s.
 const simulatorPoll = (q: { state: { status: string } }) => (q.state.status === 'error' ? 60_000 : 15_000);

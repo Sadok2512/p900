@@ -26,7 +26,7 @@ export function redact<T>(value: T): T {
   }
   return value;
 }
-type RequestOptions = { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal; clearIdentityResponse?: boolean };
+type RequestOptions = { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; rawBody?: BodyInit; contentType?: string; signal?: AbortSignal; clearIdentityResponse?: boolean };
 export async function requestFrom<T>(base: string, path: string, options: RequestOptions = {}): Promise<Envelope<T>> {
   const url = apiPath(path, options.params, base);
   let response: Response;
@@ -34,7 +34,8 @@ export async function requestFrom<T>(base: string, path: string, options: Reques
   const timer = setTimeout(() => timeout.abort(), 8000);
   const signal = options.signal ? AbortSignal.any([timeout.signal, options.signal]) : timeout.signal;
   try {
-    response = await fetch(url, { method: options.method ?? 'GET', credentials: 'same-origin', signal, headers: { Accept: 'application/json', ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }) });
+    const hasJsonBody=options.body!==undefined, hasRawBody=options.rawBody!==undefined;
+    response = await fetch(url, { method: options.method ?? 'GET', credentials: 'same-origin', signal, headers: { Accept: 'application/json', ...(!hasJsonBody&&!hasRawBody ? {} : { 'Content-Type': options.contentType ?? (hasJsonBody?'application/json':'application/octet-stream') }) }, ...(!hasJsonBody&&!hasRawBody ? {} : { body: hasRawBody ? options.rawBody : JSON.stringify(options.body) }) });
   } catch { throw new PolarisApiError('NETWORK_ERROR', 'POLARIS non connecté', 0); }
   finally { clearTimeout(timer); }
   if (response.headers?.get?.('x-polaris-unreachable') === '1') throw new PolarisApiError('BACKEND_UNREACHABLE', 'POLARIS non connecté', 502);

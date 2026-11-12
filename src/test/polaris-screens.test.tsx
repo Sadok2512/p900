@@ -15,11 +15,12 @@ const payloads: Record<string,unknown> = {
   '/sessions':[session], '/sessions/filter':[session], '/sessions/s1':session, '/sessions/s1/events':[event], '/sessions/s1/callflow':{events:[event]}, '/sessions/s1/procedures':[], '/sessions/s1/correlations':{edges:[{edge_id:'edge-1',source_event_id:'e1',target_event_id:'e1',source_interface:'N2',target_interface:'N2',matching_identifiers:['ctx=test'],rule_id:'context-rule',rule_version:'1',matched_rules:['context-rule'],evidence_description:'same context',evidence_type:'EXACT_CONTEXT',confidence:'EXACT',scope:'session',limitations:[],packet_references:[]}]},
   '/events/e1':{...event,decoded_ie_tree:{...event.decoded_ie_tree,imsi:clearSubscriber}}, '/events/e1/provenance':{capture_id:'c1',event_id:'e1',packet_number:45}, '/packets':[{id:'p1'}], '/packets/c1/45/dissect':{dissection:['subscriber',clearSubscriber].join('=')}, '/sessions/s1/identities':identities,
   '/probes':[{id:'p1',probe_id:'p1',name:'lab-probe',host:'localhost',mgmt_ip:'127.0.0.1',site:'lab-a',probe_type:'virtual',role:'Capture',status:'healthy',version:'probe-test'}], '/probes/p1':{id:'p1',probe_id:'p1',name:'lab-probe',host:'localhost',mgmt_ip:'127.0.0.1',site:'lab-a',probe_type:'virtual',version:'probe-test'}, '/probes/p1/interfaces':[{interface:'ens3',role:'N2',bpf_filter:'sctp port 38412'}],
-  '/interfaces':[{name:'N2',interface:'N2',device:'br-test',protocol:'NGAP',status:'CAPTURING'}], '/interfaces/runtime':[{interface:'N2',pid:9001,active:true,bpf_filter:'sctp port 38412',device:'br-test'}], '/captures':[], '/modules':[], '/datasets':[{id:'d1',name:'Dataset test'}], '/sessions/available_causes':['#27'], '/correlation/rules':[]
+  '/interfaces':[{name:'N2',interface:'N2',device:'br-test',protocol:'NGAP',status:'CAPTURING'}], '/interfaces/runtime':[{interface:'N2',pid:9001,active:true,bpf_filter:'sctp port 38412',device:'br-test'}], '/captures':[], '/modules':[], '/datasets':[{id:'d1',name:'Dataset test'}], '/sessions/available_causes':['#27'], '/correlation/rules':[], '/cell-reference':{active_snapshot_id:null,snapshots:[]}
 };
 let fetcher: ReturnType<typeof vi.fn>;
 beforeEach(()=>{
   localStorage.clear();
+  sessionStorage.clear();
   vi.stubGlobal('ResizeObserver', class { observe(){} disconnect(){} });
   fetcher = vi.fn(async (url: string) => { const path=url.replace('/api/v1','').split('?')[0] ?? ''; const operatorEnvelope=/\/identities$|^\/identities$|^\/events\/|^\/packets\/.*\/dissect$/.test(path); return new Response(JSON.stringify({data:payloads[path] ?? [],meta:{total:1,...(operatorEnvelope?{identity_access:'operator'}:{})}}),{headers:{'Content-Type':'application/json'}}); });
   vi.stubGlobal('fetch',fetcher);
@@ -170,6 +171,25 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.queryByRole('tab',{name:'Users & Roles'})).not.toBeInTheDocument();
     expect(fetcher.mock.calls.some(([url])=>/\/api\/v1\/(users|roles)(?:\?|$)/.test(String(url)))).toBe(false);
   });
+  it('validates a cell-reference CSV before enabling its atomic import', async()=>{
+    const csv='technology,mcc,mnc,gnb_id,gnb_id_length,nci,enb_id,eci,cell_id,latitude,longitude\n5G,001,01,100,22,1638407,,,7,48.1,2.1\nLTE,001,01,,,,200,51208,8,48.2,2.2\n';
+    fetcher.mockImplementation(async (url:string,options:RequestInit={})=>{
+      if(String(url).includes('/cell-reference?dry_run=true')) return new Response(JSON.stringify({data:{valid_rows:2,errors:[],snapshot_id:'snapshot-test',cells_by_technology:{'5G':1,LTE:1},preview:[{technology:'5G',mcc:'001',mnc:'01',gnb_id:100,nci:1638407,cell_id:7,latitude:48.1,longitude:2.1},{technology:'LTE',mcc:'001',mnc:'01',enb_id:200,eci:51208,cell_id:8,latitude:48.2,longitude:2.2}]},meta:{}}),{headers:{'Content-Type':'application/json'}});
+      if(String(url).endsWith('/cell-reference')&&options.method==='POST') return new Response(JSON.stringify({data:{snapshot_id:'snapshot-test',cell_count:2},meta:{}}),{status:201,headers:{'Content-Type':'application/json'}});
+      const path=String(url).replace('/api/v1','').split('?')[0]??'';
+      return new Response(JSON.stringify({data:payloads[path]??[],meta:{total:1}}),{headers:{'Content-Type':'application/json'}});
+    });
+    open('nodes'); fireEvent.click(await screen.findByRole('tab',{name:'Référentiel cellules'}));
+    const file=new File([csv],'cells.csv',{type:'text/csv'}); Object.defineProperty(file,'text',{value:()=>Promise.resolve(csv)});
+    fireEvent.change(screen.getByLabelText('Fichier CSV du référentiel'),{target:{files:[file]}});
+    expect(await screen.findByText('1638407')).toBeInTheDocument();
+    expect(screen.getByText('51208')).toBeInTheDocument();
+    expect(screen.getByText('5G: 1 · LTE: 1')).toBeInTheDocument();
+    const confirm=screen.getByRole('button',{name:"Confirmer l'import"}); expect(confirm).toBeEnabled(); fireEvent.click(confirm);
+    await screen.findByText('Snapshot importé.');
+    const dryRun=fetcher.mock.calls.find(([url])=>String(url).includes('dry_run=true'));
+    expect(dryRun?.[1]?.body).toBe(csv); expect(dryRun?.[1]?.headers).toMatchObject({'Content-Type':'text/csv'});
+  });
   it('keeps POLARIS connected when only probes fails and names the failing endpoint', async()=>{
     fetcher.mockImplementation(async (url: string) => {
       const path=url.replace('/api/v1','').split('?')[0] ?? '';
@@ -225,7 +245,7 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByRole('option',{name:'Pseudonyme'})).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.2.3').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.2.3')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.3.0').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.3.0')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard sits under KPI and is gone from the top menu', async()=>{
     open('kpi');

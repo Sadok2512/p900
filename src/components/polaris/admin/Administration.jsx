@@ -3,8 +3,9 @@ import { useAuditLog, useHealth, useVersion, useStorageSafety, available } from 
 import { Fail } from '../analyzer/SubscriberJourney';
 import { NAV_MODULES, isVisible } from './modules';
 import NetworkTopology from './NetworkTopology';
+import CellReference from './CellReference';
 
-const TABS = ['Node Manager','Network Topology','Modules Visibility','System Settings','Audit Log'];
+const TABS = ['Node Manager','Network Topology','Référentiel cellules','Modules Visibility','System Settings','Audit Log'];
 const th = 'h-8 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border-subtle';
 const td = 'h-10 px-4 border-b border-border-subtle';
 const recs = (d, k) => Array.isArray(d) ? d : Array.isArray(d?.[k]) ? d[k] : [];
@@ -55,7 +56,7 @@ export default function Administration({Card, nodeManager, hidden, onToggle, onS
         {TABS.map(x=><button key={x} role="tab" aria-selected={tab===x} onClick={()=>pick(x)} className={`relative shrink-0 h-10 px-3 text-[13px] ${tab===x?'text-foreground font-semibold':'text-muted-foreground hover:text-foreground'}`}>{x}{tab===x && <span className="absolute inset-x-3 bottom-0 h-[2px] bg-[#0062A1]"/>}</button>)}
       </div>
       <div role="tabpanel" aria-label={tab}>
-        {tab==='Node Manager' ? (React.isValidElement(nodeManager) && probeFocus ? React.cloneElement(nodeManager,{key:probeFocus,initialOpen:probeFocus}) : nodeManager) : tab==='Network Topology' ? <NetworkTopology onOpenProbe={openProbe}/> : tab==='Modules Visibility' ? <Modules Card={Card} hidden={hidden} onToggle={onToggle}/> : tab==='System Settings' ? <System Card={Card} onSettings={onSettings}/> : <Audit Card={Card}/>}
+        {tab==='Node Manager' ? (React.isValidElement(nodeManager) && probeFocus ? React.cloneElement(nodeManager,{key:probeFocus,initialOpen:probeFocus}) : nodeManager) : tab==='Network Topology' ? <NetworkTopology onOpenProbe={openProbe}/> : tab==='Référentiel cellules' ? <CellReference Card={Card}/> : tab==='Modules Visibility' ? <Modules Card={Card} hidden={hidden} onToggle={onToggle}/> : tab==='System Settings' ? <System Card={Card} onSettings={onSettings}/> : <Audit Card={Card}/>}
       </div>
     </div>
   </div>;
