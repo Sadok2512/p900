@@ -28,6 +28,12 @@ export type Session = Evidence & {
   directions?: unknown;
   teids?: unknown;
   serving_node?: string;
+  // 2.2.5 (ANR2 ladder écart 4) — API 2.14.4 expose deux champs distincts :
+  // serving_ran_node (eNB/gNB) et core_node (MME/AMF). La colonne AMF/MME
+  // de l'UI lit core_node en priorité, avec un repli sur serving_node pour
+  // les backends 2.14.3 et antérieurs.
+  serving_ran_node?: string;
+  core_node?: string;
   start_timestamp?: string;
   end_timestamp?: string;
   observed_epoch_ms?: number;

@@ -35,7 +35,7 @@ export default function SessionAnalysis({s,width,onPick,onHide,loading,onOpenSes
           <dl className="grid grid-cols-[96px_1fr] gap-x-2 gap-y-1">
             <Row k="Session ID" v={s.session_id ?? '—'}/><Row k="UE" v={!s.ue || /^unknown$/i.test(s.ue) ? '—' : s.ue}/><Row k="IMSI / SUPI" v={observedIdentity(ids,'subscriber')}/><Row k="TMSI / GUTI" v={observedIdentity(ids,'temporary')}/><Row k="S-TMSI" v={observedIdentity(ids,'s_tmsi')}/><Row k="M-TMSI" v={observedIdentity(ids,'m_tmsi')}/><Row k="IMEI(SV) / PEI" v={observedIdentity(ids,'equipment')}/><Row k="MSISDN / GPSI" v={observedIdentity(ids,'directory')}/><Row k="Technologie" v={s.rat ?? '—'}/>
             <Row k="Début" v={start}/><Row k="Fin" v={end}/><Row k="Durée" v={fmtSpan(k.durationMs,k.multiCapture)}/>
-            <Row k="Cellule" v={s.cell ?? '—'}/><Row k="MME / AMF" v={s.serving_node ?? '—'}/><Row k="Procédure" v={s.proc ?? '—'}/>
+            <Row k="Cellule" v={s.cell ?? '—'}/><Row k="MME / AMF" v={s.core_node ?? s.serving_node ?? '—'}/><Row k="Procédure" v={s.proc ?? '—'}/>
           </dl>
         </section>
         <OtherSessions s={s} onOpen={onOpenSession}/>

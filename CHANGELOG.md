@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.5
+
+- La colonne et la fiche de session « AMF/MME » lisent désormais le nouveau champ `core_node` publié par l'API OIRAN 2.14.4 (ANR2 ladder écart 4) ; repli automatique sur `serving_node` pour les backends 2.14.3 et antérieurs.
+- La colonne « gNB/eNB » lit `serving_ran_node` en priorité (même repli).
+- Aucune autre modification visuelle : l'Analyzer et la fiche de session ne sont pas redessinés.
+
 ## 2.2.4
 
 - L'Analyzer ne précharge plus le callflow de chaque session : seuls les cinq détails de la session ouverte sont prioritaires, et les identités sont chargées paresseusement pour cette session.

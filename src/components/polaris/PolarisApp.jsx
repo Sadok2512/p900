@@ -197,8 +197,8 @@ const GRID_COLS = [
   {k:'cause',l:'Cause',g:'nas',w:120,v:r=>r.cause||'—'},
   {k:'pdu',l:'PDU Session',g:'nas',w:88,v:r=>r.pdu_session_id??'—',mono:true},
   {k:'cell',l:'Cellule',g:'ran',w:84,v:r=>r.cell??'—'},
-  {k:'core',l:'AMF/MME',g:'ran',w:90,v:r=>r.serving_node??'—'},
-  {k:'ran',l:'gNB/eNB',g:'ran',w:90,v:r=>r.ran_node??r.gnb??r.enb??'—'},
+  {k:'core',l:'AMF/MME',g:'ran',w:90,v:r=>r.core_node??r.serving_node??'—'},
+  {k:'ran',l:'gNB/eNB',g:'ran',w:90,v:r=>r.serving_ran_node??r.ran_node??r.gnb??r.enb??r.serving_node??'—'},
   {k:'ifc',l:'Interfaces',g:'correlation',w:132,v:r=>[...new Set(r.interfaces??[])].join(' ')},
   {k:'ex',l:'Liens EXACT',g:'correlation',w:90,v:r=>r.ex,mono:true},
   {k:'comp',l:'Compl.',g:'correlation',w:68,v:r=>r.comp==='—'?'—':`${r.comp} %`,sort:r=>Number(r.comp)||-1},
@@ -525,7 +525,7 @@ function Inspector({s,sel,lens,setLens,width,onHide}) {
             {m[4] && <div className="pl-8">{m[4]} : <span className="text-warning">{m[5]}</span></div>}
           </div>}
           <div><Lbl>Informations UE</Lbl><dl className="grid grid-cols-[100px_1fr] gap-y-0.5 text-[11.5px]">
-            {[['IMSI / SUPI',observedIdentity(ids,'subscriber')],['TMSI / GUTI',observedIdentity(ids,'temporary')],['S-TMSI',observedIdentity(ids,'s_tmsi')],['M-TMSI',observedIdentity(ids,'m_tmsi')],['IMEI(SV) / PEI',observedIdentity(ids,'equipment')],['MSISDN / GPSI',observedIdentity(ids,'directory')],['Identifiant UE',s.ue],['Technologie',s.rat],['Cellule',s.cell],['PCI',s.pci],['EARFCN / ARFCN',s.arfcn ?? s.earfcn ?? s.nr_arfcn],['MME / AMF',s.serving_node],['PDU Session ID',s.pdu_session_id]].map(([k,v])=><React.Fragment key={k}><dt className="text-muted-foreground">{k}</dt><dd className="font-mono break-all" title={String(available(v))}>{available(v)}</dd></React.Fragment>)}
+            {[['IMSI / SUPI',observedIdentity(ids,'subscriber')],['TMSI / GUTI',observedIdentity(ids,'temporary')],['S-TMSI',observedIdentity(ids,'s_tmsi')],['M-TMSI',observedIdentity(ids,'m_tmsi')],['IMEI(SV) / PEI',observedIdentity(ids,'equipment')],['MSISDN / GPSI',observedIdentity(ids,'directory')],['Identifiant UE',s.ue],['Technologie',s.rat],['Cellule',s.cell],['PCI',s.pci],['EARFCN / ARFCN',s.arfcn ?? s.earfcn ?? s.nr_arfcn],['MME / AMF',s.core_node ?? s.serving_node],['PDU Session ID',s.pdu_session_id]].map(([k,v])=><React.Fragment key={k}><dt className="text-muted-foreground">{k}</dt><dd className="font-mono break-all" title={String(available(v))}>{available(v)}</dd></React.Fragment>)}
           </dl></div>
           <details className="rounded-md border border-border"><summary className="px-2 h-7 flex items-center cursor-pointer text-[11.5px] font-medium text-ink-2">Métadonnées techniques</summary>
             <dl className="grid grid-cols-[110px_1fr] gap-y-1 font-mono text-[11.5px] p-2 pt-0">
