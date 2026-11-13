@@ -31,7 +31,7 @@ export type RequestOptions = { params?: QueryParams; method?: 'GET' | 'POST' | '
 const MAX_CONCURRENT_REQUESTS = 4;
 let activeRequests = 0;
 let queuedSequence = 0;
-const queuedRequests: Array<{ priority: number; sequence: number; signal?: AbortSignal; run: () => void; reject: (reason: unknown) => void }> = [];
+const queuedRequests: Array<{ priority: number; sequence: number; signal?: AbortSignal | undefined; run: () => void; reject: (reason: unknown) => void }> = [];
 const priorityValue = (priority: RequestPriority = 'normal') => priority === 'detail' ? 0 : priority === 'normal' ? 1 : 2;
 const abortError = () => new DOMException('Navigation annulée', 'AbortError');
 function drainRequests() {
