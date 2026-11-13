@@ -349,8 +349,26 @@ function Ladder({d,sel,setSel,lens,hidden,collapsed,width,zoom=1,timers=false,al
             {on && <rect x="0" y={y-18} width="3" height={ROW} fill="var(--app-accent)"/>}
             <text x="12" y={y+4} fontSize="10.5" fill="#94A3B8" fontFamily="Geist Mono">{String(d.evidence?.[k]?.seq ?? k+1).padStart(2,'0')}</text>
             <text x="40" y={y+4} fontSize="10.5" fill="#64748B" fontFamily="Geist Mono">{fmtUtc(timeOf(d.evidence?.[k]))}</text>
-            <rect x="128" y={y-7} width="34" height="14" rx="3" fill={ifcHex(m[0],'bg')}/><text x="145" y={y+3.5} textAnchor="middle" fontSize="9.5" fontWeight="600" fill={c} fontFamily="Geist Mono">{String(m[0]).slice(0,6)}</text>
-            {pstart && <text x="168" y={y+4} fontSize="10.5" fill="#334155" fontWeight="600">{String(pstart[0]).slice(0,7)}</text>}
+            <g>
+              <title>{String(m[0])}</title>
+              <rect x="128" y={y-7} width="34" height="14" rx="3" fill={ifcHex(m[0],'bg')}/>
+              <text x="145" y={y+3.5} textAnchor="middle" fontSize="9.5" fontWeight="600" fill={c} fontFamily="Geist Mono">{String(m[0]).slice(0,6)}</text>
+            </g>
+            {pstart && (() => {
+              // 2.14.9 (ANR1 #10 17:44) : libellé procédure complet
+              // en title (tooltip SVG). Colonne élargie 7→14 chars
+              // sans redessiner la page ; au-delà on tronque + ellipse
+              // pour conserver l'alignement vertical.
+              const full = String(pstart[0]);
+              const limit = 14;
+              const shown = full.length > limit ? full.slice(0, limit - 1) + '…' : full;
+              return (
+                <g>
+                  <title>{full}</title>
+                  <text x="168" y={y+4} fontSize="10.5" fill="#334155" fontWeight="600">{shown}</text>
+                </g>
+              );
+            })()}
             {timers && row>0 && (()=>{const a=timeOf(d.evidence?.[vis[row-1]]), b=timeOf(d.evidence?.[k]); return a!=null&&b!=null ? <text x={W-8} y={y+4} textAnchor="end" fontSize="10" fill="#94A3B8" fontFamily="Geist Mono">+{fmtDuration(b-a)}</text> : null;})()}
             <line x1={x1} x2={x2 - dir*7} y1={y} y2={y} stroke={c} strokeWidth={on?2.5:1.2}/>
             <path d={`M${x2},${y} l${-dir*7},-3.5 l0,7 z`} fill={c}/>

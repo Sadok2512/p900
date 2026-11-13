@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.2.6
+
+- Ladder : libellé procédure de la colonne de gauche étendu de 7 à 14 caractères et exposé en entier via un `<title>` SVG (tooltip au survol). Même traitement pour le badge d'interface (title = valeur complète). « UE Regi » / « PFCP Se » restent lisibles au survol ; aucune refonte du gabarit.
+- API 2.14.9 (lot analyzer) : patcher à la lecture étendu à NGAP / NAS-5GMM / NAS-5GSM — l'UI reçoit maintenant `InitialUEMessage · Registration Request` au lieu de `Registration Request` isolé. L'adaptateur `message_name` est agnostique (déjà `str(e.message_name)`), aucun changement UI nécessaire.
+
 ## 2.2.5
 
 - La colonne et la fiche de session « AMF/MME » lisent désormais le nouveau champ `core_node` publié par l'API OIRAN 2.14.4 (ANR2 ladder écart 4) ; repli automatique sur `serving_node` pour les backends 2.14.3 et antérieurs.
