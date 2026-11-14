@@ -67,7 +67,7 @@ describe('POLARIS client', () => {
     const detail = request('/sessions/opened', { priority: 'detail' });
     resolvers.shift()?.(new Response(JSON.stringify({ data: {}, meta: {} })));
     await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(5));
-    expect(fetcher.mock.calls[4]?.[0]).toBe('/api/v1/sessions/opened');
+    expect((fetcher.mock.calls[4] as [string] | undefined)?.[0]).toBe('/api/v1/sessions/opened');
     while (resolvers.length) resolvers.shift()?.(new Response(JSON.stringify({ data: {}, meta: {} })));
     await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(7));
     while (resolvers.length) resolvers.shift()?.(new Response(JSON.stringify({ data: {}, meta: {} })));

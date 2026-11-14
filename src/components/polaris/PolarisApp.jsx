@@ -292,7 +292,7 @@ function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={}}) {
               const clickable = r.id != null;
               return (
                 <tr key={r.id ?? `missing-session-${rowIndex}`} onClick={()=>{if(clickable)setSel(r.id);}} aria-selected={on} aria-disabled={!clickable} className={`group ${clickable?'cursor-pointer':'cursor-default opacity-70'}`}>
-                  {visibleCols.map((c,k)=>{ const v=c.v(r); return <td key={c.k} title={String(v)} className={`${c.identity?'min-h-7 py-1':'h-7 overflow-hidden text-ellipsis'} px-2 border-b border-border-subtle ${c.mono?'font-mono text-[11.5px]':''} ${k===0?'sticky left-0 z-10 border-r border-r-[#E2E8F0] text-muted-foreground':'text-foreground'} ${on?'bg-[color-mix(in_oklab,var(--app-accent)_8%,white)]':'bg-white group-hover:bg-surface-2'} ${on&&k===0?'shadow-[inset_3px_0_0_var(--app-accent)]':''}`}>{cell(c,r)}</td>; })}
+                  {visibleCols.map((c,k)=>{ const v=c.v(r); const content=cell(c,r); return <td key={c.k} title={String(v)} className={`${c.identity?'min-h-7 py-1 overflow-hidden':'h-7 overflow-hidden'} px-2 border-b border-border-subtle ${c.mono?'font-mono text-[11.5px]':''} ${k===0?'sticky left-0 z-10 border-r border-r-[#E2E8F0] text-muted-foreground':'text-foreground'} ${on?'bg-[color-mix(in_oklab,var(--app-accent)_8%,white)]':'bg-white group-hover:bg-surface-2'} ${on&&k===0?'shadow-[inset_3px_0_0_var(--app-accent)]':''}`}>{c.identity?content:<span className="block truncate w-full">{content}</span>}</td>; })}
                 </tr>
               );
             })}
@@ -494,10 +494,46 @@ function DecodeNode({k,v,path,open,toggle,q}) {
     {!leaf && isOpen && <div className="pl-3 border-l border-border ml-1.5">{Object.entries(v).map(([ck,cv])=><DecodeNode key={ck} k={ck} v={cv} path={`${path}.${ck}`} open={open} toggle={toggle} q={q}/>)}</div>}
   </div>;
 }
+// 2.3.0 — decoded_ie_tree provenant de l'API oiran est un array
+// de {name, value} (ex. PFCP : [{name:"Node ID", value:"..."}, ...]).
+// On normalise ce format en objet {name: value} avant le walking
+// pour que le rendu affiche « Node ID: ... » et non « 0 {6} … 11 {6} »
+// (indices + nombres de sous-clés) qui était le rendu brut avant 2.3.0.
+function normalizeIeTree(input) {
+  if (Array.isArray(input)) {
+    const out = {};
+    const counts = {};
+    for (const item of input) {
+      if (item && typeof item === 'object' && typeof item.name === 'string') {
+        const base = item.name;
+        counts[base] = (counts[base] ?? 0) + 1;
+        const key = counts[base] === 1 ? base : `${base} (${counts[base]})`;
+        const v = Object.prototype.hasOwnProperty.call(item, 'value') ? item.value : item;
+        out[key] = (v && typeof v === 'object') ? normalizeIeTree(v) : v;
+      } else {
+        out[`entry ${Object.keys(out).length}`] = (item && typeof item === 'object') ? normalizeIeTree(item) : item;
+      }
+    }
+    return out;
+  }
+  if (input && typeof input === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(input)) {
+      out[k] = (v && typeof v === 'object') ? normalizeIeTree(v) : v;
+    }
+    return out;
+  }
+  return input;
+}
+
 function DecodeTree({tree}) {
+  const normalized = useMemo(()=>{
+    const v = normalizeIeTree(tree);
+    return (v && typeof v === 'object' && !Array.isArray(v)) ? v : {};
+  },[tree]);
   const [open,setOpen] = useState({}); const [q,setQ] = useState('');
   const all = {}; const walk=(v,p)=>{ if(v&&typeof v==='object'){ all[p]=true; Object.entries(v).forEach(([k,c])=>walk(c,`${p}.${k}`)); } };
-  Object.entries(tree).forEach(([k,v])=>walk(v,k));
+  Object.entries(normalized).forEach(([k,v])=>walk(v,k));
   const qq = q.trim().toLowerCase();
   const view = qq ? all : open;
   return <div className="rounded-md border border-border">
@@ -506,7 +542,7 @@ function DecodeTree({tree}) {
       <button onClick={()=>setOpen(all)} className="h-6 px-1.5 rounded border border-border text-[11px] text-ink-2">Tout déplier</button>
       <button onClick={()=>setOpen({})} className="h-6 px-1.5 rounded border border-border text-[11px] text-ink-2">Tout replier</button>
     </div>
-    <div className="p-1.5 font-mono text-[11.5px] leading-[1.7]">{Object.keys(tree).length ? Object.entries(tree).map(([k,v])=><DecodeNode key={k} k={k} v={v} path={k} open={view} toggle={p=>setOpen(o=>({...o,[p]:!o[p]}))} q={qq}/>) : <div className="text-muted-foreground px-1">Arbre de décodage vide.</div>}</div>
+    <div className="p-1.5 font-mono text-[11.5px] leading-[1.7]">{Object.keys(normalized).length ? Object.entries(normalized).map(([k,v])=><DecodeNode key={k} k={k} v={v} path={k} open={view} toggle={p=>setOpen(o=>({...o,[p]:!o[p]}))} q={qq}/>) : <div className="text-muted-foreground px-1">Arbre de décodage vide.</div>}</div>
   </div>;
 }
 

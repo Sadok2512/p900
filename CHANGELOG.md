@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.3.0
+
+- Analyzer « Toutes les sessions » : libellé « Procédure » n'est plus coupé au milieu dans la grille — la cellule porte maintenant un `<span className="block truncate w-full">` qui active réellement `text-overflow: ellipsis` dans une `<td>`. Troncature uniquement à droite, texte complet exposé en `title` natif au survol (défaut D2, pas de troncature backend mesurée, confirmée par le payload ANR1 #10 6883006379).
+- Décodage d'événement : `DecodeTree` normalise désormais le format array `[{name, value}, …]` renvoyé par l'API (notamment PFCP `decoded_ie_tree`) en objet `{name: value, …}` avant le rendu. Les IE PFCP affichent « Node ID: node_id_ipv4=10.77.23.13 », « F-SEID: f_seid=0x314, … » au lieu du rendu brut « 0 {6} … 11 {6} ». Les doublons de noms (plusieurs `Created PDR/PDR ID`) sont dédoublonnés en `name`, `name (2)`, `name (3)` (défaut D5).
+- `src/lib/polaris-api/client.ts` : 3 erreurs TypeScript préexistantes sous `exactOptionalPropertyTypes: true` corrigées — `signal` n'est plus présent dans l'objet item quand il est `undefined`, et `fetcher.mock.calls[4]?.[0]` est typé pour supporter l'indexation sur tuple.
+- Option B des 6 défauts du 14/11 18:32 côté UI. Les fixes backend `oiran-api 2.15.0` (D3 backend identités dans /sessions, D4 champ clear-text SUPI null-scheme + IMSI EPS sous auth UI, D6 corrélation PFCP Request type 50 par `pfcp_sequence`) sont dans le dépôt `Sadok2512/OIRAN-POLARIS` branche `feat/oiran-api-2.15.0-identities-pfcp`.
+
 ## 2.2.7
 
 - Analyzer « Toutes les sessions » : correction de la colonne « Numéro » qui affichait `c– · –` quand les champs `cap`/`seq` n'étaient pas renseignés — repli désormais sur `session_id` puis `#<id>` (défaut D1 lot 14/11 18:32). Colonne « Abonné » : si `r.subscriber_imsi` est déjà présent sur la row (API /sessions), on l'affiche sans attendre que l'utilisateur ouvre la session — « ouvrir la session » reste seulement quand aucune valeur n'est connue (fix D3 UI partiel, D3 backend suivra via API 2.15.0). Défauts D2/D4/D5/D6 déclarés OUVERT en attente de payloads ANR1 (cf. commentaire #10).

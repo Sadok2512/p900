@@ -45,10 +45,11 @@ function drainRequests() {
 }
 function scheduled<T>(task: () => Promise<T>, priority: RequestPriority, signal?: AbortSignal): Promise<T> {
   return new Promise<T>((resolve, reject) => {
-    const item = {
-      priority: priorityValue(priority), sequence: queuedSequence++, signal, reject,
+    const item: (typeof queuedRequests)[number] = {
+      priority: priorityValue(priority), sequence: queuedSequence++, reject,
       run: () => { signal?.removeEventListener('abort', onAbort); void task().then(resolve, reject).finally(() => { activeRequests -= 1; drainRequests(); }); },
     };
+    if (signal) item.signal = signal;
     if (signal?.aborted) { reject(abortError()); return; }
     const onAbort = () => {
       const index = queuedRequests.indexOf(item);
