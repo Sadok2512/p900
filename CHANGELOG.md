@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.2.7
+
+- Analyzer « Toutes les sessions » : correction de la colonne « Numéro » qui affichait `c– · –` quand les champs `cap`/`seq` n'étaient pas renseignés — repli désormais sur `session_id` puis `#<id>` (défaut D1 lot 14/11 18:32). Colonne « Abonné » : si `r.subscriber_imsi` est déjà présent sur la row (API /sessions), on l'affiche sans attendre que l'utilisateur ouvre la session — « ouvrir la session » reste seulement quand aucune valeur n'est connue (fix D3 UI partiel, D3 backend suivra via API 2.15.0). Défauts D2/D4/D5/D6 déclarés OUVERT en attente de payloads ANR1 (cf. commentaire #10).
+
 ## 2.2.6
 
 - Ladder : libellé procédure de la colonne de gauche étendu de 7 à 14 caractères et exposé en entier via un `<title>` SVG (tooltip au survol). Même traitement pour le badge d'interface (title = valeur complète). « UE Regi » / « PFCP Se » restent lisibles au survol ; aucune refonte du gabarit.

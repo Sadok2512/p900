@@ -179,7 +179,7 @@ const GRID_GROUPS = [
   {k:'correlation',l:'Corrélation multi-protocole'},
 ];
 const GRID_COLS = [
-  {k:'num',l:'Numéro',g:'session',w:112,v:r=>r.id!=null?`c${r.cap} · ${r.seq}`:'identifiant absent',mono:true,required:true},
+  {k:'num',l:'Numéro',g:'session',w:112,v:r=>{if(r.id==null)return 'identifiant absent'; if(r.cap!=null&&r.seq!=null)return `c${r.cap} · ${r.seq}`; return r.session_id??`#${r.id}`;},mono:true,required:true},
   {k:'start',l:'Début UTC',g:'session',w:118,v:r=>fmtUtc(toMs(r.start_timestamp)),mono:true},
   {k:'sid',l:'Session ID',g:'session',w:120,v:r=>r.session_id??'—',mono:true},
   {k:'res',l:'Résultat',g:'session',w:96,v:r=>verdict(r.res)},
@@ -239,7 +239,7 @@ function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={}}) {
   const cell = (c,r) => {
     const v = c.v(r);
     if (c.k==='res') return <VerdictBadge v={v}/>;
-    if (c.k==='sub') { if (!r.identities) return <span className="text-subtle">ouvrir la session</span>; const subscriber=observedIdentity(r.identities,'subscriber'); return subscriber==='—' ? <span className="text-subtle">non observé</span> : <span className="inline-flex items-center gap-1" title={r.subscriber_pseudonym}>{subscriber}{r.subscriber_session_count!=null && <span className="rounded bg-brand-soft text-brand px-1 text-[11px] font-sans font-semibold">{r.subscriber_session_count} sessions</span>}</span>; }
+    if (c.k==='sub') { const fallbackSubscriber=r.subscriber_imsi ?? (r.subscriber_pseudonym?shortPseudo(r.subscriber_pseudonym):null); const subscriber=r.identities?observedIdentity(r.identities,'subscriber'):(fallbackSubscriber??'—'); if (!r.identities && !fallbackSubscriber) return <span className="text-subtle">ouvrir la session</span>; return subscriber==='—' ? <span className="text-subtle">non observé</span> : <span className="inline-flex items-center gap-1" title={r.subscriber_pseudonym||undefined}>{subscriber}{r.subscriber_session_count!=null && <span className="rounded bg-brand-soft text-brand px-1 text-[11px] font-sans font-semibold">{r.subscriber_session_count} sessions</span>}</span>; }
     if (c.k==='ifc') return <span className="flex gap-1">{[...new Set(r.interfaces ?? [])].map(i=><Tag key={i} i={i}/>)}</span>;
     if (c.identity) { if (!r.identities) return <span className="text-subtle font-sans">ouvrir la session</span>; const values=identityProofs(r.identities,c.kind); const extra=Math.max(0,values.length-1); const title=values.map(x=>`${x.value} — ${x.role} — ${x.capture_id}·${x.packet_number}`).join('\n'); return <span className="font-mono whitespace-normal break-all" title={title||undefined}>{v==='—'?'non observé':v}{extra>0&&<span className="ml-1 rounded bg-brand-soft text-brand px-1 font-sans text-[10px]">+{extra}</span>}</span>; }
     if (c.k==='cause') return <span className={verdict(r.res)==='FAILED'?'text-danger':'text-muted-foreground'}>{v}</span>;
