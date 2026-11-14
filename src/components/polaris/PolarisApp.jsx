@@ -183,7 +183,7 @@ const GRID_COLS = [
   {k:'start',l:'Début UTC',g:'session',w:118,v:r=>fmtUtc(toMs(r.start_timestamp)),mono:true},
   {k:'sid',l:'Session ID',g:'session',w:120,v:r=>r.session_id??'—',mono:true},
   {k:'res',l:'Résultat',g:'session',w:96,v:r=>verdict(r.res)},
-  {k:'dur',l:'Durée',g:'session',w:76,v:r=>{if(r.multiCapture) return 'multi-capture'; const d=durOf(r);return d==null?(r.dur??'—'):fmtDuration(d);},sort:r=>durOf(r)??-1},
+  {k:'dur',l:'Durée',g:'session',w:112,v:r=>{if(r.multiCapture) return 'multi-capture'; const d=durOf(r);return d==null?(r.dur??'—'):fmtDuration(d);},sort:r=>durOf(r)??-1},
   {k:'ue',l:'UE',g:'session',w:96,v:r=>r.ue,mono:true},
   {k:'sub',l:'Abonné',g:'session',w:140,v:r=>r.subscriber_imsi ?? shortPseudo(r.subscriber_pseudonym),mono:true},
   {k:'rat',l:'RAT',g:'session',w:64,v:r=>r.rat},

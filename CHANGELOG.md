@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.1
+
+- Colonne « Durée » de « Toutes les sessions » : largeur par défaut 76 → 112 px. L'ancienne largeur ne laissait pas la place à l'en-tête « Durée » ni aux valeurs typiques « 1 min 23 s » ; l'utilisateur voyait « …e » (en-tête) et « …min… » (valeurs). Le wrapper truncate CSS de 2.3.0 reste en place : la troncature, si elle survient, se fait désormais proprement à droite avec le texte complet en `title` au survol. Largeurs stockées dans localStorage non affectées (seule la valeur par défaut change).
+- Audit N3 (ladder « 0 message »/« Aucun message visible ») : déclaré OUVERT dans le commentaire #10 associé. Cause probable identifiée côté UI (`PolarisApp.jsx:329` — filtre `hidden` + `inCollapsed`) mais le filtre est initialisé vide (`PolarisApp.jsx:431`, `useEffect:436`). Cause plus probable : `d.msgs` lui-même vide pour la session sélectionnée. Requête de preuve demandée à ANR1 : `curl /api/v1/sessions/<sid>/events` sans filtre d'interface + `curl /api/v1/sessions/<sid>/procedures`.
+
 ## 2.3.0
 
 - Analyzer « Toutes les sessions » : libellé « Procédure » n'est plus coupé au milieu dans la grille — la cellule porte maintenant un `<span className="block truncate w-full">` qui active réellement `text-overflow: ellipsis` dans une `<td>`. Troncature uniquement à droite, texte complet exposé en `title` natif au survol (défaut D2, pas de troncature backend mesurée, confirmée par le payload ANR1 #10 6883006379).
