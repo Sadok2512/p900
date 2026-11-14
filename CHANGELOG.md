@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.4.0
+
+- N1 : les 6 colonnes identity de « Toutes les sessions » (IMSI/SUPI, TMSI/GUTI, S-TMSI, M-TMSI, IMEI(SV)/PEI, MSISDN/GPSI) lisent désormais directement le champ `r.identities` fourni par `/api/v1/sessions` depuis `oiran-api 2.15.0`. Plus besoin d'ouvrir la session pour voir les identités. L'`identityMap` détaillée (chargée via `/sessions/:id/identities` avec `_proof`) reste prioritaire quand elle est présente, pour exposer les preuves `+N` sur la session ouverte.
+- Cellule identity (`PolarisApp.jsx:244`) : distinction stricte entre `r.identities === undefined` (pas encore chargé → « ouvrir la session ») et `r.identities === null` ou `{imsi: null, …}` (observé mais vide → « non observé »). La règle Sadok « valeur absente → non observé » est encodée dans la cellule, pas dans l'adaptateur.
+- N3 : correction du bug « Aucun message visible » dans le Ladder quand `/api/v1/sessions/:id/callflow` renvoie `nodes: []` (cas prod `5g-session-c330d205adafa233`, 21 events pourtant présents). `toLegacyCallflow` (`adapters.ts:11`) acceptait un array vide comme `nodes` explicites, laissant le Ladder sans colonnes. Le repli sur la dérivation depuis `source/destination_participant` des events est maintenant pris dès que `body['nodes']` est **absent OU vide**. 2 nouveaux tests unitaires dans `adapters.test.ts` reproduisent la payload réelle ANR1 pour verrouiller la régression.
+
 ## 2.3.2
 
 - Colonne « Numéro » : correction du fallback quand `anchor_capture_id` et `first_packet_number` sont absents du payload /api/v1/sessions (cas prod mesuré sur `5g-session-c330d205adafa233`, ANR1 #10 6884587508). L'adaptateur `toLegacySession` passe `null`/`undefined` dans `available()` qui renvoie le tiret long `'—'` (U+2014) ; l'ancien test en 2.2.7 (`r.cap!=null && r.seq!=null`) acceptait donc la string `'—'` et produisait le rendu `c— · —`. Le fallback traite désormais `'—'`, `''` et `null` comme équivalents absents, puis se replie sur `session_id`, puis `#<id>`. Logique extraite en pure helper testable `sessionNumberLabel(row)` dans `analysis.ts`.

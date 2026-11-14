@@ -234,14 +234,34 @@ function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={}}) {
   useEffect(()=>{ setPage(1); },[q,condKey,size]);
   const pages = Math.max(1,Math.ceil(shown.length/size)); const cur = Math.min(page,pages);
   const rawPageRows = pageSlice(shown,cur,size);
-  const pageRows=useMemo(()=>rawPageRows.map(row=>({...row,identities:identityMap[row.session_id]})),[rawPageRows,identityMap]);
+  // 2.4.0 (ANR1 #10) — identityMap porte la version détaillée
+  // (avec objets `_proof`) chargée via /sessions/:id/identities
+  // pour la session ouverte. Si absente, on replie sur
+  // `row.identities` fourni directement par /api/v1/sessions
+  // depuis oiran-api 2.15.0 (shape compacte sans `_proof`).
+  // N1 : les 6 cellules identity lisent cette shape compacte sans
+  // nécessiter l'ouverture de la session.
+  const pageRows=useMemo(()=>rawPageRows.map(row=>({...row,identities:identityMap[row.session_id] ?? row.identities})),[rawPageRows,identityMap]);
   const ko = rows.filter(r=>verdict(r.res)==='FAILED').length;
   const cell = (c,r) => {
     const v = c.v(r);
     if (c.k==='res') return <VerdictBadge v={v}/>;
     if (c.k==='sub') { const fallbackSubscriber=r.subscriber_imsi ?? (r.subscriber_pseudonym?shortPseudo(r.subscriber_pseudonym):null); const subscriber=r.identities?observedIdentity(r.identities,'subscriber'):(fallbackSubscriber??'—'); if (!r.identities && !fallbackSubscriber) return <span className="text-subtle">ouvrir la session</span>; return subscriber==='—' ? <span className="text-subtle">non observé</span> : <span className="inline-flex items-center gap-1" title={r.subscriber_pseudonym||undefined}>{subscriber}{r.subscriber_session_count!=null && <span className="rounded bg-brand-soft text-brand px-1 text-[11px] font-sans font-semibold">{r.subscriber_session_count} sessions</span>}</span>; }
     if (c.k==='ifc') return <span className="flex gap-1">{[...new Set(r.interfaces ?? [])].map(i=><Tag key={i} i={i}/>)}</span>;
-    if (c.identity) { if (!r.identities) return <span className="text-subtle font-sans">ouvrir la session</span>; const values=identityProofs(r.identities,c.kind); const extra=Math.max(0,values.length-1); const title=values.map(x=>`${x.value} — ${x.role} — ${x.capture_id}·${x.packet_number}`).join('\n'); return <span className="font-mono whitespace-normal break-all" title={title||undefined}>{v==='—'?'non observé':v}{extra>0&&<span className="ml-1 rounded bg-brand-soft text-brand px-1 font-sans text-[10px]">+{extra}</span>}</span>; }
+    if (c.identity) {
+      // 2.4.0 (ANR1 #10) — distinction stricte :
+      //   undefined => pas encore chargé pour cette session
+      //                → « ouvrir la session » (contrat d'origine).
+      //   null       => oiran-api a répondu mais vault vide
+      //                → « non observé » (preuve API).
+      //   object     => shape complète ou compacte 2.15.0, on
+      //                extrait valeur + preuves.
+      if (r.identities === undefined) return <span className="text-subtle font-sans">ouvrir la session</span>;
+      const values = r.identities ? identityProofs(r.identities, c.kind) : [];
+      const extra = Math.max(0, values.length - 1);
+      const title = values.map(x=>`${x.value} — ${x.role} — ${x.capture_id}·${x.packet_number}`).join('\n');
+      return <span className="font-mono whitespace-normal break-all" title={title||undefined}>{v==='—'?'non observé':v}{extra>0&&<span className="ml-1 rounded bg-brand-soft text-brand px-1 font-sans text-[10px]">+{extra}</span>}</span>;
+    }
     if (c.k==='cause') return <span className={verdict(r.res)==='FAILED'?'text-danger':'text-muted-foreground'}>{v}</span>;
     return v;
   };

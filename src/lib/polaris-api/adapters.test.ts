@@ -62,6 +62,42 @@ describe('POLARIS data rules', () => {
     expect(d.links[0]?.[4]).toContain('teid=0x0000be90');
     expect(d.links[0]?.[6]).toEqual(['s5c-s5u-teid']);
   });
+  it('toLegacyCallflow derives nodes from events when /callflow returns nodes:[] (ANR1 #10 N3)', () => {
+    // Payload réelle ANR1 pour 5g-session-c330d205adafa233 :
+    // /api/v1/sessions/:id/callflow renvoie events=21 et nodes=[],
+    // ce qui laissait le Ladder sans colonnes et affichait
+    // "Aucun message visible — réaffiche une interface ou déplie
+    // une procédure." même quand 21 events existaient.
+    const d = toLegacyCallflow({
+      events: [
+        { event_id:'e1', interface:'N2', message_name:'InitialUEMessage',
+          source_participant:'gNB', destination_participant:'AMF' },
+        { event_id:'e2', interface:'N2', message_name:'Registration Request',
+          source_participant:'gNB', destination_participant:'AMF' },
+        { event_id:'e3', interface:'N4', message_name:'PFCP Session Establishment Request',
+          source_participant:'SMF', destination_participant:'UPF' },
+        { event_id:'e4', interface:'N4', message_name:'PFCP Session Establishment Response',
+          source_participant:'UPF', destination_participant:'SMF' },
+      ],
+      nodes: [],
+    }, {}, {});
+    // nodes dérivés des source/destination_participant, dédupliqués.
+    expect(new Set(d.nodes)).toEqual(new Set(['gNB','AMF','SMF','UPF']));
+    // msgs intact : 4 lignes, interface + message_name + "src → dst".
+    expect(d.msgs.length).toBe(4);
+    expect(d.msgs[0]).toEqual(['N2','InitialUEMessage','gNB → AMF', null, null, null]);
+    expect(d.msgs[2]).toEqual(['N4','PFCP Session Establishment Request','SMF → UPF', null, null, null]);
+  });
+  it('toLegacyCallflow honours explicit nodes when the backend provides them', () => {
+    const d = toLegacyCallflow({
+      events: [
+        { event_id:'x', interface:'N2', message_name:'m',
+          source_participant:'gNB', destination_participant:'AMF' },
+      ],
+      nodes: ['AMF','gNB','AUSF/UDM'],
+    }, {}, {});
+    expect(d.nodes).toEqual(['AMF','gNB','AUSF/UDM']);
+  });
   it('lists every observed version component and package UI version', () => {
     const rows = versionComponents({backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{diameter:'0.2.6',gtpu:'0.2.1'}},'0.9.1');
     expect(Object.fromEntries(rows)).toMatchObject({'POLARIS':'2.11.6','API':'2.11.6','Web frontend':'2.11.6','UI package.json':'0.9.1','Session engine':'0.5.7','Correlation engine':'0.6.6','Event schema':'1.6.1','Callflow schema':'1.3.2',diameter:'0.2.6',gtpu:'0.2.1'});

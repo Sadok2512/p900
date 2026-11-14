@@ -8,7 +8,21 @@ export function toLegacySession(s: Session, firstEvent?: Event) {
 export function toLegacyCallflow(value: unknown, procedures: unknown, correlations: unknown) {
   const body = value && typeof value === 'object' && !Array.isArray(value) ? value as RecordData : {};
   const events = records<Event>(Array.isArray(value) ? value : body['events'] ?? body['messages']);
-  const nodes = Array.isArray(body['nodes']) ? body['nodes'].map(n => typeof n === 'string' ? n : str((n as RecordData)['name'])) : [...new Set(events.flatMap(e => [str(e.source_participant), str(e.destination_participant)]).filter(n => n !== '—'))];
+  // 2.4.0 (ANR1 #10 6883006379) — N3 : la payload réelle
+  // `/api/v1/sessions/:id/callflow` renvoie `nodes: []` quand
+  // le callflow n'a pas été rendu côté backend (cas prod
+  // `5g-session-c330d205adafa233`). Le test `Array.isArray(nodes)`
+  // passait pour un array **vide** → `.map(...)` renvoyait `[]`
+  // → `d.nodes = []` → `nodeIdx` renvoie -1 pour tous les
+  // participants → les lignes du ladder n'avaient aucune
+  // coordonnée → aucun message visible (21 events pourtant
+  // présents). Correctif : on tombe sur le calcul dérivé des
+  // events (participants observés) dès que `body['nodes']` est
+  // absent **OU** vide.
+  const explicitNodes = Array.isArray(body['nodes']) && body['nodes'].length
+    ? body['nodes'].map(n => typeof n === 'string' ? n : str((n as RecordData)['name']))
+    : null;
+  const nodes = explicitNodes ?? [...new Set(events.flatMap(e => [str(e.source_participant), str(e.destination_participant)]).filter(n => n !== '—'))];
   const edgeBody = correlations && typeof correlations === 'object' && !Array.isArray(correlations) ? correlations as RecordData : {};
   const edges = Array.isArray(correlations) ? records<Correlation>(correlations) : records<Correlation>(edgeBody['edges'] ?? edgeBody['correlations']);
   const links = edges.map(c => {
