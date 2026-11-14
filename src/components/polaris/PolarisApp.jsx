@@ -18,7 +18,7 @@ import { INTERFACE_FAMILY_HEX, interfaceFamilyOf } from '@/lib/polaris-ui/interf
 import { APP_THEMES, DEFAULT_THEME, accentOf, normalizeTheme } from '@/lib/polaris-ui/appThemes';
 /* Ladder lines and chips are SVG: they take the family's reference hex. */
 const ifcHex = (name, part) => INTERFACE_FAMILY_HEX[interfaceFamilyOf(name)][part];
-import { visibleMessages, filterOptions, emptyFilter, filterActive, pageItems, pageSlice, verdict, timeOf, toMs, fmtUtc, fmtDuration } from './analyzer/analysis';
+import { visibleMessages, filterOptions, emptyFilter, filterActive, pageItems, pageSlice, verdict, timeOf, toMs, fmtUtc, fmtDuration, sessionNumberLabel } from './analyzer/analysis';
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 
 /* Données fictives — PLMN de test 001/01. Tri canonique (capture_id, seq). */
@@ -179,7 +179,7 @@ const GRID_GROUPS = [
   {k:'correlation',l:'Corrélation multi-protocole'},
 ];
 const GRID_COLS = [
-  {k:'num',l:'Numéro',g:'session',w:112,v:r=>{if(r.id==null)return 'identifiant absent'; if(r.cap!=null&&r.seq!=null)return `c${r.cap} · ${r.seq}`; return r.session_id??`#${r.id}`;},mono:true,required:true},
+  {k:'num',l:'Numéro',g:'session',w:112,v:r=>sessionNumberLabel(r),mono:true,required:true},
   {k:'start',l:'Début UTC',g:'session',w:118,v:r=>fmtUtc(toMs(r.start_timestamp)),mono:true},
   {k:'sid',l:'Session ID',g:'session',w:120,v:r=>r.session_id??'—',mono:true},
   {k:'res',l:'Résultat',g:'session',w:96,v:r=>verdict(r.res)},

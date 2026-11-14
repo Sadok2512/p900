@@ -169,3 +169,23 @@ export function sessionSummary(session: Rec, flow: Flow) {
   const st = steps(flow); const k = sessionKpis(session, flow);
   return { res: overall(session['state'], st), durationMs: k.durationMs, multiCapture: k.multiCapture };
 }
+
+// 2.3.2 (ANR1 #10 6884587508) — étiquette de la colonne « Numéro ».
+// Preuve (payload réelle ANR1 pour 5g-session-c330d205adafa233) :
+// `anchor_capture_id` et `first_packet_number` sont absents de
+// la réponse /api/v1/sessions pour les sessions continues.
+// L'adaptateur `toLegacySession` passe ces valeurs dans
+// `available()` qui remplace `null`/`''` par le tiret long `'—'`
+// (U+2014). Le test d'origine en 2.2.7
+// (`r.cap != null && r.seq != null`) acceptait donc la string
+// `'—'` comme valeur présente → rendu `c— · —`.
+// Fix : toute valeur `'—'` ou vide doit être traitée comme
+// absente, puis repli sur `session_id`, puis `#<id>`. Pure
+// helper testable.
+export function sessionNumberLabel(row: { id?: unknown; cap?: unknown; seq?: unknown; session_id?: unknown }): string {
+  if (row.id == null || row.id === '') return 'identifiant absent';
+  const usable = (v: unknown) => v != null && v !== '' && v !== '—';
+  if (usable(row.cap) && usable(row.seq)) return `c${row.cap} · ${row.seq}`;
+  if (typeof row.session_id === 'string' && row.session_id) return row.session_id;
+  return `#${row.id}`;
+}

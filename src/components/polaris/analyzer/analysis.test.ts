@@ -1,6 +1,40 @@
 import { describe, it, expect } from 'vitest';
-import { verdict, steps, overall, failures, sessionKpis, type Flow } from './analysis';
+import { verdict, steps, overall, failures, sessionKpis, sessionNumberLabel, type Flow } from './analysis';
 const flow = (msgs: Flow['msgs'], procs: Flow['procs'], evidence: Record<string, unknown>[] = []): Flow => ({ msgs, procs, evidence });
+
+describe('sessionNumberLabel — ANR1 #10 6884587508 (2.3.1 FAIL)', () => {
+  it('returns c<cap> · <seq> when cap and seq are real values', () => {
+    expect(sessionNumberLabel({ id: 'any', cap: 103, seq: 417, session_id: '5g-session-xxx' }))
+      .toBe('c103 · 417');
+    expect(sessionNumberLabel({ id: 'any', cap: 'sha256:abc', seq: 42, session_id: '5g-session-xxx' }))
+      .toBe('csha256:abc · 42');
+  });
+  it('falls back to session_id when cap is the tiret long placeholder — preuve prod ANR1', () => {
+    // Payload réelle pour 5g-session-c330d205adafa233 : anchor_capture_id
+    // et first_packet_number absents → `available()` renvoie '—' (U+2014).
+    // L'ancien check `r.cap!=null && r.seq!=null` passait → `c— · —`.
+    expect(sessionNumberLabel({ id: '5g-session-c330d205adafa233', cap: '—', seq: '—', session_id: '5g-session-c330d205adafa233' }))
+      .toBe('5g-session-c330d205adafa233');
+  });
+  it('falls back to session_id when only seq is the tiret long placeholder', () => {
+    expect(sessionNumberLabel({ id: 'any', cap: 103, seq: '—', session_id: '5g-session-aaa' }))
+      .toBe('5g-session-aaa');
+  });
+  it('falls back to session_id when cap/seq are null (defensive)', () => {
+    expect(sessionNumberLabel({ id: 'any', cap: null, seq: null, session_id: '5g-session-bbb' }))
+      .toBe('5g-session-bbb');
+  });
+  it('returns #<id> when both cap/seq AND session_id are unavailable', () => {
+    expect(sessionNumberLabel({ id: 42, cap: '—', seq: '—' })).toBe('#42');
+  });
+  it('returns "identifiant absent" when id itself is missing', () => {
+    expect(sessionNumberLabel({ cap: 1, seq: 2, session_id: 'x' })).toBe('identifiant absent');
+    expect(sessionNumberLabel({ id: '', cap: 1, seq: 2 })).toBe('identifiant absent');
+  });
+  it('rejects empty string cap or seq like it rejects —', () => {
+    expect(sessionNumberLabel({ id: 'any', cap: '', seq: '', session_id: 's1' })).toBe('s1');
+  });
+});
 describe('session analysis', () => {
   it('maps states to the four results', () => {
     expect(verdict('Succès')).toBe('SUCCESS'); expect(verdict('Échec')).toBe('FAILED');

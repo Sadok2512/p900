@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.3.2
+
+- Colonne « Numéro » : correction du fallback quand `anchor_capture_id` et `first_packet_number` sont absents du payload /api/v1/sessions (cas prod mesuré sur `5g-session-c330d205adafa233`, ANR1 #10 6884587508). L'adaptateur `toLegacySession` passe `null`/`undefined` dans `available()` qui renvoie le tiret long `'—'` (U+2014) ; l'ancien test en 2.2.7 (`r.cap!=null && r.seq!=null`) acceptait donc la string `'—'` et produisait le rendu `c— · —`. Le fallback traite désormais `'—'`, `''` et `null` comme équivalents absents, puis se replie sur `session_id`, puis `#<id>`. Logique extraite en pure helper testable `sessionNumberLabel(row)` dans `analysis.ts`.
+- 7 nouveaux tests unitaires `sessionNumberLabel` reproduisant le cas prod ANR1 : cap/seq réels, cap/seq = `'—'`, cap = réel mais seq = `'—'`, null, session_id manquant, id manquant, string vide.
+
 ## 2.3.1
 
 - Colonne « Durée » de « Toutes les sessions » : largeur par défaut 76 → 112 px. L'ancienne largeur ne laissait pas la place à l'en-tête « Durée » ni aux valeurs typiques « 1 min 23 s » ; l'utilisateur voyait « …e » (en-tête) et « …min… » (valeurs). Le wrapper truncate CSS de 2.3.0 reste en place : la troncature, si elle survient, se fait désormais proprement à droite avec le texte complet en `title` au survol. Largeurs stockées dans localStorage non affectées (seule la valeur par défaut change).
