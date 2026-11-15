@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.4.4
+
+- Corrige le FAIL ANR1 #10 6894872305 : la colonne IMSI/SUPI affichait
+  « masqué » alors qu'oiran-api 2.15.3 servait l'IMSI. Le client
+  redactait toute la réponse de la liste. Règle Sadok (IMSI en clair dans
+  l'UI authentifiée) : `/sessions` et `/sessions/filter` passent par
+  `redactKeepingIdentities`, qui garde le sous-objet `identities` intact
+  et continue de masquer tout autre champ d'identité.
+
 ## 2.4.3
 
 - Corrige le FAIL ANR1 de 2.4.2 (#10 6894043874) : pendant le chargement,

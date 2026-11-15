@@ -26,8 +26,24 @@ export function redact<T>(value: T): T {
   }
   return value;
 }
+/**
+ * 2.4.4 — règle Sadok (2026-11-14) : IMSI/SUPI en clair dans l'UI
+ * authentifiée. La liste des sessions garde la redaction générale, mais
+ * le sous-objet `identities` (servi par oiran-api pour l'opérateur, comme
+ * /sessions/:id/identities) passe tel quel.
+ */
+export function redactKeepingIdentities<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(redactKeepingIdentities) as T;
+  if (value && typeof value === 'object') {
+    const object = value as Record<string, unknown>;
+    if (!('identities' in object)) return redact(value);
+    const { identities, ...rest } = object;
+    return { ...(redact(rest) as Record<string, unknown>), identities } as T;
+  }
+  return redact(value);
+}
 export type RequestPriority = 'detail' | 'normal' | 'background';
-export type RequestOptions = { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal; clearIdentityResponse?: boolean; timeoutMs?: number; priority?: RequestPriority };
+export type RequestOptions = { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal; clearIdentityResponse?: boolean; keepIdentities?: boolean; timeoutMs?: number; priority?: RequestPriority };
 const MAX_CONCURRENT_REQUESTS = 4;
 let activeRequests = 0;
 let queuedSequence = 0;
@@ -88,7 +104,7 @@ export async function requestFrom<T>(base: string, path: string, options: Reques
   }
   if (!payload || typeof payload !== 'object' || !('data' in payload)) throw new PolarisApiError('INVALID_RESPONSE', `Réponse invalide pour ${method} ${path} (HTTP ${response.status})`, response.status);
   const envelope = payload as { data: T; meta?: unknown };
-  return { data: options.clearIdentityResponse ? envelope.data : redact(envelope.data), meta: envelope.meta && typeof envelope.meta === 'object' ? redact(envelope.meta) as Envelope<T>['meta'] : {} };
+  return { data: options.clearIdentityResponse ? envelope.data : options.keepIdentities ? redactKeepingIdentities(envelope.data) : redact(envelope.data), meta: envelope.meta && typeof envelope.meta === 'object' ? redact(envelope.meta) as Envelope<T>['meta'] : {} };
 }
 export async function request<T>(path: string, options: RequestOptions = {}): Promise<Envelope<T>> {
   return requestFrom<T>(relativeBase(), path, options);

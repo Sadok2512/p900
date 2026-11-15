@@ -21,7 +21,7 @@ export const useVersion = () => useQuery({ ...resourceOptions<Version>('/version
 export const useMetrics = () => useResource<Metrics>('/metrics');
 export const useLiveMetrics = () => useQuery({ ...resourceOptions<Metrics>('/metrics', {}, false), refetchInterval: 5_000, refetchIntervalInBackground: true });
 export const useStorageSafety = () => useQuery({ ...resourceOptions<Safety>('/storage/safety', {}, false), refetchInterval: 15_000, refetchIntervalInBackground: true });
-export const useSessions = (params: QueryParams = {}, enabled = true) => useResource<Session[]>('/sessions', params, enabled);
+export const useSessions = (params: QueryParams = {}, enabled = true) => useResource<Session[]>('/sessions', params, enabled, true, { keepIdentities: true });
 const idPath = (id: string | number | null | undefined) => encodeURIComponent(String(id ?? ''));
 const detailRequest = { priority: 'detail' as const, timeoutMs: 60_000 };
 export const useSession = (id?: string | number | null) => useResource<Session>(`/sessions/${idPath(id)}`, {}, id != null, true, detailRequest);
@@ -71,7 +71,7 @@ export function useSessionBundle(id?: string | number | null) {
 }
 export function useSessionFilter() {
   const { demo } = usePolarisMode(); const client = useQueryClient();
-  return useMutation({ mutationFn: async (draft: Draft) => { const unsupported = querySupport(draft, demo); if (unsupported) throw new PolarisApiError('UNAVAILABLE', unsupported, 0); return demo ? demoResponse<Session[]>('/sessions/filter') as Envelope<Session[]> : request<Session[]>('/sessions/filter', { method: 'POST', body: filterBody(draft) }); }, onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris', 'api', '/sessions'] }); } });
+  return useMutation({ mutationFn: async (draft: Draft) => { const unsupported = querySupport(draft, demo); if (unsupported) throw new PolarisApiError('UNAVAILABLE', unsupported, 0); return demo ? demoResponse<Session[]>('/sessions/filter') as Envelope<Session[]> : request<Session[]>('/sessions/filter', { method: 'POST', body: filterBody(draft), keepIdentities: true }); }, onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris', 'api', '/sessions'] }); } });
 }
 export function useCaptureAction() {
   const client = useQueryClient();

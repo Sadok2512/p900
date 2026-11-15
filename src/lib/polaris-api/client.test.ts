@@ -86,3 +86,13 @@ itU('reports the relay unreachable marker with its real cause (502)', async () =
   await expectU(request('/health')).rejects.toMatchObject({ status: 502, message: 'Relais indisponible pour GET /health (HTTP 502)' });
   viU.unstubAllGlobals();
 });
+
+describe('redactKeepingIdentities — 2.4.4 (IMSI en clair dans la liste, règle Sadok)', () => {
+  it('keeps the identities sub-object and still redacts every other identity field', async () => {
+    const { redactKeepingIdentities } = await import('./client');
+    const rows = redactKeepingIdentities([{ session_id: 's1', imsi: '001010000000201', note: 'ue 001010000000201', identities: { imsi: '001010000000201', imsi_cleartext: '001010000000201' } }]);
+    expect(rows[0].identities).toEqual({ imsi: '001010000000201', imsi_cleartext: '001010000000201' });
+    expect(rows[0].imsi).toBe('masqué');
+    expect(rows[0].note).toBe('ue masqué');
+  });
+});
