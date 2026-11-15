@@ -1,5 +1,63 @@
 # Changelog
 
+## 2.6.0 — 2026-11-15 — Vue « Chaîne E2E 5G » + mapping statuts complet (ANR1 #10 E2E-5G)
+
+Lot 2 de la feuille de route « Trace E2E 5G » (audit #10 6896790347, feu vert #10 6896869321, livre oiran-api 2.17.0 côté back). Expose la chaîne de corrélation complète N2 → SBI → N4 → N3 (+ IMS → RTP si observé) en lecture directe du `correlation_status` produit par oiran-api 2.17.0. Hors périmètre : ni l'onglet Ladder ni les helpers identités partagés ne sont modifiés.
+
+### Nouveau helper `src/lib/polaris-api/e2e-chain.ts`
+
+Fonctions pures, aucun import React, testables isolément :
+
+- `buildE2EChain(rawStatus)` — prend le champ `correlation_status` renvoyé par `/sessions/:id` ou `/sessions/:id/callflow` (string legacy, objet 2.17.0, `null`, `undefined`), retourne la chaîne `{ hops, overall, imsObserved }`. Dérive `overall` localement quand le back ne fournit pas `E2E` (fallback compat ≤ 2.16.0) selon la même règle que `callflow-schema::build_callflow` : `STRONG` si data-plane prouvé, `OPEN` si un hop observé mais pas prouvé, `UNKNOWN` sinon.
+- `isObservedStatus(s)` / `isProvenStatus(s)` — invariants explicites : prouvé ⇔ `{EXACT, STRONG}` ; observé ⇔ non-`UNKNOWN` et non-null.
+- `formatChainLabel(chain)` — rend la séquence de nœuds séparés par `→` pour affichage compact.
+
+### Nouveau composant `src/components/polaris/analyzer/E2EChainBadge.tsx`
+
+Badge compact. Rend 4 nœuds (N2, SBI, N4, N3) + 2 nœuds optionnels (IMS, RTP) si observés. Chaque flèche porte un badge statut coloré (vert EXACT/STRONG, orange OUVERT/OPEN/POSSIBLE, rouge WEAK/MISSING, gris UNKNOWN). Back-compat : si `correlation_status` est une string legacy, le composant tombe sur un badge simple ; si absent, le composant rend `null`.
+
+### Nettoyage switch `Stat` (`PolarisApp.jsx:59-62`)
+
+- Avant 2.6.0 : la map `{'EXACT':..., 'OUVERT':..., 'OUVERT':...}` avait un doublon, la 2e définition écrasait la 1re → l'orange n'était jamais appliqué.
+- Après 2.6.0 : une map complète `STAT_CLASS` hoisted, un seul mapping par clé, couverture `EXACT/STRONG/OUVERT/OPEN/POSSIBLE/UNKNOWN/MISSING/WEAK` + fallback gris pour tout statut non-reconnu.
+
+### Tests (11 unitaires `e2e-chain.test.ts`)
+
+- 3 cas `buildE2EChain` structurels (data-plane complet, IMS observé = 5 hops, hop OPEN dérivé, IMS sans data-plane, chaîne vide).
+- 2 cas respect du `E2E` fourni par le back (pas de ré-dérivation).
+- 2 cas entrées invalides (null, string) → chaîne UNKNOWN sans throw.
+- 2 cas `isObservedStatus` / `isProvenStatus`.
+- 2 cas `formatChainLabel` (sequence + fallback).
+
+Test de version `polaris-screens.test.tsx:240` mis à jour à `2.6.0` AVANT lancement des tests (règle user : bump AVANT).
+
+### Preuves (runner devmat, 2026-11-15)
+
+```
+$ npx tsc --noEmit
+# 0 erreur
+
+$ npx vitest run src/lib/polaris-api/e2e-chain.test.ts
+Test Files  1 passed (1)
+Tests  11 passed (11)
+
+$ npx vitest run
+Test Files  21 passed (21)
+Tests  193 passed (193)
+# +12 vs 181 en 2.5.0 (+11 e2e-chain + 1 test de version intégré)
+```
+
+### Règle « écart déclaré OUVERT » honorée
+
+- Un hop non-observé → statut UNKNOWN affiché explicitement (gris), jamais caché par défaut.
+- Un hop observé mais non prouvé → statut OPEN (orange), jamais remonté en vert par hypothèse.
+- Un hop prouvé → statut EXACT/STRONG (vert).
+
+### Hors périmètre respecté
+
+- Aucune modif Ladder, Sessions list, Live, KPI, helpers identités.
+
+Bump minor : `p900 2.5.1 → 2.6.0`.
 
 ## 2.5.1
 

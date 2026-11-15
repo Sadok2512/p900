@@ -56,8 +56,21 @@ const InterfaceStrip = ({names}) => {
   return <span className="mt-1 flex flex-wrap items-center gap-1">{list.slice(0,4).map(i=><InterfaceBadge key={i} name={i}/>)}{list.length>4 && <span className="text-[11px] text-subtle" title={list.slice(4).join(', ')}>+{list.length-4}</span>}</span>;
 };
 const Res = ({r}) => <span className="inline-flex items-center gap-1.5"><span className={`w-[7px] h-[7px] rounded-full ${r==='Succès'||r==='success'?'bg-success':r==='Échec'||r==='failed'?'bg-warning':'bg-track'}`}/>{r}</span>;
+// 2.6.0 (ANR1 #10 E2E-5G) — map complète par statut, un seul
+// mapping par clé. L'ancien switch dupliquait 'OUVERT' (vert +
+// rouge) ce qui laissait la 2e définition écraser la 1re.
+const STAT_CLASS = {
+  'EXACT': 'text-success bg-success-soft border-success-line',
+  'STRONG': 'text-success bg-success-soft border-success-line',
+  'OUVERT': 'text-warning bg-warning-soft border-warning-line',
+  'OPEN': 'text-warning bg-warning-soft border-warning-line',
+  'POSSIBLE': 'text-warning bg-warning-soft border-warning-line',
+  'UNKNOWN': 'text-muted-foreground bg-muted border-border',
+  'MISSING': 'text-danger bg-danger-soft border-danger-line',
+  'WEAK': 'text-danger bg-danger-soft border-danger-line',
+};
 const Stat = ({s}) => {
-  const m = {'EXACT':'text-success bg-success-soft border-success-line','OUVERT':'text-warning bg-warning-soft border-warning-line','OUVERT':'text-danger bg-danger-soft border-danger-line'}[s];
+  const m = STAT_CLASS[s] || 'text-muted-foreground bg-muted border-border';
   return <span className={`inline-block text-[11px] font-semibold tracking-wide border rounded-[3px] px-1.5 py-[2px] ${m}`}>{s}</span>;
 };
 const Lbl = ({children}) => <div className="text-[11px] font-semibold text-muted-foreground uppercase tracking-[0.06em] mb-1.5">{children}</div>;
