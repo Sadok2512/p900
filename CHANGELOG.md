@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.4.2
+
+- Corrige le FAIL ANR1 de 2.4.1 (#10 6893957081) :
+  - l'état de chargement du ladder ne s'affichait jamais :
+    `useSessionBundle()` renvoie toujours un `detail` (avec `msgs: []`
+    avant les données), donc `!bundle.detail` restait faux. Condition
+    corrigée : requête en cours ET aucun message encore reçu ;
+  - le test « Settings reads every lab component and UI package
+    version » attendait encore 2.4.0 (tests lancés avant le bump).
+
 ## 2.4.1
 
 - Ladder : pendant le chargement du déroulé (`/sessions/:id/callflow` ou

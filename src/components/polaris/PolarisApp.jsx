@@ -1246,7 +1246,7 @@ function App() {
   const detailErrors = s?.id == null ? [] : [['session',bundle.session],['events',bundle.events],['procedures',bundle.procedures],['callflow',bundle.callflow],['correlations',bundle.correlations]]
     .filter(([,query])=>query.isError)
     .map(([endpoint,query])=>({endpoint:`/sessions/${encodeURIComponent(String(s.id))}${endpoint==='session'?'':`/${endpoint}`}`,message:query.error?.message ?? 'Cause inconnue'}));
-  const selected = s ? (demo ? s : {...s,...Object.fromEntries(Object.entries(detailSession ?? {}).filter(([key,v])=>key!=='d' && v!=null && v!=='—' && !(Array.isArray(v)&&!v.length))),id:detailSession?.id ?? s.id,session_id:detailSession?.session_id ?? s.session_id,d:bundle.detail || s.d,detailErrors,detailLoading:!bundle.detail && (bundle.callflow.isFetching || bundle.events.isFetching)}) : null;
+  const selected = s ? (demo ? s : {...s,...Object.fromEntries(Object.entries(detailSession ?? {}).filter(([key,v])=>key!=='d' && v!=null && v!=='—' && !(Array.isArray(v)&&!v.length))),id:detailSession?.id ?? s.id,session_id:detailSession?.session_id ?? s.session_id,d:bundle.detail || s.d,detailErrors,detailLoading:(bundle.callflow.isFetching || bundle.events.isFetching) && !(bundle.detail?.msgs?.length)}) : null;
   const nameOf = c => `${c.length?c.map(x=>x[1]).join(' · '):'Toutes les sessions'}${demo ? ' · run 482' : ''}`;
   const patch = (id,o) => setTabs(ts=>ts.map(x=>x.id===id?{...x,...o}:x));
   const newTab = (draft=mkDraft(),title) => { const id='q'+Date.now(); setTabs(ts=>[...ts,{id,k:'Requête',n:title||'Nouvelle requête',conds:[],mode:'edit',draft,dirty:!!title,demoOnly:demo}]); setTabId(id); setAview('tab'); };
