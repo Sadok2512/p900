@@ -69,9 +69,30 @@ export function useSessionBundle(id?: string | number | null) {
   const detail = demo ? null : toLegacyCallflow(callflow.data?.data ?? events.data?.data, procedures.data?.data, correlations.data?.data);
   return { session, events, procedures, callflow, correlations, detail };
 }
+/**
+ * 2.5.1 — la liste ne chargeait que la 1re page de /sessions/filter (limit
+ * par défaut 25) : c330d205 était en page 2/2 et introuvable dans l'UI
+ * (ANR1 #10). On suit `meta.next_cursor` (limit 100) jusqu'au bout,
+ * borné à MAX_FILTER_PAGES pages.
+ */
+export const MAX_FILTER_PAGES = 50;
+export async function fetchAllFilteredSessions(body: Record<string, unknown>, fetchPage = (b: Record<string, unknown>) => request<Session[]>('/sessions/filter', { method: 'POST', body: b, keepIdentities: true })): Promise<Envelope<Session[]>> {
+  const rows: Session[] = [];
+  let cursor: string | null | undefined;
+  let last: Envelope<Session[]> | undefined;
+  for (let page = 0; page < MAX_FILTER_PAGES; page += 1) {
+    last = await fetchPage({ ...body, limit: 100, ...(cursor ? { cursor } : {}) });
+    rows.push(...(Array.isArray(last.data) ? last.data : []));
+    const next = (last.meta as Record<string, unknown> | undefined)?.['next_cursor'];
+    cursor = typeof next === 'string' && next ? next : null;
+    if (!cursor) break;
+  }
+  return { data: rows, meta: { ...(last?.meta ?? {}), next_cursor: null, total_loaded: rows.length } } as Envelope<Session[]>;
+}
+
 export function useSessionFilter() {
   const { demo } = usePolarisMode(); const client = useQueryClient();
-  return useMutation({ mutationFn: async (draft: Draft) => { const unsupported = querySupport(draft, demo); if (unsupported) throw new PolarisApiError('UNAVAILABLE', unsupported, 0); return demo ? demoResponse<Session[]>('/sessions/filter') as Envelope<Session[]> : request<Session[]>('/sessions/filter', { method: 'POST', body: filterBody(draft), keepIdentities: true }); }, onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris', 'api', '/sessions'] }); } });
+  return useMutation({ mutationFn: async (draft: Draft) => { const unsupported = querySupport(draft, demo); if (unsupported) throw new PolarisApiError('UNAVAILABLE', unsupported, 0); return demo ? demoResponse<Session[]>('/sessions/filter') as Envelope<Session[]> : fetchAllFilteredSessions(filterBody(draft)); }, onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris', 'api', '/sessions'] }); } });
 }
 export function useCaptureAction() {
   const client = useQueryClient();

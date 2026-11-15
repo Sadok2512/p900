@@ -96,3 +96,20 @@ describe('redactKeepingIdentities — 2.4.4 (IMSI en clair dans la liste, règle
     expect(rows[0]!.note).toBe('ue masqué');
   });
 });
+
+describe('fetchAllFilteredSessions — 2.5.1 (pagination, ANR1 #10 c330d205 en page 2/2)', () => {
+  it('follows next_cursor until the last page and keeps every row', async () => {
+    const { fetchAllFilteredSessions } = await import('./hooks');
+    const pages: Record<string, { data: { session_id: string }[]; meta: Record<string, unknown> }> = {
+      first: { data: [{ session_id: 'a' }, { session_id: 'b' }], meta: { next_cursor: 'c1' } },
+      c1: { data: [{ session_id: '5g-session-c330d205adafa233' }], meta: { next_cursor: null } },
+    };
+    const bodies: Record<string, unknown>[] = [];
+    const result = await fetchAllFilteredSessions({ interface: 'N4' }, async (body) => {
+      bodies.push(body);
+      return pages[(body['cursor'] as string) ?? 'first'] as never;
+    });
+    expect(result.data.map((r) => r.session_id)).toEqual(['a', 'b', '5g-session-c330d205adafa233']);
+    expect(bodies).toEqual([{ interface: 'N4', limit: 100 }, { interface: 'N4', limit: 100, cursor: 'c1' }]);
+  });
+});

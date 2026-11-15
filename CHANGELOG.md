@@ -1,5 +1,14 @@
 # Changelog
 
+
+## 2.5.1
+
+- Pagination de la liste des sessions : l'UI ne lisait que la première page
+  de `POST /sessions/filter` (25 lignes par défaut). Sur 174 sessions,
+  `5g-session-c330d205adafa233` était en page API 2/2 et introuvable
+  (ANR1 #10). `fetchAllFilteredSessions` suit `meta.next_cursor` (limit
+  100) jusqu'à la dernière page, borné à 50 pages, et garde les identités
+  (`keepIdentities`).
 ## 2.5.0 — 2026-11-15 — Live par IMSI : validation, anti-doublon, lien session enrichi (ANR1 #10 Live-IMSI)
 
 Lot A de la feuille de route « UI tape IMSI → suivre UE en direct » (audit #10 6895079284). Ferme les manques UX identifiés et respecte le hors-périmètre : aucune modif de l'Analyzer (Sessions/Ladder/KPI), aucune modif des helpers d'identité partagés.

@@ -79,7 +79,7 @@ describe('main screens with simulated REST responses',()=>{
     await screen.findAllByText('ue-test');
     const request=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/sessions/filter' && options.method==='POST');
     expect(request).toBeDefined();
-    expect(JSON.parse(String(request?.[1]?.body))).toEqual({});
+    expect(JSON.parse(String(request?.[1]?.body))).toEqual({ limit: 100 }); // 2.5.1 — pagination, aucun filtre
     expect(screen.getAllByText('Toutes les sessions').length).toBeGreaterThan(0);
     expect(screen.getByRole('checkbox',{name:'Démo'})).not.toBeChecked();
   });
@@ -237,7 +237,7 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByRole('option',{name:'Pseudonyme'})).toBeInTheDocument();
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.5.0').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.5.0')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.5.1').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.5.1')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard sits under KPI and is gone from the top menu', async()=>{
     open('kpi');
