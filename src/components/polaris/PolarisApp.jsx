@@ -246,7 +246,7 @@ function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={}}) {
   const cell = (c,r) => {
     const v = c.v(r);
     if (c.k==='res') return <VerdictBadge v={v}/>;
-    if (c.k==='sub') { const fallbackSubscriber=r.subscriber_imsi ?? (r.subscriber_pseudonym?shortPseudo(r.subscriber_pseudonym):null); const subscriber=r.identities?observedIdentity(r.identities,'subscriber'):(fallbackSubscriber??'—'); if (!r.identities && !fallbackSubscriber) return <span className="text-subtle">ouvrir la session</span>; return subscriber==='—' ? <span className="text-subtle">non observé</span> : <span className="inline-flex items-center gap-1" title={r.subscriber_pseudonym||undefined}>{subscriber}{r.subscriber_session_count!=null && <span className="rounded bg-brand-soft text-brand px-1 text-[11px] font-sans font-semibold">{r.subscriber_session_count} sessions</span>}</span>; }
+    if (c.k==='sub') { const fallbackSubscriber=r.subscriber_imsi ?? (r.subscriber_pseudonym?shortPseudo(r.subscriber_pseudonym):null); const subscriber=r.identities?observedIdentity(r.identities,'subscriber'):(fallbackSubscriber??'—'); if (!r.identities && !fallbackSubscriber) return <span className="text-subtle" title="Identité chargée à l’ouverture de la session">—</span>; return subscriber==='—' ? <span className="text-subtle">non observé</span> : <span className="inline-flex items-center gap-1" title={r.subscriber_pseudonym||undefined}>{subscriber}{r.subscriber_session_count!=null && <span className="rounded bg-brand-soft text-brand px-1 text-[11px] font-sans font-semibold">{r.subscriber_session_count} sessions</span>}</span>; }
     if (c.k==='ifc') return <span className="flex gap-1">{[...new Set(r.interfaces ?? [])].map(i=><Tag key={i} i={i}/>)}</span>;
     if (c.identity) {
       // 2.4.0 (ANR1 #10) — distinction stricte :
@@ -256,7 +256,7 @@ function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={}}) {
       //                → « non observé » (preuve API).
       //   object     => shape complète ou compacte 2.15.0, on
       //                extrait valeur + preuves.
-      if (r.identities === undefined) return <span className="text-subtle font-sans">ouvrir la session</span>;
+      if (r.identities === undefined) return <span className="text-subtle font-sans" title="Identité chargée à l’ouverture de la session">—</span>;
       const values = r.identities ? identityProofs(r.identities, c.kind) : [];
       const extra = Math.max(0, values.length - 1);
       const title = values.map(x=>`${x.value} — ${x.role} — ${x.capture_id}·${x.packet_number}`).join('\n');
@@ -484,7 +484,8 @@ function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
         </div>
       </div>
       <div ref={ref} className="flex-1 overflow-auto scroll-thin">
-        {tab==='Ladder' && <Ladder d={d} sel={sel} setSel={setSel} lens={lens} hidden={hidden} collapsed={collapsed} width={width} zoom={zoom} timers={timers} allowed={shownSet}/>}
+        {s.detailLoading && d.msgs.length===0 && <div role="status" className="p-6 text-center text-[12.5px] text-muted-foreground">Chargement du déroulé de la session…</div>}
+        {tab==='Ladder' && !(s.detailLoading && d.msgs.length===0) && <Ladder d={d} sel={sel} setSel={setSel} lens={lens} hidden={hidden} collapsed={collapsed} width={width} zoom={zoom} timers={timers} allowed={shownSet}/>}
         {tab==='Messages' && <table className="w-full text-[12.5px]"><tbody>{d.msgs.map((m,k)=>[m,k]).filter(([,k])=>shownSet.has(k)).map(([m,k])=>(
           <tr key={k} onClick={()=>setSel(k)} className={`cursor-pointer ${sel===k?'bg-[color-mix(in_oklab,var(--app-accent)_9%,white)]':'hover:bg-surface-2'}`}>
             <td className="h-7 px-4 border-b border-border-subtle font-mono text-[11.5px] text-subtle w-12">{available(d.evidence?.[k]?.seq ?? (demoMessageNumber(d,k)))}</td><td className="px-2 border-b border-border-subtle w-20"><Tag i={m[0]}/></td>
@@ -1245,7 +1246,7 @@ function App() {
   const detailErrors = s?.id == null ? [] : [['session',bundle.session],['events',bundle.events],['procedures',bundle.procedures],['callflow',bundle.callflow],['correlations',bundle.correlations]]
     .filter(([,query])=>query.isError)
     .map(([endpoint,query])=>({endpoint:`/sessions/${encodeURIComponent(String(s.id))}${endpoint==='session'?'':`/${endpoint}`}`,message:query.error?.message ?? 'Cause inconnue'}));
-  const selected = s ? (demo ? s : {...s,...Object.fromEntries(Object.entries(detailSession ?? {}).filter(([key,v])=>key!=='d' && v!=null && v!=='—' && !(Array.isArray(v)&&!v.length))),id:detailSession?.id ?? s.id,session_id:detailSession?.session_id ?? s.session_id,d:bundle.detail || s.d,detailErrors}) : null;
+  const selected = s ? (demo ? s : {...s,...Object.fromEntries(Object.entries(detailSession ?? {}).filter(([key,v])=>key!=='d' && v!=null && v!=='—' && !(Array.isArray(v)&&!v.length))),id:detailSession?.id ?? s.id,session_id:detailSession?.session_id ?? s.session_id,d:bundle.detail || s.d,detailErrors,detailLoading:!bundle.detail && (bundle.callflow.isFetching || bundle.events.isFetching)}) : null;
   const nameOf = c => `${c.length?c.map(x=>x[1]).join(' · '):'Toutes les sessions'}${demo ? ' · run 482' : ''}`;
   const patch = (id,o) => setTabs(ts=>ts.map(x=>x.id===id?{...x,...o}:x));
   const newTab = (draft=mkDraft(),title) => { const id='q'+Date.now(); setTabs(ts=>[...ts,{id,k:'Requête',n:title||'Nouvelle requête',conds:[],mode:'edit',draft,dirty:!!title,demoOnly:demo}]); setTabId(id); setAview('tab'); };

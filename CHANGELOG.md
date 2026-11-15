@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.4.1
+
+- Ladder : pendant le chargement du déroulé (`/sessions/:id/callflow` ou
+  `/events` en cours), le panneau affiche « Chargement du déroulé de la
+  session… » au lieu de « 0 message · Aucun message visible ». Avant, la
+  session sélectionnée semblait vide tant que la réponse n'était pas
+  arrivée (capture Sadok 15/11 11:42).
+- Liste des sessions : les cellules d'identité non encore chargées
+  affichent « — » (infobulle « Identité chargée à l'ouverture de la
+  session ») au lieu du texte « ouvrir la session » répété sur 6 colonnes.
+
 ## 2.4.0
 
 - N1 : les 6 colonnes identity de « Toutes les sessions » (IMSI/SUPI, TMSI/GUTI, S-TMSI, M-TMSI, IMEI(SV)/PEI, MSISDN/GPSI) lisent désormais directement le champ `r.identities` fourni par `/api/v1/sessions` depuis `oiran-api 2.15.0`. Plus besoin d'ouvrir la session pour voir les identités. L'`identityMap` détaillée (chargée via `/sessions/:id/identities` avec `_proof`) reste prioritaire quand elle est présente, pour exposer les preuves `+N` sur la session ouverte.
