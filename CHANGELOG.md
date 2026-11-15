@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.4.3
+
+- Corrige le FAIL ANR1 de 2.4.2 (#10 6894043874) : pendant le chargement,
+  le compteur de la barre d'outils affichait encore « 0 message » à côté de
+  « Chargement du déroulé de la session… ». Il affiche « chargement… »
+  tant qu'aucun message n'est reçu.
+
 ## 2.4.2
 
 - Corrige le FAIL ANR1 de 2.4.1 (#10 6893957081) :

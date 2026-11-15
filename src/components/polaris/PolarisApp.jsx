@@ -480,7 +480,9 @@ function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
           {!ui.full && <button onClick={()=>ui.setGridHidden(v=>!v)} className={`${tb} border-border text-ink-2 hover:bg-surface-2`}>{ui.gridHidden?'Afficher le tableau':'Masquer le tableau'}</button>}
           <button onClick={()=>ui.setFull(v=>!v)} title="Plein écran (F)" className={`${tb} ${ui.full?'border-transparent bg-[var(--app-accent)] text-white':'border-border text-ink-2 hover:bg-surface-2'}`}><I d={ui.full?'M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5':'M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5'} c="w-3.5 h-3.5"/>{ui.full?'Quitter':'Plein écran'}</button>
 </LadderMore>
-          <span title={`${shownIdx.length} messages affichés sur ${d.msgs.length}`} className="shrink-0 whitespace-nowrap text-[12px] text-muted-foreground"><b className="text-foreground tabular-nums">{shownIdx.length}</b> {shownIdx.length>1?'messages':'message'}</span>
+          {s.detailLoading && d.msgs.length===0
+            ? <span className="shrink-0 whitespace-nowrap text-[12px] text-muted-foreground">chargement…</span>
+            : <span title={`${shownIdx.length} messages affichés sur ${d.msgs.length}`} className="shrink-0 whitespace-nowrap text-[12px] text-muted-foreground"><b className="text-foreground tabular-nums">{shownIdx.length}</b> {shownIdx.length>1?'messages':'message'}</span>}
         </div>
       </div>
       <div ref={ref} className="flex-1 overflow-auto scroll-thin">
