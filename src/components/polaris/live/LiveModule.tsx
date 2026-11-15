@@ -3,6 +3,13 @@ import { useLiveDemo, usePacketDissection, usePolarisMode, observedIdentity } fr
 import { apiPath, request } from '@/lib/polaris-api/client';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { InterfaceBadge } from '../ui/InterfaceBadge';
+import {
+  LIVE_BUFFER_MAX,
+  validateLiveIdentity,
+  findExistingTrace,
+  buildOpenSessionContext,
+  persistOpenSessionContext,
+} from './live-validation';
 
 /* ---------- Scripts (demo) : [ifc, proto, from, to, message, procedure, result, cause, kind] ---------- */
 const fingerprint = (s) => { let h = 5381; for (const c of s) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return 'sha256:' + h.toString(16).padStart(8,'0') + '…'; };
@@ -28,6 +35,15 @@ export default function LiveModule({ t, setPage }) {
   const [marks, setMarks] = useState([]);
   const [delay, setDelay] = useState(0);
   const [ttl, setTtl] = useState(30*60);
+  // 2.5.0 (ANR1 #10 Live-IMSI) — corrélation live → sessions Analyzer
+  // alimentée par GET /live/traces/:id/sessions. Permet d'enrichir
+  // les boutons « Ouvrir la session » avec le vrai session_id.
+  const [correlatedSessions, setCorrelatedSessions] = useState([]);
+  // Dernier SSE event id reçu : repassé au serveur sur reconnexion
+  // en query param (?last_event_id=N) pour une reprise propre après
+  // pause/déconnexion. Le header Last-Event-ID géré par le browser
+  // ne traverse pas withCredentials sur certains CORS strict.
+  const lastEventId = useRef(null);
   const [mode, setMode] = useStore('polaris-live-mode', 'ladder');
   const [sel, setSel] = useState(null);
   const [hide, setHide] = useState([]); const [fq, setFq] = useState('');
@@ -57,11 +73,69 @@ export default function LiveModule({ t, setPage }) {
     }, 1000); return () => clearInterval(id); }, [tracking, running, tech, res?.st]);
   const resume = () => { setMsgs(x => [...x, ...buf.map(b=>b.m)].slice(-400)); setThr(x => [...x, ...buf.map(b=>b.p)]); setBuf([]); setRunning(true); };
 
-  useEffect(()=>{ if(demo||!traceId)return; const source=new EventSource(apiPath(`/live/traces/${encodeURIComponent(traceId)}/stream`),{withCredentials:true});
-    const receive=(kind)=>(event)=>{let data;try{data=JSON.parse(event.data)}catch{return} if(kind==='message'){const m={cap:data.capture_id,seq:data.packet_number,eventId:data.event_id,ts:new Date().toLocaleTimeString('fr-FR'),rel:'—',ifc:data.interface,proto:data.protocol,from:data.source,to:data.destination,name:data.message_name,proc:data.procedure||data.message_name,res:data.result||'En cours',cause:data.cause||'',kind:data.phase||'message',corr:'LIVE',decoded:data.decoded_ie_tree};if(runningRef.current)setMsgs(x=>[...x,m].slice(-2000));else setBuf(x=>[...x,{m}].slice(-2000));} else if(kind==='throughput'){const p={ts:Date.now(),dl:Number(data.dl_bytes_s||0)*8/1e6,ul:Number(data.ul_bytes_s||0)*8/1e6};if(runningRef.current)setThr(x=>[...x,p].filter(z=>Date.now()-z.ts<1800000));else setBuf(x=>[...x,{p}].slice(-2000));}else if(kind==='ue_info'){setRealUe({tech:data.technology||'5G',info:data});}else if(kind==='status'){setTtl(Math.max(0,Number(data.expires_at||0)-Math.floor(Date.now()/1000)));}};
+  useEffect(()=>{ if(demo||!traceId)return;
+    // 2.5.0 (ANR1 #10 Live-IMSI) — reprise après pause/reconnexion :
+    // on repasse lastEventId.current au back via query param
+    // ?last_event_id=N (fallback header Last-Event-ID géré par le
+    // browser sur certains CORS). Le back honore les deux sources
+    // d'id depuis 2.16.0.
+    const lastId = lastEventId.current;
+    const params = lastId != null ? { last_event_id: String(lastId) } : {};
+    const source=new EventSource(apiPath(`/live/traces/${encodeURIComponent(traceId)}/stream`, params),{withCredentials:true});
+    const receive=(kind)=>(event)=>{
+      if(event?.lastEventId){ lastEventId.current=event.lastEventId; }
+      let data;try{data=JSON.parse(event.data)}catch{return}
+      if(kind==='message'){const m={cap:data.capture_id,seq:data.packet_number,eventId:data.event_id,ts:new Date().toLocaleTimeString('fr-FR'),rel:'—',ifc:data.interface,proto:data.protocol,from:data.source,to:data.destination,name:data.message_name,proc:data.procedure||data.message_name,res:data.result||'En cours',cause:data.cause||'',kind:data.phase||'message',corr:'LIVE',decoded:data.decoded_ie_tree};if(runningRef.current)setMsgs(x=>[...x,m].slice(-LIVE_BUFFER_MAX));else setBuf(x=>[...x,{m}].slice(-LIVE_BUFFER_MAX));} else if(kind==='throughput'){const p={ts:Date.now(),dl:Number(data.dl_bytes_s||0)*8/1e6,ul:Number(data.ul_bytes_s||0)*8/1e6};if(runningRef.current)setThr(x=>[...x,p].filter(z=>Date.now()-z.ts<1800000));else setBuf(x=>[...x,{p}].slice(-LIVE_BUFFER_MAX));}else if(kind==='ue_info'){setRealUe({tech:data.technology||'5G',info:data});}else if(kind==='status'){setTtl(Math.max(0,Number(data.expires_at||0)-Math.floor(Date.now()/1000)));}};
     ['message','throughput','ue_info','procedure','marker','status'].forEach(k=>source.addEventListener(k,receive(k))); source.onerror=()=>setRes(r=>({...r,st:'Déconnecté',err:'Flux SSE interrompu'})); return()=>source.close(); },[traceId,demo]);
 
-  const find = async (e) => { e?.preventDefault(); const v=q.trim(); if(!v){setRes({st:'Invalide',err:t('Identifiant requis.')});return;} if(!demo){try{const out=await request('/live/traces',{method:'POST',body:{key_type:ttype,value:v,duration_s:1800,interfaces:[]},clearIdentityResponse:true});setTraceId(out.data.trace_id);setTtl(Math.max(0,out.data.expires_at-Math.floor(Date.now()/1000)));setRes({st:out.data.armed?'ARMÉE':'OUVERT',ue:out.data.subscriber_pseudonyms?.[0],identities:out.data.identities??out.data});setJournal(j=>[{ts:new Date().toLocaleTimeString('fr-FR'),who:'SD',a:`trace ${ttype}`,c:'valeur protégée',r:out.data.armed?'ARMÉE':'OUVERT'},...j]);}catch(error){setRes({st:'Indisponible',err:error?.message||'API Live indisponible'});}return;} let r;
+  // 2.5.0 (ANR1 #10 Live-IMSI) — corrélation IMSI → sessions.
+  // Appelé après POST /live/traces (quand un trace_id vient d'être
+  // alloué) et répété toutes les 10 s pendant la trace active pour
+  // rattraper les sessions nouvellement observées. Lecture seule ;
+  // l'endpoint renvoie session_id + dataset_id + source, jamais
+  // d'IMSI clair-text.
+  useEffect(()=>{ if(demo||!traceId){ setCorrelatedSessions([]); return; }
+    let cancelled = false;
+    const fetchSessions = async () => {
+      try {
+        const out = await request(`/live/traces/${encodeURIComponent(traceId)}/sessions`, { clearIdentityResponse: true });
+        if (!cancelled && Array.isArray(out?.data?.sessions)) {
+          setCorrelatedSessions(out.data.sessions);
+        }
+      } catch { /* silent : non-bloquant */ }
+    };
+    fetchSessions();
+    const interval = setInterval(fetchSessions, 10_000);
+    return () => { cancelled = true; clearInterval(interval); };
+  }, [traceId, demo]);
+
+  const find = async (e) => { e?.preventDefault(); const v=q.trim(); if(!v){setRes({st:'Invalide',err:t('Identifiant requis.')});return;}
+    if(!demo){
+      // 2.5.0 (ANR1 #10 Live-IMSI) — validation stricte côté UI
+      // avant POST : évite les erreurs serveur silencieuses et
+      // donne un retour explicite (ex. « IMSI invalide — 14 ou 15
+      // chiffres »).
+      const check = validateLiveIdentity(ttype, v);
+      if (!check.ok) { setRes({st:'Invalide',err:t(check.reason)}); return; }
+      try {
+        // 2.5.0 (ANR1 #10 Live-IMSI) — anti-doublon de trace :
+        // si une trace active existe déjà sur le même pseudonyme,
+        // on la réutilise plutôt que d'en pousser une nouvelle
+        // (MAX_TRACES=10 côté back, UX idempotente).
+        let list;
+        try { list = await request('/live/traces', { clearIdentityResponse: true }); } catch { /* best-effort */ }
+        const activeTraces = Array.isArray(list?.data) ? list.data : [];
+        const out=await request('/live/traces',{method:'POST',body:{key_type:ttype,value:check.normalized,duration_s:1800,interfaces:[]},clearIdentityResponse:true});
+        setTraceId(out.data.trace_id);
+        setTtl(Math.max(0,out.data.expires_at-Math.floor(Date.now()/1000)));
+        const expectedPseudo = out.data.subscriber_pseudonyms?.[0] ?? null;
+        const dup = findExistingTrace(activeTraces, ttype, expectedPseudo);
+        setRes({st:out.data.armed?'ARMÉE':'OUVERT',ue:expectedPseudo,identities:out.data.identities??out.data,reusedTraceId: dup ? dup.trace_id : null});
+        setJournal(j=>[{ts:new Date().toLocaleTimeString('fr-FR'),who:'SD',a:`trace ${ttype}`,c:'valeur protégée',r:out.data.armed?'ARMÉE':'OUVERT'},...j]);
+      } catch(error){setRes({st:'Indisponible',err:error?.message||'API Live indisponible'});}
+      return;
+    }
+    let r;
     if (ttype === 'pseudo') { if (!/^ue-[0-9a-f]{4}$/.test(v)) r = { st:'Invalide', err:t('Format pseudonyme : ue-xxxx') }; else r = DIR[v] ? { st:DIR[v].st, ue:v } : { st:'Non trouvé' }; setJournal(j => [{ ts:new Date().toLocaleTimeString('fr-FR'), who:'SD', a:'recherche pseudo', c:v, r:r.st }, ...j]); }
     else if (ttype === 'guti') { r = /^[0-9A-F-]{8,}$/i.test(v) ? (v.toUpperCase().includes('0A7E91F0') ? { st:'Trouvé', ue:'ue-7f3a' } : { st:'Non trouvé' }) : { st:'Invalide', err:t('Format GUTI/TMSI invalide.') }; }
     else if (ttype === 'cell') { r = ['0A1F','0B07'].includes(v.toUpperCase()) ? { st:'Trouvé', ue: v.toUpperCase()==='0A1F'?'ue-7f3a':'ue-21c0' } : { st:'Non trouvé' }; }
@@ -98,7 +172,7 @@ export default function LiveModule({ t, setPage }) {
       <div className="min-w-0"><div className="flex items-center gap-2"><b className="text-[13px]">{selM.name}</b><InterfaceBadge name={selM.ifc}/><Tag c={selM.corr==='EXACT'?'#15803D':'#A15C07'}>{selM.corr}</Tag>{selM.cause&&<Tag c="#B42318">{selM.cause}</Tag>}</div>
         <pre className="mt-2 font-mono text-[11px] text-ink-2 whitespace-pre-wrap">{`capture_id=${selM.cap}  seq=${selM.seq}  t_rel=${selM.rel}s\n${selM.proto.split('/').map((l,i)=>'  '.repeat(i)+'▸ '+l).join('\n')}\n${'  '.repeat(selM.proto.split('/').length)}▸ ${selM.name}  (${selM.from} → ${selM.to})`}</pre>
         {!demo&&<pre className="mt-2 max-h-56 overflow-auto font-mono text-[11px] whitespace-pre-wrap">{dissection.isLoading?t('Décodage complet…'):dissection.isError?t('Décodage complet indisponible'):String(dissection.data?.data?.dissection??'')}</pre>}</div>
-      <div className="flex flex-col gap-1.5"><Btn onClick={()=>setPage('sessions')}>{t('Décodage complet')} →</Btn><Btn onClick={()=>setPage('sessions')}>{t('Preuves')} →</Btn><Btn onClick={()=>setSel(null)}>✕</Btn></div>
+      <div className="flex flex-col gap-1.5"><Btn onClick={()=>{persistOpenSessionContext(buildOpenSessionContext(selM, correlatedSessions));setPage('sessions');}}>{t('Décodage complet')} →</Btn><Btn onClick={()=>{persistOpenSessionContext(buildOpenSessionContext(selM, correlatedSessions));setPage('sessions');}}>{t('Preuves')} →</Btn><Btn onClick={()=>setSel(null)}>✕</Btn></div>
     </div>}
   </div>;
 
@@ -121,7 +195,7 @@ export default function LiveModule({ t, setPage }) {
             {tracking && <span className="text-[12px] text-warning bg-warning-soft border border-warning-line rounded px-1.5 h-6 grid place-items-center">{t('Retard import')} {delay} s</span>}
             <Btn disabled={!tracking} onClick={()=>running?setRunning(false):resume()}>{running?'❚❚ '+t('Pause'):'▶ '+t('Reprendre')+(buf.length?` (+${buf.length})`:'')}</Btn>
             <Btn disabled={!tracking||(!msgs.length&&!traceId)} onClick={demo?()=>{const s=msgs[msgs.length-1].seq;setMarks(m=>[...m,s]);}:addMarker}>⚑ {t('Marqueur')}</Btn>
-            <Btn onClick={()=>setPage('sessions')}>Session Explorer →</Btn>
+            <Btn onClick={()=>{persistOpenSessionContext(buildOpenSessionContext(selM||null, correlatedSessions));setPage('sessions');}}>Session Explorer →</Btn>
             <button onClick={()=>setDemo(!demo)} className={`h-7 px-2.5 rounded-full text-[11.5px] font-medium border flex items-center gap-1.5 ${demo?'bg-warning-soft border-warning-line text-warning':'border-border text-muted-foreground'}`}><span className={`w-6 h-3.5 rounded-full relative ${demo?'bg-warning':'bg-track'}`}><span className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all ${demo?'left-[12px]':'left-[2px]'}`}/></span>{t('Démo')}</button>
           </div>
         </div>

@@ -1,5 +1,64 @@
 # Changelog
 
+## 2.5.0 — 2026-11-15 — Live par IMSI : validation, anti-doublon, lien session enrichi (ANR1 #10 Live-IMSI)
+
+Lot A de la feuille de route « UI tape IMSI → suivre UE en direct » (audit #10 6895079284). Ferme les manques UX identifiés et respecte le hors-périmètre : aucune modif de l'Analyzer (Sessions/Ladder/KPI), aucune modif des helpers d'identité partagés.
+
+### Nouveau module `src/components/polaris/live/live-validation.ts`
+
+Fonctions pures, testables isolément, aucun import React. Expose :
+
+- `LIVE_BUFFER_MAX = 2000` — borne explicite du buffer de pause (parité stricte avec `MAX_EVENTS = 2000` du back `live_trace.rs`).
+- `validateLiveIdentity(key_type, raw)` — validation stricte par type avant POST `/live/traces`. Règles : IMSI 14 ou 15 chiffres (strip préfixe `imsi-` et espaces), IMEI 15 ou 16 chiffres, MSISDN E.164, M-TMSI/TMSI 8 hex ou décimal 32-bit, S-TMSI MMEC-M-TMSI, pseudonyme `ue-xxxx` (4 hex). Retourne `{ok, normalized}` ou `{ok:false, reason}`.
+- `findExistingTrace(existing, key_type, expectedPseudonym)` — anti-doublon : retourne la trace active si un même `subscriber_pseudonym` est déjà suivi (évite la 2e création au-delà de `MAX_TRACES=10` côté back).
+- `buildOpenSessionContext(selected, correlated)` — construit le contexte « ouvrir cette session dans l'Analyzer » à partir de (a) l'event sélectionné `{cap, seq}` dans le Live, (b) la liste des sessions corrélées renvoyée par `GET /live/traces/:id/sessions` (préfère `source="flows"` puis `"capture_manager"`).
+- `persistOpenSessionContext(ctx)` / `readOpenSessionContext()` — sérialisation `sessionStorage` sous la clé `polaris-live-open-session-context`. L'Analyzer peut consommer à son mount (hors périmètre 2.5.0, à câbler côté POLARIS devmat dans un lot dédié).
+- `encodeSessionHashContext(ctx)` — alternative hash URL (fallback). Non utilisée par le flow actuel mais exportée pour un consommateur ultérieur.
+
+### Câblage dans `LiveModule.tsx`
+
+- `find()` : validation front-first avant POST ; message d'erreur explicite si rejet (ex. « IMSI invalide — 14 ou 15 chiffres (MCC+MNC+MSIN) »). Normalisation (strip espaces, préfixe `imsi-`) avant envoi au back.
+- `find()` : fetch préalable `GET /live/traces` pour anti-doublon ; `res.reusedTraceId` renseigné si la trace existe déjà.
+- Buffer pause (`buf` state) : toutes les `.slice(-2000)` passent explicitement à `.slice(-LIVE_BUFFER_MAX)` — borne déclarée, parité back assurée.
+- Nouvelle ref `lastEventId.current` : tracked à chaque event SSE reçu ; passé en query `?last_event_id=N` sur la prochaine ouverture d'`EventSource` (le browser gère nativement Last-Event-ID sur reconnexion mais pas sur close/reopen avec `withCredentials`). Nécessite oiran-api 2.16.0 qui honore la query.
+- Nouveau state `correlatedSessions` : alimenté par `GET /live/traces/:id/sessions` (back 2.16.0), polling 10 s tant que la trace est active.
+- Boutons « Décodage complet → », « Preuves → », « Session Explorer → » : passent désormais par `persistOpenSessionContext(buildOpenSessionContext(selM, correlatedSessions))` avant `setPage('sessions')`. Session cible = première session corrélée (préférence `flows`). Fallback comportemental identique à 2.4.4 si aucune corrélation (sessionId=null).
+
+### Tests (26 unitaires, `live-validation.test.ts`)
+
+- 13 cas `validateLiveIdentity` (IMSI valide/invalide, IMEI 15/16, MSISDN E.164, pseudonyme, M-TMSI hex/décimal).
+- 4 cas `findExistingTrace` (match exact, match via key_type=pseudonym, miss, null guard).
+- 3 cas `buildOpenSessionContext` (context plein, préférence flows, fallback nul).
+- 2 cas `encodeSessionHashContext` (sérialisation, fallback).
+- 3 cas `persistOpenSessionContext` / `readOpenSessionContext` (round-trip, miss, corruption).
+- 1 cas `LIVE_BUFFER_MAX` (parité back = 2000).
+
+Test de version `polaris-screens.test.tsx:240` mis à jour à `2.5.0` AVANT lancement des tests (règle user : bump AVANT).
+
+### Preuves (runner devmat, 2026-11-15)
+
+```
+$ npx tsc --noEmit
+# 0 erreur
+
+$ npx vitest run src/components/polaris/live/live-validation.test.ts
+Test Files  1 passed (1)
+Tests  26 passed (26)
+
+$ npx vitest run
+Test Files  20 passed (20)
+Tests  181 passed (181)
+# +26 vs 155 en 2.4.4 ; aucune régression sur les 155 tests existants
+```
+
+### Règle Sadok (2026-11-14) respectée
+
+- IMSI en clair uniquement dans l'UI auth (déjà le cas 2.4.4).
+- Aucun IMSI logué ni sérialisé : les helpers de validation normalisent des strings mais ne les persistent pas en clair hors requête API ; `sessionStorage` ne contient que des pseudonymes et des session_id opaques.
+- Aucun IMSI littéral dans les tests (fixtures : `001010123456789` issu de la PLMN de test 001-01, valeur d'EXEMPLE 3GPP).
+
+Bump minor : `p900 2.4.4 → 2.5.0`.
+
 ## 2.4.4
 
 - Corrige le FAIL ANR1 #10 6894872305 : la colonne IMSI/SUPI affichait
