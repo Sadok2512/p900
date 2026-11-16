@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.6.4 — 2026-11-16 — Audit perf : rafraîchissement de fond allégé (patch)
+
+- 7 requêtes de fond (santé Analyzer et Control, métriques, interfaces runtime, sondes…) toutes les 5 s, y compris onglet masqué, occupaient les 4 requêtes simultanées du client et retardaient l'ouverture d'une session. Fond : 15 s (`BACKGROUND_POLL_MS`), version 60 s, stockage et interfaces 30 s ; arrêt quand l'onglet est masqué. Live (SSE) et détail de session inchangés.
+- Test : aucune requête de fond < 15 s ni active onglet masqué.
+
 ## 2.6.3 — 2026-11-16 — Live : plus de plantage à l'armement d'une trace IMSI (patch)
 
 - Constat Sadok (« This page didn't load » au clic sur Rechercher, IMSI UE-201) : en mode réel, la trace est ARMÉE avant le premier event `ue_info` ; `UeInfo` lisait `ue.tech` / `ue.proof` sur `ue = null` → exception → page entière tombée. Garde `ue?.` + technologie par défaut 5G.
