@@ -63,7 +63,9 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByRole('button',{name:'Message'})).toBeInTheDocument();
     expect(screen.getByRole('button',{name:'Paramètre'})).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button',{name:'Paramètre'}));
-    expect(screen.getByRole('textbox',{name:'Chercher un paramètre'})).toHaveAttribute('placeholder','ex. cause, maximumBitRate, tAC…');
+    expect(screen.getByRole('textbox',{name:'Chercher un paramètre'})).toHaveAttribute('placeholder','Nom exact du paramètre');
+    expect(screen.getByRole('textbox',{name:'Chercher un paramètre'})).toBeDisabled();
+    expect(screen.getByText(/recherche exacte — catalogue disponible avec oiran-api 2.19.0/)).toBeInTheDocument();
     expect(screen.getByText('Arbre du message')).toBeInTheDocument();
     expect(screen.getByRole('button',{name:'Tout déplier'})).toBeDisabled();
     expect(screen.getByRole('button',{name:'Replier'})).toBeDisabled();
@@ -75,6 +77,25 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByRole('button',{name:'OU'})).toBeInTheDocument();
     await waitFor(()=>expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/sessions/filter'&&options.method==='POST'&&JSON.parse(String(options.body)).limit===0)).toBe(true));
     expect(screen.getByLabelText('Estimation des sessions')).toHaveTextContent('1');
+  },10000);
+  it('does not call the 2.19 catalog before 2.19.0 and enables it automatically at 2.19.0', async()=>{
+    open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'}));
+    fireEvent.click(screen.getByRole('button',{name:/Critères/})); fireEvent.click(screen.getByRole('button',{name:'Paramètre'}));
+    await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url)==='/api/v1/version')).toBe(true));
+    expect(fetcher.mock.calls.some(([url])=>String(url)==='/api/v1/query/catalog')).toBe(false);
+    expect(screen.getByRole('textbox',{name:'Chercher un paramètre'})).toBeDisabled();
+    cleanup();
+    const previousVersion=payloads['/version']; const previousCatalog=payloads['/query/catalog'];
+    payloads['/version']={backend_api:'2.19.0'};
+    payloads['/query/catalog']={messages:[{name:'TEST.Message',fields:[{path:'test.field',type:'integer'}]}]};
+    try {
+      open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'}));
+      fireEvent.click(screen.getByRole('button',{name:/Critères/})); fireEvent.click(screen.getByRole('button',{name:'Paramètre'}));
+      await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url)==='/api/v1/query/catalog')).toBe(true));
+      expect(screen.getByRole('textbox',{name:'Chercher un paramètre'})).not.toBeDisabled();
+      expect(screen.getByRole('combobox',{name:'Message du critère'})).toHaveAttribute('list','polaris-query-messages');
+      await waitFor(()=>expect(document.querySelector('option[value="TEST.Message"]')).not.toBeNull());
+    } finally { payloads['/version']=previousVersion; if(previousCatalog===undefined)delete payloads['/query/catalog'];else payloads['/query/catalog']=previousCatalog; }
   },10000);
   it('2.7.0 locks the six base columns and derives three columns per N1/N2/N3 interface', async()=>{
     const previousSessions=payloads['/sessions']; const previousFilter=payloads['/sessions/filter'];
