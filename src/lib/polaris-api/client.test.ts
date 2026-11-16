@@ -113,3 +113,14 @@ describe('fetchAllFilteredSessions — 2.5.1 (pagination, ANR1 #10 c330d205 en p
     expect(bodies).toEqual([{ interface: 'N4', limit: 100 }, { interface: 'N4', limit: 100, cursor: 'c1' }]);
   });
 });
+
+describe('2.6.4 rafraîchissement de fond', () => {
+  it('aucune requête de fond plus fréquente que 15 s, ni onglet masqué', async () => {
+    const { BACKGROUND_POLL_MS } = await import('./hooks');
+    expect(BACKGROUND_POLL_MS).toBeGreaterThanOrEqual(15_000);
+    const fs = await import('node:fs');
+    const source = fs.readFileSync(`${process.cwd()}/src/lib/polaris-api/hooks.tsx`, 'utf8');
+    expect(source).not.toMatch(/refetchInterval: [1-9]_000\b/);
+    expect(source).not.toMatch(/refetchIntervalInBackground: true/);
+  });
+});

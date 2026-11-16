@@ -16,11 +16,18 @@ export function useResource<T>(path: string, params: QueryParams = {}, enabled =
   const { demo } = usePolarisMode();
   return useQuery({ ...resourceOptions<T>(path, params, allowDemo && demo, requestOptions), enabled });
 }
-export const useHealth = () => useQuery({ ...resourceOptions<Health>('/health', {}, false, { timeoutMs: 8_000 }), refetchInterval: 5_000, refetchIntervalInBackground: true });
-export const useVersion = () => useQuery({ ...resourceOptions<Version>('/version', {}, false), refetchInterval: 30_000, refetchIntervalInBackground: true });
+/**
+ * 2.6.4 (audit perf) — 7 requêtes de fond toutes les 5 s, y compris onglet
+ * masqué, occupaient les 4 slots du client (MAX_CONCURRENT_REQUESTS) et
+ * faisaient attendre l'ouverture d'une session. Fond : 15 s, arrêt quand
+ * l'onglet est masqué. Live (SSE) et détail de session ne sont pas concernés.
+ */
+export const BACKGROUND_POLL_MS = 15_000;
+export const useHealth = () => useQuery({ ...resourceOptions<Health>('/health', {}, false, { timeoutMs: 8_000 }), refetchInterval: BACKGROUND_POLL_MS, refetchIntervalInBackground: false });
+export const useVersion = () => useQuery({ ...resourceOptions<Version>('/version', {}, false), refetchInterval: 60_000, refetchIntervalInBackground: false });
 export const useMetrics = () => useResource<Metrics>('/metrics');
-export const useLiveMetrics = () => useQuery({ ...resourceOptions<Metrics>('/metrics', {}, false), refetchInterval: 5_000, refetchIntervalInBackground: true });
-export const useStorageSafety = () => useQuery({ ...resourceOptions<Safety>('/storage/safety', {}, false), refetchInterval: 15_000, refetchIntervalInBackground: true });
+export const useLiveMetrics = () => useQuery({ ...resourceOptions<Metrics>('/metrics', {}, false), refetchInterval: BACKGROUND_POLL_MS, refetchIntervalInBackground: false });
+export const useStorageSafety = () => useQuery({ ...resourceOptions<Safety>('/storage/safety', {}, false), refetchInterval: 30_000, refetchIntervalInBackground: false });
 export const useSessions = (params: QueryParams = {}, enabled = true) => useResource<Session[]>('/sessions', params, enabled, true, { keepIdentities: true });
 const idPath = (id: string | number | null | undefined) => encodeURIComponent(String(id ?? ''));
 const detailRequest = { priority: 'detail' as const, timeoutMs: 60_000 };
@@ -40,7 +47,7 @@ export const useDatasets = () => useResource<RecordData[]>('/datasets');
 export const useDatasetSessions = (id?: string | number | null) => useResource<Session[]>(`/datasets/${idPath(id)}/sessions`, {}, id != null);
 export const useLteSessions = (id?: string | number | null) => useResource<Session[]>(`/lte/evidence/${idPath(id)}/sessions`, {}, id != null);
 export const useAvailableCauses = () => useResource<unknown[]>('/sessions/available_causes');
-export const useProbes = () => { const { demo } = usePolarisMode(); return useQuery({ ...resourceOptions<Probe[]>('/probes', {}, demo), refetchInterval: 5_000, refetchIntervalInBackground: true }); };
+export const useProbes = () => { const { demo } = usePolarisMode(); return useQuery({ ...resourceOptions<Probe[]>('/probes', {}, demo), refetchInterval: BACKGROUND_POLL_MS, refetchIntervalInBackground: false }); };
 export function useCreateProbe() {
   const client = useQueryClient();
   return useMutation({ mutationFn: (body: RecordData) => request<Probe>('/probes', { method: 'POST', body }), onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris', 'api', '/probes'] }); } });
@@ -56,8 +63,8 @@ export function useManageProbe() {
 }
 export const useProbe = (id?: string | number | null) => useResource<Probe>(`/probes/${idPath(id)}`, {}, id != null);
 export const useProbeInterfaces = (id?: string | number | null) => useResource<RecordData[]>(`/probes/${idPath(id)}/interfaces`, {}, id != null);
-export const useInterfaces = () => { const { demo } = usePolarisMode(); return useQuery({ ...resourceOptions<RecordData[]>('/interfaces', {}, demo), refetchInterval: 15_000, refetchIntervalInBackground: true }); };
-export const useInterfaceRuntime = () => { const { demo } = usePolarisMode(); return useQuery({ ...resourceOptions<RecordData[]>('/interfaces/runtime', {}, demo), refetchInterval: 5_000, refetchIntervalInBackground: true }); };
+export const useInterfaces = () => { const { demo } = usePolarisMode(); return useQuery({ ...resourceOptions<RecordData[]>('/interfaces', {}, demo), refetchInterval: 30_000, refetchIntervalInBackground: false }); };
+export const useInterfaceRuntime = () => { const { demo } = usePolarisMode(); return useQuery({ ...resourceOptions<RecordData[]>('/interfaces/runtime', {}, demo), refetchInterval: BACKGROUND_POLL_MS, refetchIntervalInBackground: false }); };
 export const useCaptures = () => useResource<RecordData[]>('/captures');
 export const useCaptureMetrics = (id?: string | number | null) => useResource<Metrics>(`/captures/${idPath(id)}/metrics`, {}, id != null);
 export const useModules = () => useResource<RecordData[]>('/modules');
@@ -119,7 +126,7 @@ export const useAdminUsers = () => useResource<RecordData[]>('/users', {}, true,
 export const useAdminRoles = () => useResource<RecordData[]>('/roles', {}, true, false);
 export const useAuditLog = () => useResource<RecordData[]>('/audit', {}, true, false);
 const polarisOptions = <T,>(path: string, options: RequestOptions = {}) => queryOptions({ queryKey: ['polaris-control', path], queryFn: ({ signal }) => requestFrom<T>('/polaris-api/v1', path, { ...options, signal }), staleTime: 5_000, retry: false, refetchOnWindowFocus: false });
-export const usePolarisControlHealth = () => useQuery({ ...polarisOptions<Health>('/health', { timeoutMs: 8_000 }), refetchInterval: 5_000, refetchIntervalInBackground: true });
+export const usePolarisControlHealth = () => useQuery({ ...polarisOptions<Health>('/health', { timeoutMs: 8_000 }), refetchInterval: BACKGROUND_POLL_MS, refetchIntervalInBackground: false });
 // Unreachable simulator: back off to 60 s so the topology stops flickering every 5 s.
 const simulatorPoll = (q: { state: { status: string } }) => (q.state.status === 'error' ? 60_000 : 15_000);
 export const usePolarisLab = () => useQuery({ ...polarisOptions<RecordData>('/lab'), refetchInterval: simulatorPoll });
