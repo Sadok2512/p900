@@ -59,7 +59,7 @@ describe('POLARIS client', () => {
   });
   it('limits concurrency to four and lets an opened-session detail jump the queue', async () => {
     const resolvers: Array<(value: Response) => void> = [];
-    const fetcher = vi.fn(() => new Promise<Response>(resolve => resolvers.push(resolve)));
+    const fetcher = vi.fn((..._args: unknown[]) => new Promise<Response>(resolve => resolvers.push(resolve)));
     vi.stubGlobal('fetch', fetcher);
     const normal = Array.from({ length: 6 }, (_, index) => request(`/background-${index}`, { priority: 'background' }));
     await Promise.resolve();
