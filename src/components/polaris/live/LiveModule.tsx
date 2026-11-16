@@ -58,6 +58,10 @@ export default function LiveModule({ t, setPage }) {
   // premier message rejoué ; aucun timestamp ne participe à la reprise.
   const lastOrderKey = useRef(null);
   const deliveredOrderKeys = useRef(new Set());
+  // Requête de trace conservée uniquement en mémoire pour pouvoir réarmer
+  // après un redémarrage API (le store de traces backend est volatil).
+  // Cette valeur n'est jamais journalisée ni persistée.
+  const traceRequestRef = useRef(null);
   const [lastLiveEventAt, setLastLiveEventAt] = useState(null);
   const [sseReconnecting, setSseReconnecting] = useState(false);
   const [sseClock, setSseClock] = useState(Date.now());
@@ -119,7 +123,20 @@ export default function LiveModule({ t, setPage }) {
         }else if(kind==='throughput'){const p={ts:Date.now(),dl:Number(data.dl_bytes_s||0)*8/1e6,ul:Number(data.ul_bytes_s||0)*8/1e6};if(runningRef.current)setThr(x=>[...x,p].filter(z=>Date.now()-z.ts<1800000));else setBuf(x=>[...x,{p}].slice(-LIVE_BUFFER_MAX));}else if(kind==='ue_info'){setRealUe({tech:data.technology||'5G',info:data});}else if(kind==='status'){setTtl(Math.max(0,Number(data.expires_at||0)-Math.floor(Date.now()/1000)));}
       };
       ['message','throughput','ue_info','procedure','marker','status'].forEach(k=>source.addEventListener(k,receive(k)));
-      source.onerror=()=>{if(stopped)return;source?.close();setSseReconnecting(true);setStreamError('Flux SSE interrompu — reconnexion en cours');const delay=Math.min(1000*(2**retryAttempt),10_000);retryAttempt+=1;retryTimer=setTimeout(connect,delay);};
+      source.onerror=()=>{if(stopped)return;source?.close();setSseReconnecting(true);setStreamError('Flux SSE interrompu — reconnexion en cours');const delay=Math.min(1000*(2**retryAttempt),10_000);retryAttempt+=1;retryTimer=setTimeout(async()=>{
+        if(stopped)return;
+        // Une trace survit aux coupures réseau ordinaires : on reprend alors
+        // le même id SSE. Après redémarrage API, son store volatil répond 404 ;
+        // au deuxième échec seulement, vérifier la liste puis réarmer la même
+        // clé. Aucun timestamp ne participe à la reprise.
+        if(retryAttempt>=2&&traceRequestRef.current){try{
+          const list=await request('/live/traces',{clearIdentityResponse:true,timeoutMs:5000});
+          const exists=Array.isArray(list?.data)&&list.data.some(trace=>trace.trace_id===traceId);
+          if(!exists){const out=await request('/live/traces',{method:'POST',body:traceRequestRef.current,clearIdentityResponse:true,timeoutMs:5000});
+            if(out?.data?.trace_id&&out.data.trace_id!==traceId){setTtl(Math.max(0,out.data.expires_at-Math.floor(Date.now()/1000)));setTraceId(out.data.trace_id);return;}}
+        }catch{/* API encore indisponible : la boucle EventSource reprend. */}}
+        connect();
+      },delay);};
     };
     connect();
     return()=>{stopped=true;if(retryTimer)clearTimeout(retryTimer);source?.close();}; },[traceId,demo]);
@@ -161,7 +178,9 @@ export default function LiveModule({ t, setPage }) {
         let list;
         try { list = await request('/live/traces', { clearIdentityResponse: true }); } catch { /* best-effort */ }
         const activeTraces = Array.isArray(list?.data) ? list.data : [];
-        const out=await request('/live/traces',{method:'POST',body:{key_type:ttype,value:check.normalized,duration_s:1800,interfaces:[]},clearIdentityResponse:true});
+        const traceRequest={key_type:ttype,value:check.normalized,duration_s:1800,interfaces:[]};
+        traceRequestRef.current=traceRequest;
+        const out=await request('/live/traces',{method:'POST',body:traceRequest,clearIdentityResponse:true});
         setTraceId(out.data.trace_id);
         setTtl(Math.max(0,out.data.expires_at-Math.floor(Date.now()/1000)));
         const expectedPseudo = out.data.subscriber_pseudonyms?.[0] ?? null;
