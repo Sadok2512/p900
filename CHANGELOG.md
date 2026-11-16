@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.7.3 — 2026-11-16 — États Live et reprise SSE explicite (patch)
+
+- Calcule `ARMÉE`, `ACTIVE`, `ARRÊTÉE` et `COUPÉE` à partir du job et des événements réellement reçus par l'UI : `ACTIVE` pendant 30 s après le dernier event, jamais sur un simple heartbeat.
+- Affiche `COUPÉE` pendant toute reconnexion et réouvre explicitement `EventSource` avec le dernier id SSE, associé à la dernière clé `(capture_id, seq)` reçue ; déduplication par cette clé, jamais par timestamp.
+- L'audit direct/proxy de 330 s tient des deux côtés avec heartbeat 15 s. La cause du `ERR_INCOMPLETE_CHUNKED_ENCODING` reste OUVERT et aucun correctif API/proxy hypothétique n'est appliqué.
+
 ## 2.7.2 — 2026-11-16 — Live : plus de plantage au premier message réel (patch)
 
 - Recette ANR2 (#10, run UE-201 simple-data-ul-dl-0b2696238220 : 61 messages reçus côté backend) : la page Live plantait avec `ReferenceError: IFC_C is not defined` — le ladder Live utilisait la palette d'interfaces du composant parent, hors de portée (`// @ts-nocheck` masquait l'erreur). Palette passée en prop.
