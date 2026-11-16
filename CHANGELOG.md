@@ -4,9 +4,9 @@
 
 - Termine proprement la réponse SSE aval si l'upstream est interrompu pendant un redémarrage API ; `EventSource` peut ainsi afficher COUPÉE et se reconnecter, sans chunk tronqué.
 - Réarme automatiquement la même trace en mémoire si un redémarrage API a perdu son `trace_id` volatil ; les coupures ordinaires conservent la reprise `Last-Event-ID` et l'ordre `(capture_id, seq)`.
-- Calcule `ARMÉE`, `ACTIVE`, `ARRÊTÉE` et `COUPÉE` à partir du job et des événements réellement reçus par l'UI : `ACTIVE` pendant 30 s après le dernier event, jamais sur un simple heartbeat.
+- Calcule `ARMÉE`, `ACTIVE`, `ARRÊTÉE` et `COUPÉE` à partir du job et des événements de trafic réellement reçus par l'UI : `ACTIVE` pendant 30 s après le dernier message/throughput/procedure/marker, jamais sur un heartbeat ni sur les événements de contrôle `status`/`ue_info`.
 - Affiche `COUPÉE` pendant toute reconnexion et réouvre explicitement `EventSource` avec le dernier id SSE, associé à la dernière clé `(capture_id, seq)` reçue ; déduplication par cette clé, jamais par timestamp.
-- L'audit direct/proxy de 330 s tient des deux côtés avec heartbeat 15 s. La cause du `ERR_INCOMPLETE_CHUNKED_ENCODING` reste OUVERT et aucun correctif API/proxy hypothétique n'est appliqué.
+- L'audit direct/proxy de 330 s tient des deux côtés avec heartbeat 15 s. Le test de redémarrage a ensuite prouvé que le proxy laissait la réponse aval ouverte sur `aborted`/`close`; il la termine désormais proprement pour permettre la reconnexion EventSource.
 
 ## 2.7.2 — 2026-11-16 — Live : plus de plantage au premier message réel (patch)
 

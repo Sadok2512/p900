@@ -9,6 +9,13 @@ export const LIVE_ACTIVE_WINDOW_MS = 30_000;
 
 export type LiveTraceUiState = 'ARRÊTÉE' | 'ARMÉE' | 'ACTIVE' | 'COUPÉE';
 
+// `status` et `ue_info` sont des événements de contrôle du flux. Ils peuvent
+// être publiés sans trafic et ne doivent donc jamais faire passer le badge à
+// ACTIVE. Les quatre autres types proviennent d'une observation de trafic.
+export function countsAsLiveTraffic(kind: string): boolean {
+  return kind === 'message' || kind === 'throughput' || kind === 'procedure' || kind === 'marker';
+}
+
 export interface LiveTraceStateInput {
   jobStarted: boolean;
   reconnecting: boolean;

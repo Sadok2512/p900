@@ -4,6 +4,7 @@ import {
   LIVE_ACTIVE_WINDOW_MS,
   OPEN_SESSION_CONTEXT_STORAGE_KEY,
   buildOpenSessionContext,
+  countsAsLiveTraffic,
   encodeSessionHashContext,
   findExistingTrace,
   liveTraceUiState,
@@ -30,6 +31,16 @@ describe('live-validation — état de trace SSE', () => {
 
   it('COUPÉE pendant la reconnexion, même si un événement est encore récent', () => {
     expect(liveTraceUiState({ jobStarted: true, reconnecting: true, lastEventAt: now, now })).toBe('COUPÉE');
+  });
+});
+
+describe('live-validation — activité de trafic', () => {
+  it.each(['message', 'throughput', 'procedure', 'marker'])('%s déclenche ACTIVE', (kind) => {
+    expect(countsAsLiveTraffic(kind)).toBe(true);
+  });
+
+  it.each(['status', 'ue_info'])('%s reste un événement de contrôle', (kind) => {
+    expect(countsAsLiveTraffic(kind)).toBe(false);
   });
 });
 

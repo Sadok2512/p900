@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { InterfaceBadge } from '../ui/InterfaceBadge';
 import {
   LIVE_BUFFER_MAX,
+  countsAsLiveTraffic,
   liveTraceUiState,
   validateLiveIdentity,
   findExistingTrace,
@@ -113,7 +114,7 @@ export default function LiveModule({ t, setPage }) {
       const receive=(kind)=>(event)=>{
         let data;try{data=JSON.parse(event.data)}catch{return}
         if(event?.lastEventId)lastEventId.current=event.lastEventId;
-        setLastLiveEventAt(Date.now());setSseClock(Date.now());
+        if(countsAsLiveTraffic(kind)){setLastLiveEventAt(Date.now());setSseClock(Date.now());}
         if(kind==='message'){
           const orderKey=`${String(data.capture_id??'')}\u0000${String(data.packet_number??'')}`;
           if(deliveredOrderKeys.current.has(orderKey))return;
