@@ -2,6 +2,7 @@
 
 ## 2.7.3 — 2026-11-16 — États Live et reprise SSE explicite (patch)
 
+- Termine proprement la réponse SSE aval si l'upstream est interrompu pendant un redémarrage API ; `EventSource` peut ainsi afficher COUPÉE et se reconnecter, sans chunk tronqué.
 - Calcule `ARMÉE`, `ACTIVE`, `ARRÊTÉE` et `COUPÉE` à partir du job et des événements réellement reçus par l'UI : `ACTIVE` pendant 30 s après le dernier event, jamais sur un simple heartbeat.
 - Affiche `COUPÉE` pendant toute reconnexion et réouvre explicitement `EventSource` avec le dernier id SSE, associé à la dernière clé `(capture_id, seq)` reçue ; déduplication par cette clé, jamais par timestamp.
 - L'audit direct/proxy de 330 s tient des deux côtés avec heartbeat 15 s. La cause du `ERR_INCOMPLETE_CHUNKED_ENCODING` reste OUVERT et aucun correctif API/proxy hypothétique n'est appliqué.

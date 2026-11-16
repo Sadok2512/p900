@@ -148,6 +148,20 @@ function captureDisk() {
 
 function sendJson(response,status,payload) { response.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}); response.end(JSON.stringify(payload)); }
 
+// A restarted upstream may emit `aborted`/`close` without `end`. Node's
+// default pipe then leaves the browser response open forever: EventSource
+// cannot report COUPÉE or reconnect. Finish the downstream HTTP response
+// cleanly so the UI receives EOF (never an incomplete chunk).
+export function pipeEventStream(upstreamResponse,response) {
+  let completed=false;
+  upstreamResponse.once('end',()=>{ completed=true; });
+  const finish=()=>{ if(!completed&&!response.writableEnded&&!response.destroyed) response.end(); };
+  upstreamResponse.once('aborted',finish);
+  upstreamResponse.once('close',finish);
+  upstreamResponse.once('error',finish);
+  upstreamResponse.pipe(response);
+}
+
 function proxy(request,response,target,operatorAuthenticated) {
   const upstream=http.request({host:target.host,port:target.port,method:request.method,path:target.path,headers:forwardedHeaders(request.headers,target,request.method,{operatorAuthenticated})}, upstreamResponse=>{
     const pathname=parsedUrl(request.url)?.pathname ?? '/';
@@ -159,7 +173,10 @@ function proxy(request,response,target,operatorAuthenticated) {
         headers['x-accel-buffering']='no'; headers['cache-control']='no-cache, no-transform';
         response.socket?.setNoDelay(true);
       }
-      response.writeHead(upstreamResponse.statusCode??502,headers); upstreamResponse.pipe(response); return;
+      response.writeHead(upstreamResponse.statusCode??502,headers);
+      if(String(headers['content-type']??'').startsWith('text/event-stream')) pipeEventStream(upstreamResponse,response);
+      else upstreamResponse.pipe(response);
+      return;
     }
     const chunks=[]; upstreamResponse.on('data',chunk=>chunks.push(chunk)); upstreamResponse.on('end',()=>{
       let payload; try { payload=JSON.parse(Buffer.concat(chunks).toString('utf8')); } catch { sendJson(response,502,{error:{code:'INVALID_UPSTREAM_RESPONSE',message:'Invalid upstream response'}}); return; }

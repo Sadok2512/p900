@@ -1,5 +1,6 @@
+import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
-import { basicAuthEnabled, basicAuthorized, csrfForToken, forwardedHeaders, openAccessEnabled, proxyAccess, targetFor } from '../../ops/p900-proxy.mjs';
+import { basicAuthEnabled, basicAuthorized, csrfForToken, forwardedHeaders, openAccessEnabled, pipeEventStream, proxyAccess, targetFor } from '../../ops/p900-proxy.mjs';
 
 describe('p900 proxy request target validation', () => {
   it('rejects an invalid authority-form target instead of crashing the process', () => {
@@ -64,6 +65,16 @@ describe('p900 proxy request target validation', () => {
     expect(proxyAccess('/api/v1/live/traces/t-1/stream','GET',{}).status).toBe(200);
     expect(proxyAccess('/api/v1/audit','GET',{}).status).toBe(200);
     expect(proxyAccess('/api/v1/captures/start','POST',{}).status).toBe(200);
+  });
+
+  it('cleanly ends an SSE response when the upstream aborts during a restart', () => {
+    const upstream = new PassThrough();
+    const downstream = new PassThrough();
+    pipeEventStream(upstream, downstream);
+    upstream.write(': heartbeat\n\n');
+    upstream.emit('aborted');
+    expect(downstream.writableEnded).toBe(true);
+    expect(downstream.destroyed).toBe(false);
   });
 
   it('injects operator credentials and CSRF for open-access writes', () => {
