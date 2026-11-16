@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.8.0 — 2026-11-16 — Explorateur et requêtes protocolaires (minor)
+
+- Branche l’assistant « Requête de sessions » sur le contrat réel oiran-api 2.19.1 : `GET /sessions/catalog`, recherche et fiche de paramètre, arbre `protocol_tree` et éléments réseau observés.
+- Exécute les critères Message/Paramètre en ET ou OU via `criteria` / `combinator`, affiche `matched_criteria` par ligne et ouvre la session au clic sur la preuve.
+- Ajoute les colonnes protocolaires après affichage avec les modes dernière, première, toutes et nombre. Les valeurs et preuves viennent de `POST /sessions/columns`, sans nouveau `POST /sessions/filter`.
+- La recherche IMSI utilise le champ `search` 2.19.1 ; un éventuel `IDENTITY_FILTER_OPERATOR_REQUIRED` reste un écart backend explicite.
+- L’aperçu utilise `limit: 0` et son `meta.total` réel. Aucune donnée de la maquette n’est embarquée.
+
 ## 2.7.2 — 2026-11-16 — Live : plus de plantage au premier message réel (patch)
 
 - Recette ANR2 (#10, run UE-201 simple-data-ul-dl-0b2696238220 : 61 messages reçus côté backend) : la page Live plantait avec `ReferenceError: IFC_C is not defined` — le ladder Live utilisait la palette d'interfaces du composant parent, hors de portée (`// @ts-nocheck` masquait l'erreur). Palette passée en prop.

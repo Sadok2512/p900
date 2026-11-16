@@ -8,7 +8,7 @@ import { SYS_DASH, ANOMS } from './demo/kpi';
 import { DIR, S5G, SLTE, NODES, IFC_C } from './demo/live';
 import { records, toLegacyCallflow, filterBody, querySupport, type Draft } from './adapters';
 import type { Health, Version, Metrics, Safety, Session, Event, Probe, RecordData, QueryParams, Envelope, Correlation, SessionIdentities } from './types';
-import { fetchQueryCatalog, fetchSessionColumns, type SessionColumnsRequest } from './query-contract';
+import { fetchCatalogParam, fetchQueryCatalog, fetchSessionColumns, searchQueryCatalog, type SessionColumnsRequest } from './query-contract';
 const Mode = createContext({ demo: false, setDemo: (_value: boolean) => {} });
 export function PolarisDataProvider({ children }: { children: ReactNode }) { const [demo, setDemo] = useState(false); return <Mode.Provider value={{ demo, setDemo }}>{children}</Mode.Provider>; }
 export const usePolarisMode = () => useContext(Mode);
@@ -26,13 +26,29 @@ export function useResource<T>(path: string, params: QueryParams = {}, enabled =
 export const BACKGROUND_POLL_MS = 15_000;
 export const useHealth = () => useQuery({ ...resourceOptions<Health>('/health', {}, false, { timeoutMs: 8_000 }), refetchInterval: BACKGROUND_POLL_MS, refetchIntervalInBackground: false });
 export const useVersion = () => useQuery({ ...resourceOptions<Version>('/version', {}, false), refetchInterval: 60_000, refetchIntervalInBackground: false });
-export const useQueryCatalog = (enabled = false) => useQuery({
-  queryKey: ['polaris', 'api', '/query/catalog'],
-  queryFn: ({ signal }) => fetchQueryCatalog(signal),
+export const useQueryCatalog = (enabled = false, params: QueryParams = {}) => useQuery({
+  queryKey: ['polaris', 'api', '/sessions/catalog', params],
+  queryFn: ({ signal }) => fetchQueryCatalog(params, signal),
   enabled,
   retry: false,
   refetchOnWindowFocus: false,
   staleTime: 60_000,
+});
+export const useQueryCatalogSearch = (q: string, interfaces: string[] = [], enabled = false) => useQuery({
+  queryKey: ['polaris', 'api', '/sessions/catalog/search', q, interfaces],
+  queryFn: ({ signal }) => searchQueryCatalog(q, interfaces, signal),
+  enabled: enabled && q.trim().length > 0,
+  retry: false,
+  refetchOnWindowFocus: false,
+  staleTime: 15_000,
+});
+export const useQueryCatalogParam = (selection: { interface?: string; protocol?: string; message?: string; param_path?: string }, enabled = false) => useQuery({
+  queryKey: ['polaris', 'api', '/sessions/catalog/param', selection],
+  queryFn: ({ signal }) => fetchCatalogParam(selection as { interface: string; protocol: string; message: string; param_path: string }, signal),
+  enabled: enabled && !!selection.interface && !!selection.protocol && !!selection.message && !!selection.param_path,
+  retry: false,
+  refetchOnWindowFocus: false,
+  staleTime: 15_000,
 });
 export const useSessionColumns = (enabled = false) => useMutation({
   mutationFn: (body: SessionColumnsRequest) => {

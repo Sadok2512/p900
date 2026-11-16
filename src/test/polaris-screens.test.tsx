@@ -13,6 +13,10 @@ const payloads: Record<string,unknown> = {
   '/auth/me':{role:'operator',permissions:['probes.create','probes.update','probes.delete','probes.software_update']}, '/health':{status:'healthy',coordination_open:false}, '/version':{backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{ngap:'0.6.0'}},
   '/metrics':{capture_state:'active',pending_segments:7,segments_ingested:18,ingestion_failures:0,open_segments:2,zero_event_segments:1,dumpcap_active:6,dumpcap_expected:12}, '/storage/safety':{filesystem:{usage_percent:75,available_bytes:268435456}},
   '/sessions':[session], '/sessions/filter':[session], '/sessions/s1':session, '/sessions/s1/events':[event], '/sessions/s1/callflow':{events:[event]}, '/sessions/s1/procedures':[], '/sessions/s1/correlations':{edges:[{edge_id:'edge-1',source_event_id:'e1',target_event_id:'e1',source_interface:'N2',target_interface:'N2',matching_identifiers:['ctx=test'],rule_id:'context-rule',rule_version:'1',matched_rules:['context-rule'],evidence_description:'same context',evidence_type:'EXACT_CONTEXT',confidence:'EXACT',scope:'session',limitations:[],packet_references:[]}]},
+  '/sessions/catalog':{columns:[],filters:{},always_present_columns:[],session_count:1,protocol_tree:[{interface:'N2',protocols:[{protocol:'NGAP',messages:[{message:'TEST.Message',detail:{occurrences:1,params:[{param_path:'test/cause',type:'enum',occurrences:1,observed_values:[{value:'ok',count:1}],decoded_from_octets:true}]}}]}]}],network_elements:[{role:'AMF',address:'amf-test',occurrences:1}],scope:{}},
+  '/sessions/catalog/search':{results:[{interface:'N2',protocol:'NGAP',message:'TEST.Message',param_path:'test/cause',type:'enum',occurrences:1}],total:1,query:{q:'cause'}},
+  '/sessions/catalog/param':{interface:'N2',protocol:'NGAP',message:'TEST.Message',param_path:'test/cause',type:'enum',occurrences:1,observed_values:[{value:'ok',count:1}],decoded_from_octets:true,example_sessions:[{session_id:'s1',event_id:'e1',capture_id:'c1',seq:45}]},
+  '/sessions/columns':[{...session,fields:[{interface:'N2',protocol:'NGAP',message:'TEST.Message',param_path:'test/cause',mode:'last',value:'ok',proof:[{event_id:'e1',capture_id:'c1',seq:45}]}]}],
   '/events/e1':{...event,decoded_ie_tree:{...event.decoded_ie_tree,imsi:clearSubscriber}}, '/events/e1/provenance':{capture_id:'c1',event_id:'e1',packet_number:45}, '/packets':[{id:'p1'}], '/packets/c1/45/dissect':{dissection:['subscriber',clearSubscriber].join('=')}, '/sessions/s1/identities':identities,
   '/probes':[{id:'p1',probe_id:'p1',name:'lab-probe',host:'localhost',mgmt_ip:'127.0.0.1',site:'lab-a',probe_type:'virtual',role:'Capture',status:'healthy',version:'probe-test'}], '/probes/p1':{id:'p1',probe_id:'p1',name:'lab-probe',host:'localhost',mgmt_ip:'127.0.0.1',site:'lab-a',probe_type:'virtual',version:'probe-test'}, '/probes/p1/interfaces':[{interface:'ens3',role:'N2',bpf_filter:'sctp port 38412'}],
   '/interfaces':[{name:'N2',interface:'N2',device:'br-test',protocol:'NGAP',status:'CAPTURING'}], '/interfaces/runtime':[{interface:'N2',pid:9001,active:true,bpf_filter:'sctp port 38412',device:'br-test'}], '/captures':[], '/modules':[], '/datasets':[{id:'d1',name:'Dataset test'}], '/sessions/available_causes':['#27'], '/correlation/rules':[]
@@ -63,7 +67,7 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByRole('button',{name:'Message'})).toBeInTheDocument();
     expect(screen.getByRole('button',{name:'Paramètre'})).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button',{name:'Paramètre'}));
-    expect(screen.getByRole('textbox',{name:'Chercher un paramètre'})).toHaveAttribute('placeholder','Nom exact du paramètre');
+    expect(screen.getByRole('textbox',{name:'Chercher un paramètre'})).toHaveAttribute('placeholder','Rechercher cause, message, paramètre…');
     expect(screen.getByRole('textbox',{name:'Chercher un paramètre'})).toBeDisabled();
     expect(screen.getByText(/recherche exacte — catalogue disponible avec oiran-api 2.19.0/)).toBeInTheDocument();
     expect(screen.getByText('Arbre du message')).toBeInTheDocument();
@@ -76,27 +80,52 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getByRole('button',{name:'ET'})).toBeInTheDocument();
     expect(screen.getByRole('button',{name:'OU'})).toBeInTheDocument();
     await waitFor(()=>expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/sessions/filter'&&options.method==='POST'&&JSON.parse(String(options.body)).limit===0)).toBe(true));
-    expect(screen.getByLabelText('Estimation des sessions')).toHaveTextContent('1');
+    await waitFor(()=>expect(screen.getByLabelText('Estimation des sessions')).toHaveTextContent('1'));
   },10000);
   it('does not call the 2.19 catalog before 2.19.0 and enables it automatically at 2.19.0', async()=>{
     open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'}));
     fireEvent.click(screen.getByRole('button',{name:/Critères/})); fireEvent.click(screen.getByRole('button',{name:'Paramètre'}));
     await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url)==='/api/v1/version')).toBe(true));
-    expect(fetcher.mock.calls.some(([url])=>String(url)==='/api/v1/query/catalog')).toBe(false);
+    expect(fetcher.mock.calls.some(([url])=>String(url).startsWith('/api/v1/sessions/catalog'))).toBe(false);
     expect(screen.getByRole('textbox',{name:'Chercher un paramètre'})).toBeDisabled();
     cleanup();
-    const previousVersion=payloads['/version']; const previousCatalog=payloads['/query/catalog'];
+    const previousVersion=payloads['/version'];
     payloads['/version']={backend_api:'2.19.0'};
-    payloads['/query/catalog']={messages:[{name:'TEST.Message',fields:[{path:'test.field',type:'integer'}]}]};
     try {
       open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'}));
       fireEvent.click(screen.getByRole('button',{name:/Critères/})); fireEvent.click(screen.getByRole('button',{name:'Paramètre'}));
-      await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url)==='/api/v1/query/catalog')).toBe(true));
+      await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url).startsWith('/api/v1/sessions/catalog?'))).toBe(true));
       expect(screen.getByRole('textbox',{name:'Chercher un paramètre'})).not.toBeDisabled();
       expect(screen.getByRole('combobox',{name:'Message du critère'})).toHaveAttribute('list','polaris-query-messages');
       await waitFor(()=>expect(document.querySelector('option[value="TEST.Message"]')).not.toBeNull());
-    } finally { payloads['/version']=previousVersion; if(previousCatalog===undefined)delete payloads['/query/catalog'];else payloads['/query/catalog']=previousCatalog; }
+    } finally { payloads['/version']=previousVersion; }
   },10000);
+  it('2.8.0 explores observed parameters, executes criteria with proof, then adds a protocol column without refiltering', async()=>{
+    const previousVersion=payloads['/version']; const previousFilter=payloads['/sessions/filter'];
+    payloads['/version']={backend_api:'2.19.1'};
+    payloads['/sessions/filter']=[{...session,matched_criteria:[{criterion_index:0,event_id:'e1',capture_id:'c1',seq:45}]}];
+    try {
+      open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'}));
+      fireEvent.click(screen.getByRole('button',{name:/Critères/})); fireEvent.click(screen.getByRole('button',{name:'Paramètre'}));
+      fireEvent.change(screen.getByRole('textbox',{name:'Chercher un paramètre'}),{target:{value:'cause'}});
+      const observed=await screen.findByRole('button',{name:/N2 NGAP · TEST\.Message · test\/cause 1/});
+      fireEvent.click(observed);
+      await screen.findByText('Fiche observée');
+      expect(await screen.findByRole('button',{name:/ok ×1/})).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
+      await screen.findByRole('button',{name:'✓ C1'});
+      const filterCall=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/sessions/filter'&&options.method==='POST'&&JSON.parse(String(options.body)).limit===100);
+      expect(JSON.parse(String(filterCall?.[1]?.body))).toEqual(expect.objectContaining({criteria:[expect.objectContaining({interface:'N2',protocol:'NGAP',message:'TEST.Message',param_path:'test/cause',op:'eq'})],combinator:'and'}));
+      const before=fetcher.mock.calls.filter(([url,options])=>String(url)==='/api/v1/sessions/filter'&&options.method==='POST').length;
+      fireEvent.click(screen.getByTitle("Plus d'actions")); fireEvent.click(screen.getByRole('button',{name:'Ajouter une colonne de protocole'}));
+      fireEvent.change(screen.getByRole('textbox',{name:'Rechercher un paramètre après affichage'}),{target:{value:'cause'}});
+      fireEvent.click(await screen.findByRole('button',{name:/N2 NGAP · TEST\.Message · test\/cause \+/}));
+      await waitFor(()=>expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/sessions/columns'&&options.method==='POST')).toBe(true));
+      const after=fetcher.mock.calls.filter(([url,options])=>String(url)==='/api/v1/sessions/filter'&&options.method==='POST').length;
+      expect(after).toBe(before);
+      expect(await screen.findByText('ok')).toBeInTheDocument();
+    } finally { payloads['/version']=previousVersion; payloads['/sessions/filter']=previousFilter; }
+  },15000);
   it('2.7.0 locks the six base columns and derives three columns per N1/N2/N3 interface', async()=>{
     const previousSessions=payloads['/sessions']; const previousFilter=payloads['/sessions/filter'];
     payloads['/sessions']=[{...session,interfaces:['N1','N2','N3']}]; payloads['/sessions/filter']=[{...session,interfaces:['N1','N2','N3']}];
@@ -145,7 +174,7 @@ describe('main screens with simulated REST responses',()=>{
     fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
     await waitFor(()=>expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/sessions/filter' && options.method==='POST')).toBe(true));
     const request=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/sessions/filter' && options.method==='POST' && JSON.parse(String(options.body)).limit===100);
-    expect(JSON.parse(String(request?.[1]?.body))).toEqual({identity:{kind:'supi_or_imsi',value:clearSubscriber},limit:100});
+    expect(JSON.parse(String(request?.[1]?.body))).toEqual(expect.objectContaining({search:clearSubscriber,technologies:['5G SA'],limit:100}));
   });
   it('loads clear identities only for the visible operator page', async()=>{
     open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Afficher toutes les sessions'}));
@@ -369,7 +398,7 @@ describe('main screens with simulated REST responses',()=>{
     payloads['/live/traces']=previous;
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.7.2').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.7.2')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.8.0').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.8.0')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard sits under KPI and is gone from the top menu', async()=>{
     open('kpi');

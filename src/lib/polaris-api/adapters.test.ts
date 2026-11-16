@@ -112,18 +112,19 @@ describe('POLARIS data rules', () => {
     expect(healthKpi('kpi.probe.segments',{zero_event_segments:3})).toBeNull();
     expect(healthKpi('kpi.5g.pdu',{dumpcap_active:6,dumpcap_expected:12})).toBeNull();
   });
-  it('rejects unsupported grouping, OR, inequality and templates outside demo', () => {
+  it('supports 2.19 protocol criteria while rejecting unsupported grouping and templates', () => {
     expect(querySupport({conds:[],group:'Cause'},false)).not.toBeNull();
-    expect(querySupport({conds:[],join:'OU'},false)).not.toBeNull();
-    expect(querySupport({conds:[['Paramètre','NGAP.InitialUEMessage','=','N2','Paramètre','protocolIEs.cause']],join:'ET'},false)).toContain('2.19.0');
+    expect(querySupport({conds:[],join:'OU'},false)).toBeNull();
+    expect(querySupport({conds:[['Paramètre','NGAP.InitialUEMessage','=','N2','Paramètre','protocolIEs/cause','NGAP','16']],join:'ET'},false)).toBeNull();
     expect(querySupport({conds:[['Paramètre','NGAP.InitialUEMessage','=','N2','Paramètre']],join:'ET'},false)).toBeNull();
     expect(querySupport({conds:[['Cause','#27','≠']]},false)).not.toBeNull();
     expect(querySupport({conds:[],tpl:'Capture'},false)).not.toBeNull();
     expect(querySupport({conds:[['Interface','N4','=']]},false)).toBeNull();
     expect(filterBody({conds:[['Message','SessionEstablishmentRequest','=','N4'],['Cause','#27'],['IMSI','001010000000201'],['Résultat','Échec']]})).toEqual({
-      messages:[{name:'SessionEstablishmentRequest',interface:'N4'}],
+      criteria:[{message:'SessionEstablishmentRequest',interface:'N4',op:'eq'}],
+      combinator:'and',
       causes:[{value:'#27'}],
-      identity:{kind:'supi_or_imsi',value:'001010000000201'},
+      search:'001010000000201',
       failures_only:true,
     });
     const now=Date.parse('2026-11-16T10:00:00Z');

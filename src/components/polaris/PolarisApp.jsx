@@ -2,7 +2,7 @@ import KpiModule from './kpi/KpiModule';
 import { ConditionBadge } from './ui/ConditionBadge';
 import { conditionTone } from '@/lib/polaris-ui/conditionTone';
 import LiveModule from './live/LiveModule';
-import { useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useSessionIdentities, usePacketDissection, useEvent, useProvenance, usePackets, useCorrelationRules, useQueryCatalog, useSessionColumns, supportsQueryApi, apiPath, redact, records, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, filterSessionRows, versionComponents, decoderVersions, topBarLiveIndicator, identityValue, identityProofs, observedIdentity } from '@/lib/polaris-api';
+import { useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useSessionIdentities, usePacketDissection, useEvent, useProvenance, usePackets, useCorrelationRules, useQueryCatalog, useQueryCatalogSearch, useSessionColumns, supportsQueryApi, apiPath, redact, records, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, filterSessionRows, versionComponents, decoderVersions, topBarLiveIndicator, identityValue, identityProofs, observedIdentity } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
 import Administration from './admin/Administration';
@@ -238,12 +238,16 @@ const GRID_COLS = [
   {k:'s1urate',l:'Débit max',g:'correlation',w:110,queryOnly:true,v:r=>firstObserved(r,['max_bitrate_bps','peak_bitrate_bps'])},
   {k:'s1uteid',l:'TEID',g:'correlation',w:116,queryOnly:true,v:r=>firstObserved(r,['teid','teids']),mono:true},
 ];
-function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={},queryDraft=null,onColumnsChange}) {
+function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={},queryDraft=null,onColumnsChange,onDraftChange}) {
   const { demo } = usePolarisMode(); const sessions = useSessions({ page:1, page_size:100, sort:'capture_id', order:'asc' },false);
   const version = useVersion();
   const queryApiEnabled = supportsQueryApi(version.data);
   const protocolCatalog = useQueryCatalog(queryApiEnabled);
   const protocolColumns = useSessionColumns(queryApiEnabled);
+  const [protocolSearch,setProtocolSearch] = useState('');
+  const [protocolMode,setProtocolMode] = useState('last');
+  const protocolSearchResults = useQueryCatalogSearch(protocolSearch,queryDraft?.interfaces||[],queryApiEnabled);
+  const [protocolValues,setProtocolValues] = useState({});
   const [more,setMore] = useState(false);
   const [manageCols,setManageCols] = useState(false);
   const [addProtocolColumn,setAddProtocolColumn] = useState(false);
@@ -254,8 +258,21 @@ function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={},query
   useEffect(()=>{ try { localStorage.setItem('polaris-grid-cols',JSON.stringify(widths)); } catch(e) {} },[widths]);
   useEffect(()=>{ try { localStorage.setItem('polaris-grid-hidden-cols',JSON.stringify(hiddenCols)); } catch(e) {} },[hiddenCols]);
   const queryMode=!!queryDraft&&!queryDraft.legacyColumns;
+  const customColumns=useMemo(()=>queryMode&&Array.isArray(queryDraft.customColumns)?queryDraft.customColumns:[],[queryMode,queryDraft]);
+  const customKey=JSON.stringify(customColumns);
+  const fieldKey=field=>`${field.interface}|${field.protocol}|${field.message||''}|${field.param_path}|${field.mode}`;
+  useEffect(()=>{
+    const ids=rows.map(row=>row.session_id??row.id).filter(Boolean).map(String);
+    if(!queryApiEnabled||!queryMode||!ids.length||!customColumns.length){setProtocolValues({});return;}
+    protocolColumns.mutate({session_ids:ids,columns:[],fields:customColumns.map(column=>({interface:column.interface,protocol:column.protocol,message:column.message,param_path:column.param_path,mode:column.mode}))},{onSuccess:response=>{
+      const next={};
+      records(response.data).forEach(row=>{const id=String(row.session_id??'');next[id]={};records(row.fields).forEach(field=>{next[id][fieldKey(field)]=field;});});
+      setProtocolValues(next);
+    }});
+  },[queryApiEnabled,queryMode,customKey,rows]);
   const queryColumnKeys=useMemo(()=>queryMode?[...SESSION_QUERY_BASE_COLUMN_KEYS,...(Array.isArray(queryDraft.variableColumns)?queryDraft.variableColumns:defaultVariableColumns(queryDraft.interfaces||[]))]:null,[queryMode,queryDraft]);
-  const visibleCols = useMemo(()=>queryMode?queryColumnKeys.map(key=>GRID_COLS.find(c=>c.k===key)).filter(Boolean):GRID_COLS.filter(c=>!c.queryOnly&&!hiddenCols.includes(c.k)),[hiddenCols,queryMode,queryColumnKeys]);
+  const customGridCols=useMemo(()=>customColumns.map(column=>({k:`protocol:${column.id}`,l:column.label||column.param_path.split('/').at(-1),g:'protocol',w:160,protocolColumn:column,v:r=>{const field=protocolValues[String(r.session_id??r.id)]?.[fieldKey(column)];if(!field)return protocolColumns.isPending?'calcul…':'—';return Array.isArray(field.value)?field.value.join(', '):field.value??'—';}})),[customKey,protocolValues,protocolColumns.isPending]);
+  const visibleCols = useMemo(()=>queryMode?[...queryColumnKeys.map(key=>GRID_COLS.find(c=>c.k===key)).filter(Boolean),...customGridCols]:GRID_COLS.filter(c=>!c.queryOnly&&!hiddenCols.includes(c.k)),[hiddenCols,queryMode,queryColumnKeys,customGridCols]);
   const W = c => widths[c.k] ?? c.w;
   const closeMore = () => { setMore(false); setManageCols(false); setAddProtocolColumn(false); };
   const resetCols = () => { setWidths({}); if(queryMode)onColumnsChange?.(defaultVariableColumns(queryDraft.interfaces||[]));else setHiddenCols([]); setSort(null); closeMore(); };
@@ -287,6 +304,8 @@ function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={},query
   const ko = rows.filter(r=>verdict(r.res)==='FAILED').length;
   const cell = (c,r) => {
     const v = c.v(r);
+    if (c.protocolColumn) { const field=protocolValues[String(r.session_id??r.id)]?.[fieldKey(c.protocolColumn)]; const proof=records(field?.proof); return <button type="button" disabled={!proof.length} onClick={event=>{event.stopPropagation();setSel(r.id);}} title={proof.map(item=>`${item.capture_id}·${item.seq} · ${item.event_id}`).join('\n')||undefined} className="block w-full truncate text-left disabled:cursor-default">{String(v)}</button>; }
+    if (c.k==='start' && Array.isArray(r.matched_criteria) && r.matched_criteria.length) return <span className="flex items-center gap-1"><span>{String(v)}</span>{r.matched_criteria.map((hit,index)=><button type="button" key={`${hit.criterion_index}-${hit.event_id}-${index}`} onClick={event=>{event.stopPropagation();setSel(r.id);}} title={`${hit.capture_id}·${hit.seq} · ${hit.event_id}`} className="rounded bg-success-soft px-1 text-[10px] font-semibold text-success">✓ C{Number(hit.criterion_index)+1}</button>)}</span>;
     if (c.k==='res') return <VerdictBadge v={v}/>;
     if (c.k==='sub') { const fallbackSubscriber=r.subscriber_imsi ?? (r.subscriber_pseudonym?shortPseudo(r.subscriber_pseudonym):null); const subscriber=r.identities?observedIdentity(r.identities,'subscriber'):(fallbackSubscriber??'—'); if (!r.identities && !fallbackSubscriber) return <span className="text-subtle" title="Identité chargée à l’ouverture de la session">—</span>; return subscriber==='—' ? <span className="text-subtle">non observé</span> : <span className="inline-flex items-center gap-1" title={r.subscriber_pseudonym||undefined}>{subscriber}{r.subscriber_session_count!=null && <span className="rounded bg-brand-soft text-brand px-1 text-[11px] font-sans font-semibold">{r.subscriber_session_count} sessions</span>}</span>; }
     if (c.k==='ifc') return <span className="flex gap-1">{[...new Set(r.interfaces ?? [])].map(i=><Tag key={i} i={i}/>)}</span>;
@@ -309,7 +328,8 @@ function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={},query
   };
   const queryHeaderGroups=queryMode?[
     {label:'BASE',count:visibleCols.filter(c=>SESSION_QUERY_BASE_COLUMN_KEYS.includes(c.k)).length},
-    ...(queryDraft.interfaces||[]).map(name=>({label:name,count:visibleCols.filter(c=>(SESSION_QUERY_INTERFACE_COLUMNS[name]||[]).some(([key])=>key===c.k)).length})),
+    ...(queryDraft.interfaces||[]).map(name=>({label:name,count:visibleCols.filter(c=>(SESSION_QUERY_INTERFACE_COLUMNS[name]||[]).some(([key])=>key===c.k)||c.protocolColumn?.interface===name).length})),
+    {label:'PROTOCOLE',count:visibleCols.filter(c=>c.protocolColumn&&!queryDraft.interfaces?.includes(c.protocolColumn.interface)).length},
   ].filter(group=>group.count):[];
   return (
     <section className="flex flex-col min-h-0 bg-white shrink-0 rounded-xl border border-border overflow-hidden" style={{height}}>
@@ -335,7 +355,7 @@ function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={},query
             {queryMode?<><section aria-label="Base"><div className="px-1 mb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Base</div>{SESSION_QUERY_BASE_COLUMN_KEYS.map(key=>GRID_COLS.find(c=>c.k===key)).filter(Boolean).map(c=><label key={c.k} className="h-7 px-1 flex items-center gap-2 rounded cursor-not-allowed"><input type="checkbox" aria-label={c.l} checked disabled/><span>{c.l}</span><span className="ml-auto text-[11px] text-subtle">verrouillée</span></label>)}</section>{(queryDraft.interfaces||[]).map(name=><details key={name} open aria-label={name}><summary className="px-1 mb-1 cursor-pointer text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{name}</summary>{(SESSION_QUERY_INTERFACE_COLUMNS[name]||[]).map(([key,label])=>{const c=GRID_COLS.find(column=>column.k===key);return c?<label key={key} className="h-7 px-1 flex items-center gap-2 rounded hover:bg-surface-2 cursor-pointer"><input type="checkbox" aria-label={`${name} · ${label}`} checked={(queryDraft.variableColumns||[]).includes(key)} onChange={()=>toggleCol(c)}/><span>{label}</span></label>:null;})}</details>)}</>:GRID_GROUPS.map(group=><section key={group.k} aria-label={group.l}><div className="px-1 mb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{group.l}</div>{GRID_COLS.filter(c=>c.g===group.k&&!c.queryOnly).map(c=><label key={c.k} className={`h-7 px-1 flex items-center gap-2 rounded hover:bg-surface-2 ${c.required?'cursor-not-allowed':'cursor-pointer'}`}><input type="checkbox" aria-label={c.l} checked={!hiddenCols.includes(c.k)} disabled={c.required} onChange={()=>toggleCol(c)}/><span>{c.l}</span>{c.required&&<span className="ml-auto text-[11px] text-subtle">obligatoire</span>}</label>)}</section>)}
             </div>
             <div className="p-2 border-t border-border text-[11px] text-muted-foreground">{queryMode?'Les choix sont enregistrés avec la requête.':'Les choix sont enregistrés dans ce navigateur.'}</div>
-          </div> : addProtocolColumn ? <div role="dialog" aria-label="Ajouter une colonne de protocole" className="absolute right-0 top-8 z-40 w-80 rounded-lg border border-border bg-white p-4 shadow-lg"><div className="flex items-center"><span className="font-semibold">Ajouter une colonne de protocole</span><button type="button" onClick={()=>setAddProtocolColumn(false)} className="ml-auto text-muted-foreground">×</button></div>{queryApiEnabled?<div className="mt-3 rounded-md border border-border bg-surface-2 p-3 text-[12px] text-muted-foreground">{protocolCatalog.isLoading?'Chargement du catalogue…':protocolCatalog.isError?'Catalogue 2.19.0 indisponible.':`${Array.isArray(protocolCatalog.data?.data?.messages)?protocolCatalog.data.data.messages.length:0} message(s) renvoyé(s). POST /api/v1/sessions/columns est prêt pour la sélection.`}<span className="sr-only">{protocolColumns.isPending?'calcul…':''}</span></div>:<><div className="mt-3 rounded-md border border-dashed border-border bg-surface-2 p-3 text-[12px] text-muted-foreground">Arbre des paramètres, agrégation et calcul sur tout le résultat disponibles avec oiran-api 2.19.0.</div><button type="button" disabled className="mt-3 h-8 rounded-md border border-border px-3 text-[12px] opacity-50">GET /api/v1/query/catalog</button></>}</div> : <div className="absolute right-0 top-8 z-40 w-60 bg-white border border-border rounded-lg shadow-lg py-1 text-[12.5px]">
+          </div> : addProtocolColumn ? <div role="dialog" aria-label="Ajouter une colonne de protocole" className="absolute right-0 top-8 z-40 w-[30rem] rounded-lg border border-border bg-white p-4 shadow-lg"><div className="flex items-center"><span className="font-semibold">Ajouter une colonne de protocole</span><button type="button" onClick={()=>setAddProtocolColumn(false)} className="ml-auto text-muted-foreground">×</button></div>{queryApiEnabled?<><div className="mt-3 flex gap-2"><input aria-label="Rechercher un paramètre après affichage" value={protocolSearch} onChange={event=>setProtocolSearch(event.target.value)} placeholder="Rechercher un paramètre observé" className="h-8 min-w-64 flex-1 rounded border border-border px-2 text-[12px]"/><select aria-label="Agrégation après affichage" value={protocolMode} onChange={event=>setProtocolMode(event.target.value)} className="h-8 rounded border border-border bg-white px-2 text-[12px]"><option value="last">dernière</option><option value="first">première</option><option value="all">toutes</option><option value="count">nombre</option></select></div><div className="mt-2 max-h-64 overflow-auto rounded border border-border p-1">{protocolSearchResults.isFetching?<div className="p-2 text-[12px] text-muted-foreground">Recherche…</div>:records(protocolSearchResults.data?.data?.results).filter(item=>item.param_path).map((item,position)=><button type="button" key={`${item.interface}-${item.protocol}-${item.message}-${item.param_path}-${position}`} onClick={()=>{const id=`${item.interface}|${item.protocol}|${item.message}|${item.param_path}|${protocolMode}`;const next={id,label:`${item.interface} · ${String(item.param_path).split('/').at(-1)}`,interface:item.interface,protocol:item.protocol,message:item.message,param_path:item.param_path,mode:protocolMode};onDraftChange?.({...queryDraft,customColumns:[...(queryDraft.customColumns||[]).filter(column=>column.id!==id),next]});setAddProtocolColumn(false);}} className="flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-[11.5px] hover:bg-surface-2"><span className="rounded bg-brand-soft px-1.5 py-0.5 font-semibold text-[var(--app-accent)]">{item.interface}</span><span className="font-mono">{item.protocol} · {item.message} · {item.param_path}</span><span className="ml-auto">+</span></button>)}</div><div className="mt-2 text-[11px] text-muted-foreground">Les valeurs sont chargées par POST /sessions/columns, sans relancer la requête.</div></>:<><div className="mt-3 rounded-md border border-dashed border-border bg-surface-2 p-3 text-[12px] text-muted-foreground">Arbre des paramètres, agrégation et calcul sur tout le résultat disponibles avec oiran-api 2.19.0.</div><button type="button" disabled className="mt-3 h-8 rounded-md border border-border px-3 text-[12px] opacity-50">GET /api/v1/sessions/catalog</button></>}</div> : <div className="absolute right-0 top-8 z-40 w-60 bg-white border border-border rounded-lg shadow-lg py-1 text-[12.5px]">
             <button onClick={()=>setManageCols(true)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.cols} c="w-3.5 h-3.5 text-muted-foreground"/>Gérer les colonnes</button>
             {queryMode&&<button onClick={()=>setAddProtocolColumn(true)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.plus} c="w-3.5 h-3.5 text-muted-foreground"/>Ajouter une colonne de protocole</button>}
             <button onClick={()=>{setGrouped(g=>!g);closeMore();}} aria-pressed={grouped} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.cols} c="w-3.5 h-3.5 text-muted-foreground"/>{grouped?'Ne plus grouper':'Grouper par abonné'}</button>
@@ -955,7 +975,7 @@ const matchQ = (s,conds,join) => { const r = conds.map(c=>c[2]==='≠'?!test(s,c
 const TPLS = [['Trace','Toutes les sessions d’un UE'],['Parcourir','Une ligne par session'],['Inspecter','Une ligne par message'],['Capture','Extrait pcap d’une session']];
 const SCOPES = ['Run 5G #482','lte-run-976bd44b','Captures c41 → c43','Fenêtre horaire'];
 const GROUPS = ['Aucun','Procédure','Résultat','Cause','Cellule','UE'];
-const mkDraft = (o={}) => ({tpl:'Parcourir',scope:'',conds:[],join:'ET',group:'Aucun',name:'',rat:'5G SA',nodes:[],periodMode:'period',period:'1 h',interfaces:[],variableColumns:[],customColumns:[],...o});
+const mkDraft = (o={}) => ({tpl:'Parcourir',scope:'',conds:[],join:'ET',group:'Aucun',name:'',rat:'5G SA',nodes:[],periodMode:'period',period:'1 h',timeAnchorMs:Date.now(),interfaces:[],variableColumns:[],customColumns:[],...o});
 
 function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
   const [q,setQ] = useState(''); const [flt,setFlt] = useState('Toutes');
@@ -1305,7 +1325,7 @@ function App() {
   const setDraft = d => patch(active.id,{draft:d,dirty:true,n:d.name||'Nouvelle requête'});
   const runQuery = () => { const d=active.draft; const id=active.id;
     setRequestError('');
-    sessionFilter.mutate(d,{onSuccess:response=>patch(id,{conds:d.conds,join:d.join,n:d.name||[d.rat,d.periodMode==='run'?d.scope:d.period].filter(Boolean).join(' · ')||nameOf(d.conds),mode:'results',ran:true,apiRows:demo?undefined:filterSessionRows(d,records(response.data,'sessions'))}),onError:e=>setRequestError(e.message)});
+    sessionFilter.mutate(d,{onSuccess:response=>patch(id,{conds:d.conds,join:d.join,n:d.name||[d.rat,d.periodMode==='run'?d.scope:d.period].filter(Boolean).join(' · ')||nameOf(d.conds),mode:'results',ran:true,apiRows:demo?undefined:records(response.data,'sessions')}),onError:e=>setRequestError(e.message)});
   };
   const displayAllSessions = () => {
     const id='q'+Date.now(); const draft=mkDraft({name:'Toutes les sessions',legacyColumns:true});
@@ -1380,7 +1400,7 @@ function App() {
       {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <SessionQueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">
         <main ref={mainRef} className={`flex-1 min-w-0 flex-col ${geoMax && selected && !geoHidden && !full ? 'hidden' : 'flex'}`}>
           {!full && !gridHidden && <>
-            <Grid rows={rows} sel={s?.id} setSel={setSel} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`} identityMap={listIdentityMap} queryDraft={active?.draft} onColumnsChange={variableColumns=>active&&patch(active.id,{draft:{...active.draft,variableColumns},dirty:true})}/>
+            <Grid rows={rows} sel={s?.id} setSel={setSel} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`} identityMap={listIdentityMap} queryDraft={active?.draft} onColumnsChange={variableColumns=>active&&patch(active.id,{draft:{...active.draft,variableColumns},dirty:true})} onDraftChange={draft=>active&&patch(active.id,{draft,dirty:true})}/>
             <div onMouseDown={e=>drag(e,'h')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group h-2 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[2px] w-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
           </>}
           <div ref={lowRef} className="flex-1 min-h-0 flex">
