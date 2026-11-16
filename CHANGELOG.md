@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.6.2 — 2026-11-16 — Ladder LTE : plus de plantage sur horodatage hors plage (patch)
+
+- Écart ANR2 (déploiement 2.18.9/2.6.1, présent depuis 2.6.0) : le ladder LTE plantait sur une date. `toMs` accepte désormais s / ms / µs / ns et renvoie `null` pour toute valeur hors de la plage de `Date` ; `SessionAnalysis` n'appelle plus `toISOString()` sur une date invalide (« — »).
+- Test `toMs : horodatages hors plage`.
+
 ## 2.6.1 — 2026-11-16 — Ladder : colonnes dans l'ordre réseau (patch)
 
 - Constat Sadok : le ladder d'une session commençant par du PFCP affichait les colonnes SMF, UPF, gNB, AMF (ordre de première apparition).

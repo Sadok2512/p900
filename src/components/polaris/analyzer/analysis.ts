@@ -21,10 +21,13 @@ export function timeOf(e?: Rec): number | null {
   const raw = e['observed_epoch_ms'] ?? e['timestamp_ms'] ?? e['timestamp'] ?? e['observed_timestamp'] ?? e['packet_timestamp'] ?? e['observed_at'] ?? e['time'];
   return toMs(raw);
 }
-// Accepts ISO strings, epoch milliseconds, or epoch seconds (number or numeric string).
+// Accepts ISO strings, epoch seconds, milliseconds, microseconds or nanoseconds (number or numeric string).
 export function toMs(raw: unknown): number | null {
   const n = typeof raw === 'number' ? raw : typeof raw === 'string' && /^\d+(\.\d+)?Z?$/i.test(raw.trim()) ? Number(raw.trim().replace(/z$/i, '')) : null;
-  if (n != null) return Number.isFinite(n) ? (n < 1e11 ? n * 1000 : n) : null;
+  // 2.6.2 (ANR2, ladder LTE qui plantait) : une valeur hors de la plage
+  // représentable par Date (ex. horodatage en ns, 1.7e18) donnait
+  // new Date(x).toISOString() → RangeError « Invalid time value ».
+  if (n != null) { const ms = !Number.isFinite(n) ? NaN : n < 1e11 ? n * 1000 : n > 1e17 ? n / 1e6 : n > 1e14 ? n / 1e3 : n; return Number.isFinite(ms) && Math.abs(ms) <= 8.64e15 ? ms : null; }
   if (typeof raw === 'string') { const t = Date.parse(raw); return Number.isNaN(t) ? null : t; }
   return null;
 }

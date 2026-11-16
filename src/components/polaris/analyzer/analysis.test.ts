@@ -116,3 +116,16 @@ describe('procedure duration ignores interleaved events', () => {
     expect(steps(f)[0]!.durationMs).toBe(300);
   });
 });
+
+describe('2.6.2 toMs : horodatages hors plage', () => {
+  it('ns / µs / ms / s → ms ; vide ou invalide → null (jamais de Date invalide)', async () => {
+    const { toMs, fmtUtc } = await import('./analysis');
+    expect(toMs('1763270000000000000')).toBe(1763270000000);
+    expect(toMs('1763270000000000')).toBe(1763270000000);
+    expect(toMs(1763270000000)).toBe(1763270000000);
+    expect(toMs('1763270000')).toBe(1763270000000);
+    expect(toMs('')).toBeNull();
+    expect(toMs('pas une date')).toBeNull();
+    expect(() => fmtUtc(toMs('1763270000000000000'))).not.toThrow();
+  });
+});

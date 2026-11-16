@@ -19,7 +19,7 @@ export default function SessionAnalysis({s,width,onPick,onHide,loading,onOpenSes
   const res = overall(s.state ?? s.res, st);
   const bgIdx = new Set(bg.flatMap(x=>x.start<0?[]:Array.from({length:x.end-x.start+1},(_,j)=>x.start+j)));
   const times = (flow.evidence??[]).filter((_,j)=>!bgIdx.has(j)).map(timeOf).filter(x=>x!=null);
-  const iso = ms => ms==null ? '—' : new Date(ms).toISOString().replace('T',' ').slice(0,23)+' UTC';
+  const iso = ms => { const d = ms==null ? null : new Date(ms); return d==null || Number.isNaN(d.getTime()) ? '—' : d.toISOString().replace('T',' ').slice(0,23)+' UTC'; };
   const start = iso(toMs(s.start_timestamp) ?? (times.length ? Math.min(...times) : null));
   const end = iso(toMs(s.end_timestamp) ?? (times.length ? Math.max(...times) : null));
   const kpi = [['Durée session',fmtSpan(k.durationMs,k.multiCapture)],['Setup time',fmtDuration(k.setupMs)],['DL moyen',fmtRate(k.dlAvg)],['DL instantané',fmtRate(k.dlInst)],['DL max',fmtRate(k.dlMax)],['UL moyen',fmtRate(k.ulAvg)],['UL instantané',fmtRate(k.ulInst)],['UL max',fmtRate(k.ulMax)],['Volume DL',fmtBytes(k.dlVolume)],['Volume UL',fmtBytes(k.ulVolume)],['RTT',k.rttMs==null?'N/A':`${k.rttMs} ms`],['Retransmissions',k.retransmissions==null?'N/A':k.retransmissions],['Pertes',k.lossPct==null?'N/A':`${k.lossPct} %`]];
