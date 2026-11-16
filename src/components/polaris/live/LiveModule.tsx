@@ -186,7 +186,7 @@ export default function LiveModule({ t, setPage }) {
             <select value={ttype} onChange={e=>{setTtype(e.target.value);setQ('');}} className="h-full px-2 text-[12px] bg-surface-2 border-r border-border outline-none">
               <option value="pseudonym">{t('Pseudonyme')}</option><option value="imsi">IMSI / SUPI</option><option value="tmsi">TMSI / GUTI</option><option value="s_tmsi">S-TMSI</option><option value="m_tmsi">M-TMSI</option><option value="imei">IMEI</option><option value="msisdn">MSISDN</option>
             </select>
-            <input value={q} onChange={e=>setQ(e.target.value)} type="text" autoComplete="off" placeholder={ttype==='pseudonym'?'UE-…':'identité en clair'} className="w-48 px-3 text-[13px] font-mono outline-none"/>
+            <input value={q} onChange={e=>{const v=e.target.value; setQ(v); if(ttype==='pseudonym' && /^(imsi-)?\d{14,15}$/i.test(v.trim())) setTtype('imsi');}} type="text" autoComplete="off" placeholder={ttype==='pseudonym'?'UE-…':'identité en clair'} className="w-48 px-3 text-[13px] font-mono outline-none"/>
             <button className="h-full px-3 bg-[var(--app-accent)] text-white text-[12.5px] font-medium hover:opacity-90">{t('Rechercher')}</button>
           </form>
           {res && <span className="flex items-center gap-1.5 text-[12px]"><Tag c={ST_C[res.st]||'#666'}>{t(res.st)}</Tag>{res.ue && <span className="font-mono text-foreground">{res.ue}</span>}{res.err && <span className="text-danger">{res.err}</span>}</span>}
@@ -274,7 +274,8 @@ function Throughput({ t, data, running, delay, tracking, onFull, full, ue }) {
   return <div className={card + ' overflow-hidden'}>
     <div className="h-11 px-4 flex items-center gap-3 border-b border-border-subtle">
       <h3 className="text-[13px] font-semibold">Throughput UL / DL</h3>
-      {ue && <span className="text-[11px] text-subtle font-mono">{ue.tech === 'LTE' ? 'Bearer 5 · QCI 9 · APN internet' : 'PDU #1 · 5QI 9 · QFI 1 · DNN internet'} · GTP-U {ue.tech === 'LTE' ? 'S1-U' : 'N3'}</span>}
+      {/* 2.6.3 — libellé bearer/PDU figé réservé à la démo (ue.cap) : en réel aucune valeur inventée. */}
+      {ue && <span className="text-[11px] text-subtle font-mono">{ue.cap ? (ue.tech === 'LTE' ? 'Bearer 5 · QCI 9 · APN internet · ' : 'PDU #1 · 5QI 9 · QFI 1 · DNN internet · ') : ''}GTP-U {ue.tech === 'LTE' ? 'S1-U' : 'N3'}</span>}
       <div className="ml-auto flex items-center gap-2">
         {['dl', 'ul'].map(k => <button key={k} onClick={() => setShow(s => ({ ...s, [k]: !s[k] }))} className={`flex items-center gap-1.5 text-[12px] ${show[k] ? 'text-foreground' : 'text-subtle line-through'}`}><span className="w-3 h-[3px] rounded" style={{ background: S[k][1], opacity: show[k] ? 1 : 0.3 }} />{S[k][0]}</button>)}
         <div className="flex rounded-md border border-border overflow-hidden ml-2">{[1, 5, 15, 30].map(w => <button key={w} onClick={() => { setWin(w); setZoom(null); }} className={`h-7 px-2.5 text-[12px] whitespace-nowrap ${win === w && !zoom ? 'bg-[var(--app-accent)] text-white' : 'text-ink-2 hover:bg-surface-2'}`}>{w} min</button>)}</div>
@@ -308,6 +309,9 @@ function UeInfo({ t, ue, res, tracking, msgs, onHide }) {
   const Row = ({ n, v, s }) => <div className="flex items-baseline gap-2 py-[5px] text-[12px]"><span className="w-[120px] shrink-0 text-subtle">{n}</span>{v ? <span className="text-foreground font-mono text-[11.5px] break-all" title={s ? 'preuve : seq ' + s : ''}>{v}</span> : <span className="text-subtle italic">{t('Non disponible')}</span>}{v && s && <span className="ml-auto shrink-0 font-mono text-[11px] text-[var(--app-accent)]">#{s}</span>}</div>;
   const Sec = ({ title, children }) => <div className="px-4 py-2.5 border-b border-border-subtle"><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle mb-1">{t(title)}</div>{children}</div>;
   const [proof, setProof] = useState(false);
+  // 2.6.3 — en mode réel, `ue` reste null jusqu'au premier event ue_info
+  // (trace ARMÉE, aucun message encore) : `ue.tech` faisait planter toute la page.
+  const tech = ue?.tech === 'LTE' ? 'LTE' : '5G';
   const I = ue?.info || {}; const clearIdentities={...(res?.identities??{}),...I}; const has = (k) => { const v = I[k]; if (!tracking || !v || !v[0]) return [null, null]; if (v[1] == null) return v; const need = v[1] < 1000 ? v[1] + 400 : v[1]; return msgs.some(m => m.seq >= need) ? [v[0], need] : [null, null]; };
   return <div className={card + ' overflow-hidden'}>
     <div className="h-10 px-4 flex items-center gap-2 border-b border-border-subtle"><h3 className="text-[13px] font-semibold">UE Info</h3>{tracking && <span className="text-[11px] text-subtle">{t('màj')} {last?.ts}</span>}<button onClick={onHide} className="ml-auto text-[12px] text-subtle hover:text-foreground">⟩</button></div>
@@ -316,14 +320,14 @@ function UeInfo({ t, ue, res, tracking, msgs, onHide }) {
         <Row n={t('Pseudonyme')} v={res.ue} s={null} />
         {[['IMSI / SUPI','subscriber'],['TMSI / GUTI','temporary'],['S-TMSI','s_tmsi'],['M-TMSI','m_tmsi'],['IMEI(SV) / PEI','equipment'],['MSISDN / GPSI','directory']].map(([label,kind])=><Row key={kind} n={label} v={observedIdentity(clearIdentities,kind)} s={null}/>)}
         <div className="flex items-center gap-2 py-1 text-[12px]"><span className="w-[120px] text-subtle">{t('Rattachement')}</span><Tag c={res.st === 'Trouvé' ? '#15803D' : '#A15C07'}>{res.st === 'Trouvé' ? 'EXACT' : 'OUVERT'}</Tag><button onClick={() => setProof(!proof)} className="ml-auto text-[11px] text-[var(--app-accent)]">{proof ? t('masquer') : t('preuve')}</button></div>
-        {proof && <div className="text-[11px] text-ink-2 bg-surface-2 rounded p-2 mb-1">{ue.proof}</div>}
+        {proof && <div className="text-[11px] text-ink-2 bg-surface-2 rounded p-2 mb-1">{ue?.proof ?? t('Non disponible')}</div>}
       </Sec>
-      <Sec title="Réseau radio">{['Technologie', 'PLMN', 'Site', 'Cell Name', ue.tech === 'LTE' ? 'ECGI' : 'NR-CGI', 'TAC', ue.tech === 'LTE' ? 'eNB ID' : 'gNB ID'].map(k => { const [v, s] = has(k); return <Row key={k} n={k} v={v} s={s} />; })}</Sec>
-      <Sec title="Cœur réseau">{(ue.tech === 'LTE' ? ['MME', 'SGW', 'APN', 'Bearer ID', 'QCI'] : ['AMF', 'SMF', 'UPF', 'DNN', 'S-NSSAI', 'PDU Session ID', '5QI', 'QFI']).map(k => { const [v, s] = has(k); return <Row key={k} n={k} v={v} s={s} />; })}</Sec>
+      <Sec title="Réseau radio">{['Technologie', 'PLMN', 'Site', 'Cell Name', tech === 'LTE' ? 'ECGI' : 'NR-CGI', 'TAC', tech === 'LTE' ? 'eNB ID' : 'gNB ID'].map(k => { const [v, s] = has(k); return <Row key={k} n={k} v={v} s={s} />; })}</Sec>
+      <Sec title="Cœur réseau">{(tech === 'LTE' ? ['MME', 'SGW', 'APN', 'Bearer ID', 'QCI'] : ['AMF', 'SMF', 'UPF', 'DNN', 'S-NSSAI', 'PDU Session ID', '5QI', 'QFI']).map(k => { const [v, s] = has(k); return <Row key={k} n={k} v={v} s={s} />; })}</Sec>
       <Sec title="État UE">
-        <Row n={ue.tech === 'LTE' ? 'Attach' : 'Registration'} v={reg ? 'REGISTERED' : msgs.length ? t('en cours') : null} s={reg?.seq} />
+        <Row n={tech === 'LTE' ? 'Attach' : 'Registration'} v={reg ? 'REGISTERED' : msgs.length ? t('en cours') : null} s={reg?.seq} />
         <Row n="RM / CM" v={null} />
-        <Row n={ue.tech === 'LTE' ? 'Bearer' : 'PDU Session'} v={pdu ? (pdu.res === 'Échec' ? 'REJECTED' : 'ACTIVE') : null} s={pdu?.seq} />
+        <Row n={tech === 'LTE' ? 'Bearer' : 'PDU Session'} v={pdu ? (pdu.res === 'Échec' ? 'REJECTED' : 'ACTIVE') : null} s={pdu?.seq} />
         <Row n={t('Dernière procédure')} v={last?.proc} s={last?.seq} />
         <Row n={t('Dernier message')} v={last?.name} s={last?.seq} />
         <Row n={t('Dernier échec')} v={lastFail?.cause} s={lastFail?.seq} />

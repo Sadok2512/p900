@@ -236,8 +236,22 @@ describe('main screens with simulated REST responses',()=>{
     open('live'); expect(screen.getByRole('button',{name:'Rechercher'})).toBeEnabled();
     expect(screen.getByRole('option',{name:'Pseudonyme'})).toBeInTheDocument();
   });
+  it('2.6.3 — Live : une trace IMSI armée sans aucun message ne fait pas planter la page', async()=>{
+    class FakeEventSource { onmessage=null; onerror=null; addEventListener(){} close(){} constructor(){} }
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const previous=payloads['/live/traces'];
+    payloads['/live/traces']={trace_id:'trace-x',armed:true,expires_at:Math.floor(Date.now()/1000)+1800,subscriber_pseudonyms:['psn-test']};
+    open('live');
+    const input=screen.getByPlaceholderText('UE-…');
+    fireEvent.change(input,{target:{value:'001010000000201'}});
+    expect((screen.getByRole('combobox') as HTMLSelectElement).value).toBe('imsi');
+    fireEvent.click(screen.getByRole('button',{name:'Rechercher'}));
+    expect(await screen.findByText('UE Info')).toBeInTheDocument();
+    expect(screen.queryByText(/PDU #1 · 5QI 9/)).not.toBeInTheDocument();
+    payloads['/live/traces']=previous;
+  });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.6.2').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.6.2')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.6.3').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.6.3')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard sits under KPI and is gone from the top menu', async()=>{
     open('kpi');

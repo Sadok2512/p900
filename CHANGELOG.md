@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.6.3 — 2026-11-16 — Live : plus de plantage à l'armement d'une trace IMSI (patch)
+
+- Constat Sadok (« This page didn't load » au clic sur Rechercher, IMSI UE-201) : en mode réel, la trace est ARMÉE avant le premier event `ue_info` ; `UeInfo` lisait `ue.tech` / `ue.proof` sur `ue = null` → exception → page entière tombée. Garde `ue?.` + technologie par défaut 5G.
+- Le libellé figé « PDU #1 · 5QI 9 · QFI 1 · DNN internet » (ou « Bearer 5 · QCI 9 ») n'est plus affiché qu'en Démo : en réel, aucune valeur inventée.
+- Saisie de 14-15 chiffres (ou `imsi-…`) en mode Pseudonyme → bascule automatique sur « IMSI / SUPI ».
+- Test `Live : une trace IMSI armée sans aucun message ne fait pas planter la page` (échoue sans le correctif).
+
 ## 2.6.2 — 2026-11-16 — Ladder LTE : plus de plantage sur horodatage hors plage (patch)
 
 - Écart ANR2 (déploiement 2.18.9/2.6.1, présent depuis 2.6.0) : le ladder LTE plantait sur une date. `toMs` accepte désormais s / ms / µs / ns et renvoie `null` pour toute valeur hors de la plage de `Date` ; `SessionAnalysis` n'appelle plus `toISOString()` sur une date invalide (« — »).
