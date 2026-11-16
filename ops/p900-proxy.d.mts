@@ -13,3 +13,4 @@ export function basicAuthorized(headers: Record<string,string>, user?: string, p
 export function operatorOnlyPath(rawUrl?: string): boolean;
 export function proxyAccess(rawUrl?: string, method?: string, headers?: Record<string, string>, user?: string, password?: string | null, enabled?: boolean, openAccess?: boolean): {authenticated: boolean; status: number};
 export function forwardedHeaders(headers: Record<string, string>, target: ProxyTarget, method?: string, options?: {operatorAuthenticated?: boolean; tokenOverride?: string}): Record<string, string>;
+export function pipeEventStream(upstreamResponse: NodeJS.ReadableStream, response: NodeJS.WritableStream & { writableEnded?: boolean; destroyed?: boolean }): void;

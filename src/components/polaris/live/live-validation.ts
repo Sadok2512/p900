@@ -5,6 +5,41 @@
 // dans GitHub/logs).
 
 export const LIVE_BUFFER_MAX = 2000;
+export const LIVE_ACTIVE_WINDOW_MS = 30_000;
+
+export type LiveTraceUiState = 'ARRÊTÉE' | 'ARMÉE' | 'ACTIVE' | 'COUPÉE';
+
+// `status` et `ue_info` sont des événements de contrôle du flux. Ils peuvent
+// être publiés sans trafic et ne doivent donc jamais faire passer le badge à
+// ACTIVE. Les quatre autres types proviennent d'une observation de trafic.
+export function countsAsLiveTraffic(kind: string): boolean {
+  return kind === 'message' || kind === 'throughput' || kind === 'procedure' || kind === 'marker';
+}
+
+export interface LiveTraceStateInput {
+  jobStarted: boolean;
+  reconnecting: boolean;
+  lastEventAt: number | null;
+  now: number;
+}
+
+// L'état vient exclusivement du job et des événements effectivement reçus
+// par EventSource. Un heartbeat SSE est un commentaire et ne déclenche donc
+// jamais ACTIVE. COUPÉE a priorité afin qu'une reconnexion ne soit pas
+// silencieusement présentée comme ARMÉE.
+export function liveTraceUiState({
+  jobStarted,
+  reconnecting,
+  lastEventAt,
+  now,
+}: LiveTraceStateInput): LiveTraceUiState {
+  if (!jobStarted) return 'ARRÊTÉE';
+  if (reconnecting) return 'COUPÉE';
+  if (lastEventAt != null && now - lastEventAt <= LIVE_ACTIVE_WINDOW_MS) {
+    return 'ACTIVE';
+  }
+  return 'ARMÉE';
+}
 
 export type LiveKeyType =
   | 'pseudonym'

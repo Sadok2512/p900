@@ -1,14 +1,48 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   LIVE_BUFFER_MAX,
+  LIVE_ACTIVE_WINDOW_MS,
   OPEN_SESSION_CONTEXT_STORAGE_KEY,
   buildOpenSessionContext,
+  countsAsLiveTraffic,
   encodeSessionHashContext,
   findExistingTrace,
+  liveTraceUiState,
   persistOpenSessionContext,
   readOpenSessionContext,
   validateLiveIdentity,
 } from './live-validation';
+
+describe('live-validation — état de trace SSE', () => {
+  const now = 100_000;
+
+  it('ARRÊTÉE si aucun job Live n\'est démarré', () => {
+    expect(liveTraceUiState({ jobStarted: false, reconnecting: false, lastEventAt: now, now })).toBe('ARRÊTÉE');
+  });
+
+  it('ARMÉE sans événement reçu dans les 30 dernières secondes', () => {
+    expect(liveTraceUiState({ jobStarted: true, reconnecting: false, lastEventAt: null, now })).toBe('ARMÉE');
+    expect(liveTraceUiState({ jobStarted: true, reconnecting: false, lastEventAt: now - LIVE_ACTIVE_WINDOW_MS - 1, now })).toBe('ARMÉE');
+  });
+
+  it('ACTIVE dès qu\'un événement réel a été reçu depuis 30 secondes au plus', () => {
+    expect(liveTraceUiState({ jobStarted: true, reconnecting: false, lastEventAt: now - LIVE_ACTIVE_WINDOW_MS, now })).toBe('ACTIVE');
+  });
+
+  it('COUPÉE pendant la reconnexion, même si un événement est encore récent', () => {
+    expect(liveTraceUiState({ jobStarted: true, reconnecting: true, lastEventAt: now, now })).toBe('COUPÉE');
+  });
+});
+
+describe('live-validation — activité de trafic', () => {
+  it.each(['message', 'throughput', 'procedure', 'marker'])('%s déclenche ACTIVE', (kind) => {
+    expect(countsAsLiveTraffic(kind)).toBe(true);
+  });
+
+  it.each(['status', 'ue_info'])('%s reste un événement de contrôle', (kind) => {
+    expect(countsAsLiveTraffic(kind)).toBe(false);
+  });
+});
 
 describe('live-validation — validateLiveIdentity', () => {
   it('IMSI 15 chiffres valide → normalise sans préfixe', () => {
