@@ -15,7 +15,7 @@ import {
 const fingerprint = (s) => { let h = 5381; for (const c of s) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return 'sha256:' + h.toString(16).padStart(8,'0') + '…'; };
 
 const useStore = (key, init) => { const [v,setV] = useState(init); useEffect(()=>{ try{ const s=localStorage.getItem(key); if(s) setV(JSON.parse(s)); }catch{} },[key]); const set=(x)=>setV(p=>{ const n=typeof x==='function'?x(p):x; try{localStorage.setItem(key,JSON.stringify(n));}catch{} return n; }); return [v,set]; };
-const card = 'bg-white rounded-xl border border-border';
+const card = 'polaris-card';
 const Btn = ({ primary, on, children, className='', ...p }) => <button {...p} className={`h-8 px-3 rounded-md text-[12.5px] font-medium whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${primary?'bg-[var(--app-accent)] text-white hover:opacity-90':on?'bg-muted text-foreground border border-border':'border border-border bg-white text-foreground hover:bg-surface-2'} ${className}`}>{children}</button>;
 const Tag = ({ c='#666666', children }) => <span className="text-[11px] font-medium rounded px-1.5 py-[1px] border whitespace-nowrap" style={{ color:c, borderColor:c+'33', background:c+'0D' }}>{children}</span>;
 // 2.7.2 — le backend Live envoie `source` / `destination` sous forme
@@ -186,10 +186,11 @@ export default function LiveModule({ t, setPage }) {
 
   return (
     <div className="flex-1 overflow-auto scroll-thin bg-surface-2">
+      <div className="polaris-content-shell min-h-full px-8 pt-6 pb-8 flex flex-col gap-5">
       {/* Top zone */}
-      <div className="bg-white border-b border-border">
-        <div className="w-full px-6 py-4 flex flex-wrap items-center gap-3">
-          <div className="mr-2"><div className="text-[12px] text-muted-foreground">POLARIS Live</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Live Trace</h1></div>
+      <div className="polaris-card">
+        <div className="w-full px-6 py-5 flex flex-wrap items-center gap-3">
+          <div className="mr-2"><div className="text-[12px] text-muted-foreground">POLARIS Live</div><h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Live Trace</h1></div>
           <form onSubmit={find} className="flex items-center h-9 rounded-lg border border-border bg-white focus-within:border-[var(--app-accent)] overflow-hidden">
             <select value={ttype} onChange={e=>{setTtype(e.target.value);setQ('');}} className="h-full px-2 text-[12px] bg-surface-2 border-r border-border outline-none">
               <option value="pseudonym">{t('Pseudonyme')}</option><option value="imsi">IMSI / SUPI</option><option value="tmsi">TMSI / GUTI</option><option value="s_tmsi">S-TMSI</option><option value="m_tmsi">M-TMSI</option><option value="imei">IMEI</option><option value="msisdn">MSISDN</option>
@@ -214,7 +215,7 @@ export default function LiveModule({ t, setPage }) {
         </div>
       </div>
 
-      <div className="w-full px-6 py-4">
+      <div className="w-full">
         {full==='sig' ? sig : full==='thr' ? <Throughput t={t} data={thr} running={running} delay={delay} tracking={tracking} full onFull={()=>setFull(null)} ue={ue}/> :
         <div className="flex items-start">
           <div className="flex-1 min-w-0 space-y-0">
@@ -231,6 +232,7 @@ export default function LiveModule({ t, setPage }) {
                 {journal.length===0?<div className="px-4 py-3 text-[12px] text-subtle">{t('Aucune recherche dans cette session.')}</div>:journal.slice(0,6).map((j,i)=><div key={i} className="px-4 py-2 border-b border-border-subtle text-[11.5px] flex gap-2"><span className="font-mono text-subtle">{j.ts}</span><span>{t(j.a)}</span><span className="font-mono text-muted-foreground truncate">{j.c}</span><span className="ml-auto" style={{color:ST_C[j.r]}}>{t(j.r)}</span></div>)}</div>
             </div></> : <button onClick={()=>setRightOpen(true)} className={card+' ml-3 w-8 self-stretch text-[11px] text-muted-foreground [writing-mode:vertical-rl] py-3'}>UE Info</button>}
         </div>}
+      </div>
       </div>
     </div>
   );

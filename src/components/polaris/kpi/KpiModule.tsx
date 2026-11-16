@@ -30,7 +30,7 @@ const wCompat = (type, unit) => {
   return null;
 };
 /* ===== UI atoms ===== */
-const card = 'bg-white rounded-xl border border-border';
+const card = 'polaris-card';
 const Btn = ({ primary, children, className = '', ...p }) => <button {...p} className={`h-8 px-3 rounded-md text-[12.5px] font-medium disabled:opacity-40 disabled:cursor-not-allowed ${primary ? 'bg-[var(--app-accent)] text-white hover:opacity-90' : 'border border-border bg-white text-foreground hover:bg-surface-2'} ${className}`}>{children}</button>;
 const Field = ({ label, children }) => <label className="block"><span className="block text-[11px] font-semibold uppercase tracking-[0.06em] text-subtle mb-1.5">{label}</span>{children}</label>;
 const inp = 'w-full h-9 px-3 rounded-md border border-border bg-white text-[13px] outline-none focus:border-[var(--app-accent)]';
@@ -60,24 +60,24 @@ export default function KpiModule({ t, setPage, KPIS, mockSeries, MockChart, fmt
   useEffect(() => { if (!demo && tab !== 'catalog' && tab !== 'dash') setTab('catalog'); }, [demo, tab, setTab]);
   return (
     <div className="flex-1 overflow-auto scroll-thin bg-surface-2">
-      <div className="bg-white border-b border-border">
-        <div className="w-full px-6 pt-4">
+      <div className="polaris-content-shell min-h-full px-8 pt-6 pb-8 flex flex-col gap-5">
+      <header className="polaris-card px-6 pt-5">
           <div className="flex flex-wrap items-end gap-4">
-            <div><div className="text-[12px] text-muted-foreground">POLARIS KPI</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">{t('KPI & Anomalies')}</h1></div>
+            <div><div className="text-[12px] text-muted-foreground">POLARIS KPI</div><h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">{t('KPI & Anomalies')}</h1></div>
             <div className="ml-auto flex items-center gap-3 pb-1">
               <button onClick={() => setDemo(!demo)} className={`h-7 px-2.5 rounded-full text-[11.5px] font-medium border flex items-center gap-1.5 ${demo ? 'bg-warning-soft border-warning-line text-warning' : 'border-border text-muted-foreground'}`}><span className={`w-6 h-3.5 rounded-full relative ${demo ? 'bg-warning' : 'bg-track'}`}><span className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all ${demo ? 'left-[12px]' : 'left-[2px]'}`} /></span>{t('Démo')}</button>
             </div>
           </div>
-          <div className="flex gap-6 mt-3">{TABS.map(([k, n]) => <button key={k} onClick={() => { setTab(k); setOpenDash(null); }} className={`h-9 text-[13px] border-b-2 ${tab === k ? 'border-[var(--app-accent)] font-semibold text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>{t(n)}</button>)}</div>
-        </div>
-      </div>
-      {!demo && (metrics.isError || safety.isError) && <div className="w-full px-6 pt-3"><div className="text-[12px] text-subtle flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-track" />{t('POLARIS non connecté : aucune donnée en direct.')} {t('Activez « Démo » pour un aperçu.')}</div></div>}
-      <div className="w-full px-6 py-4">
+          <div className="flex gap-6 mt-3">{TABS.map(([k, n]) => <button key={k} onClick={() => { setTab(k); setOpenDash(null); }} className={`h-10 text-[13.5px] border-b-2 ${tab === k ? 'border-[var(--app-accent)] font-semibold text-foreground' : 'border-transparent text-muted-foreground hover:text-foreground'}`}>{t(n)}</button>)}</div>
+      </header>
+      {!demo && (metrics.isError || safety.isError) && <div className="text-[12.5px] text-subtle flex items-center gap-2"><span className="w-[7px] h-[7px] rounded-full bg-track" />{t('POLARIS non connecté : aucune donnée en direct.')} {t('Activez « Démo » pour un aperçu.')}</div>}
+      <div>
         {tab === 'catalog' && <Catalog {...ctx} />}
         {!demo && tab!=='catalog' && tab!=='dash' && <Empty title={t('Non disponible : backend à venir')} sub={t('Source POLARIS indisponible pour cette fonction.')} />}
         {demo && tab === 'builder' && <Builder key={(editKpi?.id || 'new') + bk} {...ctx} initial={editKpi} onNew={() => { setEditKpi(null); setBk(b => b + 1); }} />}
         {tab === 'dash' && DashboardView}
         {demo && tab === 'anom' && <Anomalies {...ctx} />}
+      </div>
       </div>
     </div>
   );

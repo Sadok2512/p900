@@ -705,8 +705,8 @@ const Dot = ({st}) => <span className={`w-[8px] h-[8px] rounded-full ${st==='ok'
 const Bar = ({v,warn=70,crit=85}) => <div className="flex items-center gap-2"><div className="w-16 h-1.5 rounded-full bg-muted overflow-hidden"><div className={`h-full ${v>=crit?'bg-danger':v>=warn?'bg-warning':'bg-[var(--app-accent)]'}`} style={{width:`${v}%`}}/></div><span className="tabular-nums text-[12px] text-ink-2 w-9">{v} %</span></div>;
 const fmtBytes = v => typeof v!=='number'?'—':v>=1024**3?`${(v/1024**3).toFixed(2)} GiB`:v>=1024**2?`${(v/1024**2).toFixed(1)} MiB`:v>=1024?`${(v/1024).toFixed(1)} KiB`:`${v} B`;
 const Card = ({title,action,children,className=''}) => (
-  <section className={`bg-white rounded-lg border border-border ${className}`}>
-    <div className="h-11 px-4 flex items-center border-b border-border-subtle"><h3 className="text-[13px] font-semibold text-foreground">{title}</h3>{action && <span className="ml-auto text-[12px] text-foreground font-medium cursor-pointer">{action}</span>}</div>
+  <section className={`polaris-card ${className}`}>
+    <div className="h-12 px-5 flex items-center border-b border-border-subtle"><h3 className="text-[15px] font-semibold text-foreground">{title}</h3>{action && <span className="ml-auto text-[12px] text-foreground font-medium cursor-pointer">{action}</span>}</div>
     {children}
   </section>
 );
@@ -755,7 +755,7 @@ function Home({setPage,onNew,hidden=[]}) {
   const fails = m?.ingestion_failures;
   const keyTiles = [['capture','Capture','État de capture',capRaw],['ingested','Segments ingérés','Importés',m?.segments_ingested],['failures','Échecs ingestion','Import',fails],['disk','Disque disponible','Stockage',safety.data?.data?.free_percent]];
   const detail = status.filter(([k])=>!keyTiles.some(x=>x[0]===k));
-  const card = "rounded-xl border border-border bg-white shadow-[0_1px_2px_rgba(15,23,42,0.04),0_4px_16px_-8px_rgba(15,23,42,0.08)]";
+  const card = "polaris-card";
   const sectionHead = (title, action) => <div className="h-12 px-5 flex items-center border-b border-border-subtle"><h2 className="text-[15px] font-semibold text-foreground">{t(title)}</h2><div className="ml-auto">{action}</div></div>;
   const fmtTile = (k,raw) => raw==null ? '—' : k==='disk' && typeof raw==='number' ? `${raw.toFixed(1)} %` : typeof raw==='number' ? raw.toLocaleString(LANG==='en'?'en-US':'fr-FR') : String(raw);
   return (
@@ -1012,11 +1012,11 @@ function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
   const empty = saved.length===0 ? 'Aucune requête enregistrée.' : q ? `Aucune requête ne correspond à « ${q} ».` : flt==='Favoris' ? 'Aucune requête en favori.' : flt==='Partagées' ? 'Aucune requête partagée.' : 'Aucune requête.';
   const focus = 'outline-none focus-visible:ring-2 focus-visible:ring-[var(--app-accent)] focus-visible:ring-offset-1';
   return (
-    <div className="flex-1 overflow-auto scroll-thin">
-      <div className="w-full px-8 py-6 space-y-5">
-        <header className="rounded-xl border border-border bg-white px-6 py-5 flex flex-wrap items-center gap-x-6 gap-y-3">
-          <div className="min-w-0"><div className="text-[12px] font-medium text-muted-foreground">POLARIS Analyzer</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-0.5">Requêtes</h1>
-            <div className="text-[13px] text-muted-foreground mt-1">Consulte et lance tes requêtes. La création s’ouvre dans un nouvel onglet.</div></div>
+    <div className="flex-1 overflow-auto scroll-thin bg-surface-2">
+      <div className="polaris-content-shell px-8 py-6 space-y-5">
+        <header className="polaris-card px-6 py-5 flex flex-wrap items-center gap-x-6 gap-y-3">
+          <div className="min-w-0"><div className="text-[12px] font-medium text-muted-foreground">POLARIS Analyzer</div><h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-0.5">Requêtes</h1>
+            <div className="text-[14px] text-muted-foreground mt-1">Consulte et lance tes requêtes. La création s’ouvre dans un nouvel onglet.</div></div>
           <div className="ml-auto flex items-center gap-2">
             {onDisplayAll && <button onClick={onDisplayAll} disabled={displayingAll} className={`h-9 px-4 rounded-lg border border-border bg-white text-foreground text-[13px] font-medium hover:border-[var(--app-accent)] disabled:opacity-50 ${focus}`}>{t("Afficher toutes les sessions")}</button>}
             <button onClick={()=>onNew()} className={`h-9 px-4 rounded-lg bg-[var(--app-accent)] text-white text-[13px] font-semibold flex items-center gap-2 hover:opacity-90 ${focus}`}><I d={ic.plus} c="w-4 h-4"/>Nouvelle requête</button>
@@ -1038,7 +1038,7 @@ function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
             ))}
           </div>
         </section>
-        <section className="bg-white rounded-xl border border-border overflow-hidden">
+        <section className="polaris-card overflow-hidden">
           <div className="px-5 h-12 flex items-center gap-3 border-b border-border"><h2 className="text-[15px] font-semibold text-foreground">Requêtes enregistrées</h2><span className="text-[12.5px] text-muted-foreground">Rouvrir une requête existante</span><span className="ml-auto text-[12px] font-medium text-muted-foreground tabular-nums">{list.length} requête{list.length>1?'s':''}</span></div>
           <div className="overflow-x-auto scroll-thin">
           <table className="w-full text-[13px]">
@@ -1070,7 +1070,7 @@ function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
 function QSec({n,title,sub,children}) {
   const [open,setOpen] = useState(true);
   return (
-    <section className="bg-white rounded-lg border border-border">
+    <section className="polaris-card">
       <button onClick={()=>setOpen(!open)} className="w-full px-5 h-11 flex items-center gap-3 text-left">
         <span className="w-5 h-5 rounded-full bg-muted text-[11px] font-semibold grid place-items-center text-ink-2">{n}</span>
         <span className="text-[13px] font-semibold">{title}</span><span className="text-[11.5px] text-subtle">{sub}</span>
@@ -1100,8 +1100,8 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,sessionRows=[]}) {
     setErr(''); run();
   };
   return (
-    <div className="flex-1 overflow-auto scroll-thin">
-      <div className="w-full px-8 py-6 space-y-3">
+    <div className="flex-1 overflow-auto scroll-thin bg-surface-2">
+      <div className="polaris-content-shell px-8 py-6 space-y-3">
         <div className="flex items-end gap-4 pb-1">
           <div><div className="text-[12px] text-muted-foreground">POLARIS Analyzer · Requête</div>
             <input value={draft.name} onChange={e=>up({name:e.target.value})} placeholder="Nouvelle requête" className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1 bg-transparent outline-none w-[520px] placeholder:text-foreground"/></div>
@@ -1131,7 +1131,7 @@ function QueryEditor({draft,setDraft,dirty,run,save,cancel,sessionRows=[]}) {
           </div>
         </QSec>
         {demo && <QSec n={4} title="Regrouper par" sub="facultatif"><div className="flex flex-wrap gap-2">{GROUPS.map(g=><button key={g} onClick={()=>up({group:g})} className={`h-8 px-3 rounded-md border text-[12.5px] ${draft.group===g?'border-[var(--app-accent)] text-foreground ring-1 ring-[var(--app-accent)]':'border-border text-muted-foreground hover:border-border-strong'}`}>{g}</button>)}</div></QSec>}
-        <section className="bg-white rounded-lg border border-border px-5 h-14 flex items-center gap-2">
+        <section className="polaris-card px-5 h-14 flex items-center gap-2">
           <span className="w-5 h-5 rounded-full bg-muted text-[11px] font-semibold grid place-items-center text-ink-2">5</span><span className="text-[13px] font-semibold mr-3">Actions</span>
           {err && <span className="text-[12px] text-danger">{err}</span>}
           <button onClick={cancel} className="ml-auto h-9 px-3 rounded-md border border-border bg-white text-[12.5px] text-ink-2 hover:bg-muted">Annuler</button>
@@ -1213,7 +1213,7 @@ function Settings({theme,setTheme,lang,setLang,onClose}) {
 function Traffic({setPage}){
   const { TR_CATS, TR_APPS, TR_CELLS, TR_V, TR_FLOWS, seedRand } = useTrafficDemo();
   const [sel,setSel]=useState(0); const [by,setBy]=useState('cat');
-  const f=TR_FLOWS[sel]; const card="bg-white rounded-xl border border-border overflow-hidden";
+  const f=TR_FLOWS[sel]; const card="polaris-card overflow-hidden";
   const head=(n,x)=><div className="h-11 px-4 flex items-center gap-2 border-b border-border-subtle"><h3 className="text-[13px] font-semibold text-foreground">{t(n)}</h3>{x}</div>;
   const r=seedRand('flow'+sel); const W=600; const pts=k=>Array.from({length:40},()=>r()*k);
   const line=(d,mx)=>d.map((v,i)=>`${i?'L':'M'}${(i*W/39).toFixed(1)},${(70-v/mx*62).toFixed(1)}`).join(' ');
@@ -1223,11 +1223,11 @@ function Traffic({setPage}){
     <div className="flex-1 overflow-auto scroll-thin bg-surface-2">
       <div className="polaris-content-shell px-8 py-7 space-y-5">
         <div className="flex flex-wrap items-end gap-6">
-          <div><div className="text-[12px] text-muted-foreground">POLARIS Traffic</div><h1 className="text-[24px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Traffic</h1><div className="text-[13px] text-muted-foreground mt-1">{t("Débit, santé TCP, applications, congestion")}</div></div>
+          <div><div className="text-[12px] text-muted-foreground">POLARIS Traffic</div><h1 className="text-[28px] font-semibold tracking-[-0.02em] leading-[1.15] text-foreground mt-1">Traffic</h1><div className="text-[14px] text-muted-foreground mt-1">{t("Débit, santé TCP, applications, congestion")}</div></div>
           <div className="ml-auto flex items-center gap-3"><span className="text-[11px] font-medium text-warning bg-warning-soft border border-warning-line rounded px-1.5 py-[1px]">{t("Données de démo")}</span><span className="text-[12px] text-subtle">{t("Aucune charge utile, aucune URL complète stockée.")}</span></div>
         </div>
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-          {[['Volume','412 Go'],['Débit DL','1,84 Gb/s'],['Flux actifs','18 240'],['Établissement TCP','98,6 %'],['RTT médian','31 ms'],['Flux congestionnés','6,2 %']].map(([n,v])=><div key={n} className="bg-white rounded-xl border border-border px-4 py-3"><div className="text-[12px] text-subtle">{t(n)}</div><div className="text-[20px] font-semibold tabular-nums text-foreground mt-0.5">{v}</div></div>)}
+          {[['Volume','412 Go'],['Débit DL','1,84 Gb/s'],['Flux actifs','18 240'],['Établissement TCP','98,6 %'],['RTT médian','31 ms'],['Flux congestionnés','6,2 %']].map(([n,v])=><div key={n} className="polaris-card px-4 py-3"><div className="text-[12px] text-subtle">{t(n)}</div><div className="text-[20px] font-semibold tabular-nums text-foreground mt-0.5">{v}</div></div>)}
         </div>
         <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-4">
           <div className={card}>
@@ -1433,7 +1433,7 @@ function App() {
             <div onMouseDown={e=>drag(e,'h')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group h-2 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[2px] w-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
           </>}
           <div ref={lowRef} className="flex-1 min-h-0 flex">
-            <div className="flex-1 min-w-[280px] flex flex-col">{selected ? <Detail s={selected} sel={msg} setSel={setMsg} lens={lens} ui={ui} onOpenSession={id=>setSel(id)}/> : <div className="p-8 text-muted-foreground bg-white rounded-xl border border-border flex-1">{sessionsQuery.isError ? sessionsQuery.error.message : sessionsQuery.isPending ? "Connexion POLARIS…" : "Aucune session"}</div>}</div>
+            <div className="flex-1 min-w-[280px] flex flex-col">{selected ? <Detail s={selected} sel={msg} setSel={setMsg} lens={lens} ui={ui} onOpenSession={id=>setSel(id)}/> : <div className="p-8 text-muted-foreground polaris-card flex-1">{sessionsQuery.isError ? sessionsQuery.error.message : sessionsQuery.isPending ? "Connexion POLARIS…" : "Aucune session"}</div>}</div>
           </div>
         </main>
         {selected && !full && (geoHidden ? null : <>{!geoMax && <div onMouseDown={e=>drag(e,'geo')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group w-2 shrink-0 cursor-col-resize relative"><div className="absolute top-1/2 -translate-y-1/2 left-[3px] w-[2px] h-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:h-full transition-all"/></div>}<aside style={geoMax?undefined:{width:`${geoPct}%`}} aria-label="Geolocating" className={`${geoMax?'flex-1':'shrink-0'} bg-white flex flex-col min-w-0 rounded-xl border border-border overflow-hidden`}><GeoPanel s={selected} msg={msg} setMsg={k=>setMsg(Math.max(0,k))} onHide={()=>{setGeoHidden(true); setGeoMax(false);}} max={geoMax} setMax={setGeoMax}/></aside></>)}

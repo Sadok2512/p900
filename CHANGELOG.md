@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.8.1 — 2026-11-16 — Design Accueil étendu à toute l'application (patch)
+
+- Nouvelle classe partagée `.polaris-card` (fond blanc, bordure fine, ombre douce) appliquée aux cartes de KPI, Live, Administration, Requêtes, Traffic et aux fiches sonde.
+- En-têtes de page harmonisés sur le style Accueil : titre 28 px, carte d'en-tête avec ombre, onglets et compteurs intégrés (KPI, Live, Administration, Requêtes, Traffic).
+- Fond de page `surface-2` et largeur de contenu `polaris-content-shell` alignés partout ; l'onglet Administration actif suit la couleur d'accent choisie.
+
 ## 2.8.0 — 2026-11-16 — Explorateur et requêtes protocolaires (minor)
 
 - Branche l’assistant « Requête de sessions » sur le contrat réel oiran-api 2.19.1 : `GET /sessions/catalog`, recherche et fiche de paramètre, arbre `protocol_tree` et éléments réseau observés.
