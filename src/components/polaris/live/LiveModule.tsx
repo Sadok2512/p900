@@ -18,6 +18,14 @@ const useStore = (key, init) => { const [v,setV] = useState(init); useEffect(()=
 const card = 'bg-white rounded-xl border border-border';
 const Btn = ({ primary, on, children, className='', ...p }) => <button {...p} className={`h-8 px-3 rounded-md text-[12.5px] font-medium whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed ${primary?'bg-[var(--app-accent)] text-white hover:opacity-90':on?'bg-muted text-foreground border border-border':'border border-border bg-white text-foreground hover:bg-surface-2'} ${className}`}>{children}</button>;
 const Tag = ({ c='#666666', children }) => <span className="text-[11px] font-medium rounded px-1.5 py-[1px] border whitespace-nowrap" style={{ color:c, borderColor:c+'33', background:c+'0D' }}>{children}</span>;
+// 2.7.2 — le backend Live envoie `source` / `destination` sous forme
+// d'objet endpoint {address, network_function, port} : affiché tel quel,
+// React plantait (« Objects are not valid as a React child »).
+export const endpointLabel = (endpoint) => {
+  if (endpoint == null) return '—';
+  if (typeof endpoint !== 'object') return String(endpoint);
+  return endpoint.network_function || endpoint.address || '—';
+};
 const RES_C = (r) => r==='Échec'?'#B42318':r==='Succès'||r==='Accepted'||/^2\d\d/.test(r)?'#15803D':'#8F8F8F';
 const fmtRate = (v) => v>=1000?(v/1000).toFixed(2)+' Gb/s':v>=1?v.toFixed(1)+' Mb/s':(v*1000).toFixed(0)+' kb/s';
 
@@ -85,7 +93,7 @@ export default function LiveModule({ t, setPage }) {
     const receive=(kind)=>(event)=>{
       if(event?.lastEventId){ lastEventId.current=event.lastEventId; }
       let data;try{data=JSON.parse(event.data)}catch{return}
-      if(kind==='message'){const m={cap:data.capture_id,seq:data.packet_number,eventId:data.event_id,ts:new Date().toLocaleTimeString('fr-FR'),rel:'—',ifc:data.interface,proto:data.protocol,from:data.source,to:data.destination,name:data.message_name,proc:data.procedure||data.message_name,res:data.result||'En cours',cause:data.cause||'',kind:data.phase||'message',corr:'LIVE',decoded:data.decoded_ie_tree};if(runningRef.current)setMsgs(x=>[...x,m].slice(-LIVE_BUFFER_MAX));else setBuf(x=>[...x,{m}].slice(-LIVE_BUFFER_MAX));} else if(kind==='throughput'){const p={ts:Date.now(),dl:Number(data.dl_bytes_s||0)*8/1e6,ul:Number(data.ul_bytes_s||0)*8/1e6};if(runningRef.current)setThr(x=>[...x,p].filter(z=>Date.now()-z.ts<1800000));else setBuf(x=>[...x,{p}].slice(-LIVE_BUFFER_MAX));}else if(kind==='ue_info'){setRealUe({tech:data.technology||'5G',info:data});}else if(kind==='status'){setTtl(Math.max(0,Number(data.expires_at||0)-Math.floor(Date.now()/1000)));}};
+      if(kind==='message'){const m={cap:data.capture_id,seq:data.packet_number,eventId:data.event_id,ts:new Date().toLocaleTimeString('fr-FR'),rel:'—',ifc:data.interface,proto:data.protocol,from:endpointLabel(data.source),to:endpointLabel(data.destination),name:data.message_name,proc:data.procedure||data.message_name,res:data.result||'En cours',cause:data.cause||'',kind:data.phase||'message',corr:'LIVE',decoded:data.decoded_ie_tree};if(runningRef.current)setMsgs(x=>[...x,m].slice(-LIVE_BUFFER_MAX));else setBuf(x=>[...x,{m}].slice(-LIVE_BUFFER_MAX));} else if(kind==='throughput'){const p={ts:Date.now(),dl:Number(data.dl_bytes_s||0)*8/1e6,ul:Number(data.ul_bytes_s||0)*8/1e6};if(runningRef.current)setThr(x=>[...x,p].filter(z=>Date.now()-z.ts<1800000));else setBuf(x=>[...x,{p}].slice(-LIVE_BUFFER_MAX));}else if(kind==='ue_info'){setRealUe({tech:data.technology||'5G',info:data});}else if(kind==='status'){setTtl(Math.max(0,Number(data.expires_at||0)-Math.floor(Date.now()/1000)));}};
     ['message','throughput','ue_info','procedure','marker','status'].forEach(k=>source.addEventListener(k,receive(k))); source.onerror=()=>setRes(r=>({...r,st:'Déconnecté',err:'Flux SSE interrompu'})); return()=>source.close(); },[traceId,demo]);
 
   // 2.5.0 (ANR1 #10 Live-IMSI) — corrélation IMSI → sessions.
@@ -162,7 +170,7 @@ export default function LiveModule({ t, setPage }) {
       <Btn onClick={()=>setFull(full==='sig'?null:'sig')}>{full==='sig'?t('Quitter'):'⤢'}</Btn>
     </div>
     <div ref={sigBox} onScroll={onSigScroll} className="overflow-auto scroll-thin flex-1" style={full==='sig'?{}:{height:ladH}}>
-      {!tracking ? <Empty t={t} demo={demo} res={res}/> : mode==='ladder' ? <Ladder t={t} msgs={shown} nodes={NODES[tech]} sel={sel} setSel={setSel} marks={marks} atEnd={atEnd}/> :
+      {!tracking ? <Empty t={t} demo={demo} res={res}/> : mode==='ladder' ? <Ladder t={t} msgs={shown} nodes={NODES[tech]} colors={IFC_C} sel={sel} setSel={setSel} marks={marks} atEnd={atEnd}/> :
         <table className="w-full text-[12px]"><thead className="sticky top-0 bg-white"><tr className="text-left text-[11px] text-subtle">{['Capture','Seq','t (s)','Interface','Protocole','Message','Source','Destination','Procédure','Résultat','Cause',''].map(h=><th key={h} className="px-2.5 py-2 font-medium border-b border-border-subtle whitespace-nowrap">{t(h)}</th>)}</tr></thead>
           <tbody>{shown.map(m=><tr key={m.seq} onClick={()=>setSel(m.seq)} className={`cursor-pointer whitespace-nowrap ${sel===m.seq?'bg-surface-2 shadow-[inset_2px_0_0_var(--app-accent)]':'hover:bg-surface-2'} ${marks.includes(m.seq)?'bg-warning-soft':''}`}>
             <td className="px-2.5 py-1.5 font-mono text-subtle">{m.cap}</td><td className="px-2.5 font-mono">{m.seq}</td><td className="px-2.5 font-mono text-subtle">{m.rel}</td><td className="px-2.5"><span className="font-medium" style={{color:IFC_C[m.ifc]}}>{m.ifc}</span></td><td className="px-2.5 text-muted-foreground">{m.proto}</td><td className="px-2.5 text-foreground">{m.name}</td><td className="px-2.5">{m.from}</td><td className="px-2.5">{m.to}</td><td className="px-2.5 text-muted-foreground">{m.proc}</td><td className="px-2.5" style={{color:RES_C(m.res)}}>{m.res}</td><td className="px-2.5 text-danger">{m.cause}</td>
@@ -235,7 +243,10 @@ function Empty({ t, demo, res }) {
     <div className="mt-1 text-[12.5px] text-muted-foreground">{!demo?t('Aucune donnée simulée n’est affichée. Activez « Démo » pour un aperçu.'):t('Exemples : ue-7f3a (5G, EXACT) · ue-21c0 (LTE, OUVERT) · cellule 0A1F · run 482')}</div></div></div>;
 }
 
-function Ladder({ t, msgs, nodes, sel, setSel, marks, atEnd }) {
+// 2.7.2 (ANR2 #10, recette UE-201) — IFC_C n'était défini que dans le
+// composant parent : au premier message réel, `IFC_C is not defined` faisait
+// tomber toute la page Live. Les couleurs sont passées en prop.
+function Ladder({ t, msgs, nodes, colors = {}, sel, setSel, marks, atEnd }) {
   const W = 900, col = W / nodes.length, cx = (n) => col * nodes.indexOf(n) + col / 2, RH = 34;
   const box = useRef(null);
   useEffect(() => { const b = box.current?.parentElement; if (b && atEnd.current) b.scrollTop = b.scrollHeight; }, [msgs.length]);
@@ -243,7 +254,7 @@ function Ladder({ t, msgs, nodes, sel, setSel, marks, atEnd }) {
     <div className="sticky top-0 z-10 bg-white grid border-b border-border-subtle" style={{ gridTemplateColumns: `repeat(${nodes.length},1fr)` }}>{nodes.map(n => <div key={n} className="text-center text-[11.5px] font-semibold text-ink-2 py-2">{n}</div>)}</div>
     <svg viewBox={`0 0 ${W} ${msgs.length * RH + 12}`} className="w-full block" style={{ height: msgs.length * RH + 12 }} preserveAspectRatio="none">
       {nodes.map(n => <line key={n} x1={cx(n)} x2={cx(n)} y1={0} y2={msgs.length * RH + 12} stroke="#EFEFEF" />)}
-      {msgs.map((m, i) => { const y = i * RH + 22, a = cx(m.from), b = cx(m.to), c = IFC_C[m.ifc] || '#666', on = sel === m.seq, fail = m.res === 'Échec';
+      {msgs.map((m, i) => { const y = i * RH + 22, a = cx(m.from), b = cx(m.to), c = colors[m.ifc] || '#666', on = sel === m.seq, fail = m.res === 'Échec';
         return <g key={m.seq} onClick={() => setSel(m.seq)} className="cursor-pointer">
           <rect x={0} y={y - 20} width={W} height={RH} fill={on ? '#F5F5F5' : marks.includes(m.seq) ? '#FFFBEB' : 'transparent'} />
           <line x1={a} x2={b} y1={y} y2={y} stroke={c} strokeWidth={on ? 2.4 : 1.5} strokeDasharray={m.proto.includes('NAS') && !m.proto.startsWith('NAS') ? '' : ''} />

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.7.2 — 2026-11-16 — Live : plus de plantage au premier message réel (patch)
+
+- Recette ANR2 (#10, run UE-201 simple-data-ul-dl-0b2696238220 : 61 messages reçus côté backend) : la page Live plantait avec `ReferenceError: IFC_C is not defined` — le ladder Live utilisait la palette d'interfaces du composant parent, hors de portée (`// @ts-nocheck` masquait l'erreur). Palette passée en prop.
+- `source` / `destination` du flux SSE sont des objets endpoint `{address, network_function}` : affichés tels quels ils auraient fait planter React. Libellé = fonction réseau, sinon adresse (`endpointLabel`).
+- Test `Live : un message réel (endpoints objets) s'affiche sans planter` (échoue sans le correctif avec l'erreur exacte d'ANR2).
+
 ## 2.7.1 — 2026-11-16 — Fidélité de l’étape Critères
 
 - Aligne l’étape Critères sur la maquette fournie : C1/C2, onglets Message/Paramètre, ajout et suppression, recherche globale, sélecteur de message, arbre filtrable, commandes déplier/replier, résumé des critères et liaison ET/OU.
