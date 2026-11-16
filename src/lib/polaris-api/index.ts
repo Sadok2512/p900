@@ -3,6 +3,7 @@ export * from './client';
 export * from './types';
 export * from './adapters';
 export * from './hooks';
+export * from './query-contract';
 export * from './live-status';
 export * from './identities';
 export const UI_VERSION = packageInfo.version;

@@ -8,6 +8,7 @@ import { SYS_DASH, ANOMS } from './demo/kpi';
 import { DIR, S5G, SLTE, NODES, IFC_C } from './demo/live';
 import { records, toLegacyCallflow, filterBody, querySupport, type Draft } from './adapters';
 import type { Health, Version, Metrics, Safety, Session, Event, Probe, RecordData, QueryParams, Envelope, Correlation, SessionIdentities } from './types';
+import { fetchQueryCatalog, fetchSessionColumns, type SessionColumnsRequest } from './query-contract';
 const Mode = createContext({ demo: false, setDemo: (_value: boolean) => {} });
 export function PolarisDataProvider({ children }: { children: ReactNode }) { const [demo, setDemo] = useState(false); return <Mode.Provider value={{ demo, setDemo }}>{children}</Mode.Provider>; }
 export const usePolarisMode = () => useContext(Mode);
@@ -25,6 +26,20 @@ export function useResource<T>(path: string, params: QueryParams = {}, enabled =
 export const BACKGROUND_POLL_MS = 15_000;
 export const useHealth = () => useQuery({ ...resourceOptions<Health>('/health', {}, false, { timeoutMs: 8_000 }), refetchInterval: BACKGROUND_POLL_MS, refetchIntervalInBackground: false });
 export const useVersion = () => useQuery({ ...resourceOptions<Version>('/version', {}, false), refetchInterval: 60_000, refetchIntervalInBackground: false });
+export const useQueryCatalog = (enabled = false) => useQuery({
+  queryKey: ['polaris', 'api', '/query/catalog'],
+  queryFn: ({ signal }) => fetchQueryCatalog(signal),
+  enabled,
+  retry: false,
+  refetchOnWindowFocus: false,
+  staleTime: 60_000,
+});
+export const useSessionColumns = (enabled = false) => useMutation({
+  mutationFn: (body: SessionColumnsRequest) => {
+    if (!enabled) throw new PolarisApiError('UNAVAILABLE', 'Colonnes de protocole disponibles avec oiran-api 2.19.0', 0);
+    return fetchSessionColumns(body);
+  },
+});
 export const useMetrics = () => useResource<Metrics>('/metrics');
 export const useLiveMetrics = () => useQuery({ ...resourceOptions<Metrics>('/metrics', {}, false), refetchInterval: BACKGROUND_POLL_MS, refetchIntervalInBackground: false });
 export const useStorageSafety = () => useQuery({ ...resourceOptions<Safety>('/storage/safety', {}, false), refetchInterval: 30_000, refetchIntervalInBackground: false });
