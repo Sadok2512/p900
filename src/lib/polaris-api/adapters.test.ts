@@ -37,7 +37,8 @@ describe('POLARIS data rules', () => {
     expect(d.msgs.map(m => m[1])).toEqual(['second capture', 'first timestamp but second API row']);
     expect(d.evidence.map(e=>e.event_id)).toEqual(['b','a']);
     expect(d.evidence.map(e=>e.packet_number)).toEqual([22,11]);
-    expect(d.nodes).toEqual(['MME','eNB']);
+    // 2.6.1 : les EVENTS ne sont jamais réordonnés ; seules les colonnes suivent l'ordre réseau.
+    expect(d.nodes).toEqual(['eNB','MME']);
   });
   it('keys repeated procedure groups by their first event id', () => {
     const d = toLegacyCallflow([
@@ -96,7 +97,8 @@ describe('POLARIS data rules', () => {
       ],
       nodes: ['AMF','gNB','AUSF/UDM'],
     }, {}, {});
-    expect(d.nodes).toEqual(['AMF','gNB','AUSF/UDM']);
+    // 2.6.1 : l'ensemble explicite du backend est respecté, rangé dans l'ordre réseau.
+    expect(d.nodes).toEqual(['gNB','AMF','AUSF/UDM']);
   });
   it('lists every observed version component and package UI version', () => {
     const rows = versionComponents({backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{diameter:'0.2.6',gtpu:'0.2.1'}},'0.9.1');
@@ -117,5 +119,21 @@ describe('POLARIS data rules', () => {
     expect(querySupport({conds:[],tpl:'Capture'},false)).not.toBeNull();
     expect(querySupport({conds:[['Interface','N4','=']]},false)).toBeNull();
     expect(filterBody({conds:[['Interface','N4'],['UE','ue-7f3a']]})).toEqual({interface:'N4',pseudonym:'ue-7f3a'});
+  });
+});
+
+describe('2.6.1 ordre canonique du ladder', () => {
+  it('place UE, gNB, AMF, SMF, UPF dans cet ordre quel que soit l’ordre d’apparition', async () => {
+    const { orderLadderNodes } = await import('./adapters');
+    expect(orderLadderNodes(['SMF', 'UPF', 'gNB', 'AMF'])).toEqual(['gNB', 'AMF', 'SMF', 'UPF']);
+    expect(orderLadderNodes(['UDM', 'UPF', 'UE', 'AMF', 'gNB', 'SMF'])).toEqual(['UE', 'gNB', 'AMF', 'SMF', 'UPF', 'UDM']);
+  });
+  it('LTE : UE, eNB, MME, SGW-C, PGW-C, SGW-U, PGW-U', async () => {
+    const { orderLadderNodes } = await import('./adapters');
+    expect(orderLadderNodes(['PGW-U', 'MME', 'SGW-C', 'eNB', 'PGW-C', 'SGW-U', 'UE'])).toEqual(['UE', 'eNB', 'MME', 'SGW-C', 'PGW-C', 'SGW-U', 'PGW-U']);
+  });
+  it('un nœud inconnu reste après les connus, dans son ordre d’apparition', async () => {
+    const { orderLadderNodes } = await import('./adapters');
+    expect(orderLadderNodes(['X1', 'AMF', 'X2', 'gNB'])).toEqual(['gNB', 'AMF', 'X1', 'X2']);
   });
 });

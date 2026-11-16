@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.6.1 — 2026-11-16 — Ladder : colonnes dans l'ordre réseau (patch)
+
+- Constat Sadok : le ladder d'une session commençant par du PFCP affichait les colonnes SMF, UPF, gNB, AMF (ordre de première apparition).
+- `orderLadderNodes` : ordre canonique UE → gNB/eNB → AMF/MME → SMF/SGW-C/PGW-C → UPF/SGW-U/PGW-U → AUSF/UDM/UDR/PCF/NRF/NSSF/BSF/HSS/PCRF → P/I/S-CSCF → DN ; un nœud inconnu garde son ordre d'apparition, après les connus.
+- 3 tests (5G, LTE, nœud inconnu).
+
 ## 2.6.0 — 2026-11-15 — Vue « Chaîne E2E 5G » + mapping statuts complet (ANR1 #10 E2E-5G)
 
 Lot 2 de la feuille de route « Trace E2E 5G » (audit #10 6896790347, feu vert #10 6896869321, livre oiran-api 2.17.0 côté back). Expose la chaîne de corrélation complète N2 → SBI → N4 → N3 (+ IMS → RTP si observé) en lecture directe du `correlation_status` produit par oiran-api 2.17.0. Hors périmètre : ni l'onglet Ladder ni les helpers identités partagés ne sont modifiés.

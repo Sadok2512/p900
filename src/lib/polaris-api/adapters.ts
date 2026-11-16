@@ -22,7 +22,7 @@ export function toLegacyCallflow(value: unknown, procedures: unknown, correlatio
   const explicitNodes = Array.isArray(body['nodes']) && body['nodes'].length
     ? body['nodes'].map(n => typeof n === 'string' ? n : str((n as RecordData)['name']))
     : null;
-  const nodes = explicitNodes ?? [...new Set(events.flatMap(e => [str(e.source_participant), str(e.destination_participant)]).filter(n => n !== '—'))];
+  const nodes = orderLadderNodes(explicitNodes ?? [...new Set(events.flatMap(e => [str(e.source_participant), str(e.destination_participant)]).filter(n => n !== '—'))]);
   const edgeBody = correlations && typeof correlations === 'object' && !Array.isArray(correlations) ? correlations as RecordData : {};
   const edges = Array.isArray(correlations) ? records<Correlation>(correlations) : records<Correlation>(edgeBody['edges'] ?? edgeBody['correlations']);
   const links = edges.map(c => {
@@ -146,4 +146,52 @@ export function filterBody(d: Draft) {
   for (const c of d.conds) { const field = map[c[0] ?? '']; if (field && c[1]) body[field] = c[1]; }
   if (d.scope) body['dataset_id'] = d.scope;
   return body;
+}
+
+/**
+ * 2.6.1 — ordre canonique des colonnes du ladder, de l'abonné vers le
+ * cœur (TS 23.501 / 23.401) : UE → radio (gNB/eNB) → contrôle (AMF/MME) →
+ * session (SMF, SGW-C, PGW-C) → plan usager (UPF, SGW-U, PGW-U) → données
+ * abonné et politique (AUSF, UDM, UDR, PCF, NRF, NSSF, BSF, HSS, PCRF) →
+ * IMS (P/I/S-CSCF) → DN. Avant : ordre de première apparition (le ladder
+ * d'une session commençant par du PFCP affichait SMF, UPF, gNB, AMF).
+ * Un nœud inconnu garde son ordre d'apparition, après les nœuds connus.
+ */
+const LADDER_RANK: Array<[RegExp, number]> = [
+  [/^(ue|nr-?ue|srsue)/i, 0],
+  [/^(gnb|ng-?ran|enb|srsenb|ran)/i, 10],
+  [/^amf/i, 20],
+  [/^mme/i, 21],
+  [/^smf/i, 30],
+  [/^(sgw-?c|sgwc)/i, 31],
+  [/^(pgw-?c|pgwc)/i, 32],
+  [/^upf/i, 40],
+  [/^(sgw-?u|sgwu|sgw)$/i, 41],
+  [/^(pgw-?u|pgwu|pgw)$/i, 42],
+  [/^ausf/i, 50],
+  [/^udm/i, 51],
+  [/^udr/i, 52],
+  [/^pcf/i, 53],
+  [/^nrf/i, 54],
+  [/^nssf/i, 55],
+  [/^bsf/i, 56],
+  [/^hss/i, 57],
+  [/^pcrf/i, 58],
+  [/^p-?cscf/i, 60],
+  [/^i-?cscf/i, 61],
+  [/^s-?cscf/i, 62],
+  [/^(dn|internet|data ?network)/i, 70],
+];
+
+export function ladderNodeRank(node: string): number {
+  const name = node.trim();
+  const hit = LADDER_RANK.find(([pattern]) => pattern.test(name));
+  return hit ? hit[1] : 1000;
+}
+
+export function orderLadderNodes(nodes: string[]): string[] {
+  return nodes
+    .map((node, index) => ({ node, index, rank: ladderNodeRank(node) }))
+    .sort((a, b) => a.rank - b.rank || a.index - b.index)
+    .map(entry => entry.node);
 }
