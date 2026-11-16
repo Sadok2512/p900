@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.7.1 — 2026-11-16 — Fidélité de l’étape Critères
+
+- Aligne l’étape Critères sur la maquette fournie : C1/C2, onglets Message/Paramètre, ajout et suppression, recherche globale, sélecteur de message, arbre filtrable, commandes déplier/replier, résumé des critères et liaison ET/OU.
+- Branche l’estimation sans exécution sur le `meta.total` réel de `POST /api/v1/sessions/filter` avec `limit: 0` ; aucun total fictif n’est embarqué.
+- Conserve l’arbre et ses contrôles visibles mais sans données inventées tant que `GET /api/v1/query/catalog` n’est pas livré par oiran-api 2.19.0. Une requête Paramètre ou OU reste non exécutable avant ce contrat backend.
+
 ## 2.7.0 — 2026-11-16 — Nouvelle UI « Requête de sessions »
 
 - Remplace l’éditeur historique par un assistant en six étapes inspiré de la maquette fournie : Périmètre réseau, Période, Interface & protocole, Critères, Colonnes, puis Aperçu & exécuter. La sortie reste la grille de sessions Analyzer existante.

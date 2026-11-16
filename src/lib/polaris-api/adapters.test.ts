@@ -115,6 +115,8 @@ describe('POLARIS data rules', () => {
   it('rejects unsupported grouping, OR, inequality and templates outside demo', () => {
     expect(querySupport({conds:[],group:'Cause'},false)).not.toBeNull();
     expect(querySupport({conds:[],join:'OU'},false)).not.toBeNull();
+    expect(querySupport({conds:[['Paramètre','NGAP.InitialUEMessage','=','N2','Paramètre','protocolIEs.cause']],join:'ET'},false)).toContain('2.19.0');
+    expect(querySupport({conds:[['Paramètre','NGAP.InitialUEMessage','=','N2','Paramètre']],join:'ET'},false)).toBeNull();
     expect(querySupport({conds:[['Cause','#27','≠']]},false)).not.toBeNull();
     expect(querySupport({conds:[],tpl:'Capture'},false)).not.toBeNull();
     expect(querySupport({conds:[['Interface','N4','=']]},false)).toBeNull();

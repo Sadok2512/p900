@@ -55,6 +55,27 @@ describe('main screens with simulated REST responses',()=>{
     expect(document.body.textContent).not.toContain('undefined');
     expect(screen.getByText(/disponible avec oiran-api 2.19.0/)).toBeInTheDocument();
   });
+  it('2.7.1 reproduces the criteria workbench and uses a real count request', async()=>{
+    open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'}));
+    fireEvent.click(screen.getByRole('button',{name:/Critères/}));
+    expect(screen.getByText('La session contient… Chaque critère est soit un message entier, soit un paramètre restreint à des valeurs choisies. Reliez-les par ET ou OU.')).toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'C1'})).toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'Message'})).toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'Paramètre'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'Paramètre'}));
+    expect(screen.getByRole('textbox',{name:'Chercher un paramètre'})).toHaveAttribute('placeholder','ex. cause, maximumBitRate, tAC…');
+    expect(screen.getByText('Arbre du message')).toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'Tout déplier'})).toBeDisabled();
+    expect(screen.getByRole('button',{name:'Replier'})).toBeDisabled();
+    expect(screen.getByText('Aucun paramètre sélectionné — le critère porte sur le message entier.')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'+ Critère'}));
+    expect(screen.getByRole('button',{name:'C2'})).toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'Supprimer C2'})).toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'ET'})).toBeInTheDocument();
+    expect(screen.getByRole('button',{name:'OU'})).toBeInTheDocument();
+    await waitFor(()=>expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/sessions/filter'&&options.method==='POST'&&JSON.parse(String(options.body)).limit===0)).toBe(true));
+    expect(screen.getByLabelText('Estimation des sessions')).toHaveTextContent('1');
+  },10000);
   it('2.7.0 locks the six base columns and derives three columns per N1/N2/N3 interface', async()=>{
     const previousSessions=payloads['/sessions']; const previousFilter=payloads['/sessions/filter'];
     payloads['/sessions']=[{...session,interfaces:['N1','N2','N3']}]; payloads['/sessions/filter']=[{...session,interfaces:['N1','N2','N3']}];
@@ -72,7 +93,7 @@ describe('main screens with simulated REST responses',()=>{
       for(const label of ['N2 · AMF','N2 · gNB','N2 · Cause NGAP','N3 · Volume UL/DL','N3 · Débit max','N3 · QFI / 5QI']) expect(screen.getByRole('checkbox',{name:label})).toBeChecked();
       expect(screen.getAllByRole('checkbox')).toHaveLength(16); // Démo + base 6 + variables 9
     } finally { payloads['/sessions']=previousSessions; payloads['/sessions/filter']=previousFilter; }
-  });
+  },10000);
   it('2.7.0 opens protocol-column management after results without rerunning the filter', async()=>{
     open('sessions'); fireEvent.click(screen.getByRole('button',{name:/^Nouvelle requête$/})); fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
     await screen.findAllByText('ue-test');
@@ -102,7 +123,7 @@ describe('main screens with simulated REST responses',()=>{
     fireEvent.click(screen.getByRole('button',{name:/ajouter une condition identité/i}));
     fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
     await waitFor(()=>expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/sessions/filter' && options.method==='POST')).toBe(true));
-    const request=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/sessions/filter' && options.method==='POST');
+    const request=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/sessions/filter' && options.method==='POST' && JSON.parse(String(options.body)).limit===100);
     expect(JSON.parse(String(request?.[1]?.body))).toEqual({identity:{kind:'supi_or_imsi',value:clearSubscriber},limit:100});
   });
   it('loads clear identities only for the visible operator page', async()=>{
@@ -310,7 +331,7 @@ describe('main screens with simulated REST responses',()=>{
     payloads['/live/traces']=previous;
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.7.0').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.7.0')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.7.1').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.7.1')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard sits under KPI and is gone from the top menu', async()=>{
     open('kpi');

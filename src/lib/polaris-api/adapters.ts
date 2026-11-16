@@ -149,14 +149,15 @@ export type Draft = {
 export function querySupport(d: Draft, demo: boolean): string | null {
   if (demo) return null;
   if (d.join === 'OU' || d.conds.some(c => c[2] === '≠')) return 'Non disponible : backend à venir (OU / ≠)';
+  if (d.conds.some(c => c[0] === 'Paramètre' && c[5])) return 'Non disponible : oiran-api 2.19.0 requis (critère paramètre)';
   if (d.group && d.group !== 'Aucun') return 'Non disponible : backend à venir (Regrouper par)';
   if (d.tpl && d.tpl !== 'Parcourir') return 'Non disponible : backend à venir (Gabarit)';
-  if (d.conds.some(c => !['Message', 'Cause', 'Interface', 'IMSI', 'Résultat', 'RAT'].includes(c[0] ?? ''))) return 'Non disponible : backend à venir (condition)';
+  if (d.conds.some(c => !['Message', 'Paramètre', 'Cause', 'Interface', 'IMSI', 'Résultat', 'RAT'].includes(c[0] ?? ''))) return 'Non disponible : backend à venir (condition)';
   return null;
 }
 export function filterBody(d: Draft) {
   const body: Record<string, unknown> = {};
-  const messages = d.conds.filter(c => c[0] === 'Message' && c[1]).map(c => ({ name: c[1], ...(c[3] ? { interface: c[3] } : {}) }));
+  const messages = d.conds.filter(c => (c[0] === 'Message' || (c[0] === 'Paramètre' && !c[5])) && c[1]).map(c => ({ name: c[1], ...(c[3] ? { interface: c[3] } : {}) }));
   const causes = d.conds.filter(c => c[0] === 'Cause' && c[1]).map(c => ({ value: c[1] }));
   const identity = d.conds.find(c => c[0] === 'IMSI' && c[1]);
   if (messages.length) body['messages'] = messages;

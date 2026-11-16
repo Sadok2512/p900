@@ -1,11 +1,11 @@
-import React, { useMemo, useState } from 'react';
-import { records, useDatasets } from '@/lib/polaris-api';
+import React, { useEffect, useMemo, useState } from 'react';
+import { records, useDatasets, useSessionEstimate } from '@/lib/polaris-api';
 
 const STEPS = [
   ['Périmètre réseau', 'Choisissez la technologie et les éléments de réseau dont les traces sont observées. Site et cellule arrivent en V2.'],
   ['Période', "Cadrez la recherche sur l’horaire de capture, ou sur un run de scénario."],
   ['Interface & protocole', 'Choisissez les interfaces réellement observées dans le périmètre.'],
-  ['Critères', 'La session contient… un message ou une identité. Les paramètres arrivent avec oiran-api 2.19.0.'],
+  ['Critères', 'La session contient… Chaque critère est soit un message entier, soit un paramètre restreint à des valeurs choisies. Reliez-les par ET ou OU.'],
   ['Colonnes', 'Choisissez les colonnes variables liées aux interfaces. Les six colonnes de base restent verrouillées.'],
   ['Aperçu & exécuter', 'Vérifiez la requête, puis enregistrez ou exécutez. La sortie est toujours une liste de sessions.'],
 ];
@@ -27,6 +27,48 @@ const unique = values => [...new Set(values.filter(value => value != null && Str
 const Button = ({active=false,disabled=false,children,...props}) => <button type="button" disabled={disabled} {...props} className={`h-8 px-3 rounded-md border text-[12.5px] transition ${active?'border-[var(--app-accent)] bg-[var(--app-accent)] text-white':'border-border bg-white text-ink-2 hover:border-border-strong'} disabled:cursor-not-allowed disabled:opacity-45`}>{children}</button>;
 const Icon = ({children}) => <span className="w-5 h-5 rounded-full bg-muted text-[11px] font-semibold grid place-items-center text-ink-2 shrink-0">{children}</span>;
 
+const criterionLabel = criterion => {
+  if (!criterion?.[1]) return 'incomplet';
+  if (criterion[0] === 'IMSI') return `IMSI ••••${String(criterion[1]).slice(-4)}`;
+  if (criterion[0] === 'Paramètre') return `${criterion[5] || criterion[1]} présent`;
+  return `${criterion[1]} présent`;
+};
+
+function CriteriaStep({draft,update,observedInterfaces}) {
+  const criteria=draft.conds.length?draft.conds:[['Message','','=','','Message']];
+  const [current,setCurrent]=useState(0);
+  const [parameterSearch,setParameterSearch]=useState('');
+  const [treeFilter,setTreeFilter]=useState('');
+  const index=Math.min(current,criteria.length-1);
+  const criterion=criteria[index];
+  const mode=criterion[0]==='IMSI'?'Identité':criterion[4]||criterion[0]||'Message';
+  useEffect(()=>{if(current>=criteria.length)setCurrent(Math.max(0,criteria.length-1));},[criteria.length,current]);
+  const replace=next=>{const values=[...criteria];values[index]=next;update({conds:values});};
+  const setMode=next=>replace([next==='Paramètre'?'Paramètre':'Message','', '=', criterion[3]||'',next]);
+  const add=()=>{update({conds:[...criteria,['Message','','=','','Message']]});setCurrent(criteria.length);};
+  const remove=()=>{const values=criteria.filter((_,position)=>position!==index);update({conds:values});setCurrent(Math.max(0,index-1));};
+  return <div className="space-y-4">
+    <section className="rounded-lg border border-border bg-white p-4">
+      <div className="flex flex-wrap items-center gap-2 border-b border-border pb-3">
+        {criteria.map((_,position)=><button key={position} type="button" onClick={()=>setCurrent(position)} className={`h-8 min-w-10 rounded-md border px-3 text-[12px] font-semibold ${position===index?'border-[var(--app-accent)] bg-brand-soft text-[var(--app-accent)]':'border-border bg-white text-muted-foreground'}`}>C{position+1}</button>)}
+        <div className="ml-2 inline-flex rounded-md border border-border p-0.5">
+          {['Message','Paramètre'].map(value=><button key={value} type="button" onClick={()=>setMode(value)} disabled={mode==='Identité'} className={`h-7 rounded px-3 text-[12px] ${mode===value?'bg-[var(--app-accent)] text-white font-semibold':'text-muted-foreground'} disabled:opacity-45`}>{value}</button>)}
+          {mode==='Identité'&&<button type="button" className="h-7 rounded bg-[var(--app-accent)] px-3 text-[12px] font-semibold text-white">Identité</button>}
+        </div>
+        <button type="button" onClick={add} className="ml-auto h-8 rounded-md border border-border bg-white px-3 text-[12px] hover:bg-surface-2">+ Critère</button>
+        {criteria.length>1&&<button type="button" onClick={remove} className="h-8 rounded-md border border-border bg-white px-3 text-[12px] hover:bg-surface-2">Supprimer C{index+1}</button>}
+      </div>
+
+      {mode==='Identité'?<div className="mt-4 rounded-md border border-border bg-surface-2 p-3 text-[12.5px]"><span className="mr-2 rounded bg-brand-soft px-2 py-0.5 text-[10px] font-semibold text-[var(--app-accent)]">ACTIF</span>IMSI ••••{String(criterion[1]).slice(-4)}<div className="mt-1 text-[11.5px] text-muted-foreground">Jamais d’écho en clair hors UI authentifiée.</div></div>:<>
+        {mode==='Paramètre'&&<div className="mt-4"><label className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Chercher un paramètre <span className="normal-case font-normal">· dans tous les messages</span></label><input aria-label="Chercher un paramètre" value={parameterSearch} onChange={event=>setParameterSearch(event.target.value)} placeholder="ex. cause, maximumBitRate, tAC…" className="mt-2 h-9 w-full rounded-md border border-border px-3 text-[12.5px]"/><div className="mt-2 rounded-md border border-dashed border-border bg-surface-2 px-3 py-2 text-[11.5px] text-muted-foreground">Catalogue des paramètres disponible avec oiran-api 2.19.0 — aucune suggestion inventée.</div></div>}
+        <div className="mt-4"><label className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Message</label><div className="mt-2 flex flex-wrap gap-2"><input aria-label="Message du critère" value={criterion[1]||''} onChange={event=>replace([mode==='Paramètre'?'Paramètre':'Message',event.target.value,'=',criterion[3]||'',mode])} placeholder="Nom exact observé, ex. NGAP.InitialUEMessage" className="h-9 min-w-[320px] flex-1 rounded-md border border-border px-3 font-mono text-[12px]"/><select aria-label="Interface du critère" value={criterion[3]||''} onChange={event=>replace([criterion[0],criterion[1],'=',event.target.value,mode])} className="h-9 rounded-md border border-border bg-white px-3 text-[12px]"><option value="">Toutes interfaces</option>{observedInterfaces.map(name=><option key={name}>{name}</option>)}</select></div>{mode==='Message'&&<div className="mt-2 text-[11.5px] text-muted-foreground">Le critère porte sur le message entier. Les occurrences observées seront fournies par le catalogue 2.19.0.</div>}</div>
+        {mode==='Paramètre'&&<div className="mt-4"><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Arbre du message</div><div className="mt-2 overflow-hidden rounded-md border border-border"><div className="flex flex-wrap items-center gap-2 border-b border-border bg-surface-2 p-2"><input aria-label="Filtrer dans le message" value={treeFilter} onChange={event=>setTreeFilter(event.target.value)} placeholder={`Filtrer dans ${criterion[1]?.split('.').at(-1)||'le message'}…`} className="h-8 min-w-[260px] flex-1 rounded border border-border bg-white px-2 text-[12px]"/><span className="text-[11.5px] text-muted-foreground">0 paramètre</span><button type="button" disabled className="h-7 px-2 text-[11.5px] opacity-45">Tout déplier</button><button type="button" disabled className="h-7 px-2 text-[11.5px] opacity-45">Replier</button></div><div className="min-h-28 p-4 text-[12px] text-muted-foreground">Arbre non chargé : GET /api/v1/query/catalog est disponible avec oiran-api 2.19.0.</div><div className="border-t border-border bg-surface-2 px-3 py-2 text-[11.5px] text-muted-foreground">Aucun paramètre sélectionné — le critère porte sur le message entier.</div></div></div>}
+      </>}
+    </section>
+    {criteria.length>1&&<><div className="flex items-center gap-2 rounded-lg border border-border bg-white p-3 text-[12px]"><span className="text-muted-foreground">critères reliés par</span>{['ET','OU'].map(value=><button key={value} type="button" onClick={()=>update({join:value})} className={`h-8 rounded-md border px-3 font-semibold ${draft.join===value?'border-[var(--app-accent)] bg-[var(--app-accent)] text-white':'border-border bg-white text-muted-foreground'}`}>{value}</button>)}{draft.join==='OU'&&<span className="text-[11.5px] text-warning">Exécution disponible avec oiran-api 2.19.0</span>}</div><div className="grid gap-2">{criteria.map((value,position)=><div key={position} className="flex items-center gap-2 rounded-md border border-border bg-white px-3 py-2 text-[12px]"><span className="rounded bg-brand-soft px-2 py-0.5 font-mono text-[10.5px] font-semibold text-[var(--app-accent)]">C{position+1}</span><span className="font-mono">{criterionLabel(value)}</span>{position<criteria.length-1&&<span className="ml-auto text-[10.5px] font-semibold text-muted-foreground">{draft.join}</span>}</div>)}</div></>}
+  </div>;
+}
+
 function normalizeDraft(draft) {
   return {
     ...draft,
@@ -46,8 +88,6 @@ export default function SessionQueryEditor({draft,setDraft,dirty,run,save,cancel
   const datasets = useDatasets();
   const [step,setStep] = useState(0);
   const [search,setSearch] = useState('');
-  const [message,setMessage] = useState('');
-  const [messageInterface,setMessageInterface] = useState('');
   const [customFrom,setCustomFrom] = useState('');
   const [customTo,setCustomTo] = useState('');
   const up = patch => setDraft({...d,...patch});
@@ -77,15 +117,16 @@ export default function SessionQueryEditor({draft,setDraft,dirty,run,save,cancel
     setSearch('');
     setStep(3);
   };
-  const addMessage = () => {
-    const value=message.trim(); if(!value) return;
-    up({conds:[...d.conds,['Message',value,'=',messageInterface]]});
-    setMessage('');
-  };
-  const removeCondition = index => up({conds:d.conds.filter((_,i)=>i!==index)});
+  const estimateKey=JSON.stringify({conds:d.conds,join:d.join,rat:d.rat,nodes:d.nodes,periodMode:d.periodMode,period:d.period,from:d.from,to:d.to,scope:d.scope,interfaces:d.interfaces});
+  const [estimateDraft,setEstimateDraft]=useState(d);
+  useEffect(()=>{const timer=setTimeout(()=>setEstimateDraft(d),350);return()=>clearTimeout(timer);},[estimateKey]);
+  const estimate=useSessionEstimate(estimateDraft);
+  const estimateTotal=Number(estimate.data?.meta?.total);
+  const estimateBlocked=d.join==='OU'||d.conds.some(criterion=>criterion[0]==='Paramètre'&&criterion[5]);
+  const estimateLabel=estimateBlocked?'—':estimate.isFetching?'calcul…':Number.isFinite(estimateTotal)?estimateTotal.toLocaleString('fr-FR'):'—';
 
   const scopeLabel = d.periodMode==='run' ? (runOptions.find(item=>String(item.id)===String(d.scope))?.label || 'Run non sélectionné') : d.period;
-  const summary = [d.rat,...d.nodes,scopeLabel,...d.interfaces,...d.conds.map(c=>`${c[0]} ${c[2]||'='} ${c[0]==='IMSI'?'••••'+String(c[1]).slice(-4):c[1]}`)];
+  const summary = [d.rat,...d.nodes,scopeLabel,...d.interfaces,...d.conds.filter(c=>c[1]).map(c=>`${c[0]} ${c[2]||'='} ${c[0]==='IMSI'?'••••'+String(c[1]).slice(-4):c[1]}`)];
 
   const stepBody = [
     <div key="network" className="space-y-6">
@@ -97,12 +138,7 @@ export default function SessionQueryEditor({draft,setDraft,dirty,run,save,cancel
       {d.periodMode==='period'?<><div className="flex flex-wrap gap-2">{['15 min','1 h','24 h','personnalisée'].map(period=><Button key={period} active={d.period===period} onClick={()=>up({period})}>{period}</Button>)}</div>{d.period==='personnalisée'&&<div className="flex flex-wrap gap-3"><label className="text-[12px] text-muted-foreground">Début<input aria-label="Début personnalisé" type="datetime-local" value={customFrom} onChange={e=>{setCustomFrom(e.target.value);up({from:e.target.value});}} className="block mt-1 h-9 rounded-md border border-border px-2 text-foreground"/></label><label className="text-[12px] text-muted-foreground">Fin<input aria-label="Fin personnalisée" type="datetime-local" value={customTo} onChange={e=>{setCustomTo(e.target.value);up({to:e.target.value});}} className="block mt-1 h-9 rounded-md border border-border px-2 text-foreground"/></label></div>}</>:<div>{runOptions.length?<select aria-label="Run de scénario" value={d.scope||''} onChange={e=>up({scope:e.target.value})} className="h-9 min-w-[320px] rounded-md border border-border bg-white px-3 text-[12.5px]"><option value="">Sélectionner un run observé</option>{runOptions.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select>:<div className="text-[12.5px] text-muted-foreground">Aucun run exploitable renvoyé par l’API.</div>}</div>}
     </div>,
     <div key="interfaces" className="space-y-4"><div><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-2">Interfaces observées · {d.rat}</div><div className="flex flex-wrap gap-2">{observedInterfaces.map(name=><Button key={name} active={d.interfaces.includes(name)} onClick={()=>toggleInterface(name)}>{name}</Button>)}{!observedInterfaces.length&&<span className="text-[12.5px] text-muted-foreground">Aucune interface observée.</span>}</div></div><p className="text-[11.5px] text-subtle">Aucune sélection = toutes les interfaces. Le protocole reste celui observé par l’API ; aucune correspondance n’est fabriquée.</p></div>,
-    <div key="criteria" className="space-y-5">
-      <div className="flex items-center gap-2"><span className="text-[12px] text-muted-foreground">Critères reliés par</span><Button active={d.join==='ET'} onClick={()=>up({join:'ET'})}>ET</Button><Button disabled>OU</Button><span className="text-[11.5px] text-subtle">OU disponible avec oiran-api 2.19.0</span></div>
-      <div className="flex flex-wrap gap-2 min-h-8">{d.conds.length?d.conds.map((c,index)=><span key={`${c[0]}-${index}`} className="inline-flex items-center rounded-md border border-border bg-surface-2 text-[12px]"><span className="px-2.5 py-1.5 font-mono">{c[0]} {c[0]==='IMSI'?'••••'+String(c[1]).slice(-4):c[1]}</span><button type="button" aria-label={`Retirer critère ${index+1}`} onClick={()=>removeCondition(index)} className="h-7 w-7 border-l border-border text-muted-foreground hover:text-danger">×</button></span>):<span className="text-[12.5px] text-subtle">Aucun critère : toutes les sessions du périmètre.</span>}</div>
-      <section className="rounded-lg border border-border p-4"><div className="font-semibold text-[13px] mb-3">La session contient · Message</div><div className="flex flex-wrap gap-2"><input aria-label="Nom du message" value={message} onChange={e=>setMessage(e.target.value)} placeholder="Nom exact observé" className="h-9 min-w-[280px] flex-1 rounded-md border border-border px-3 text-[12.5px]"/><select aria-label="Interface du message" value={messageInterface} onChange={e=>setMessageInterface(e.target.value)} className="h-9 rounded-md border border-border bg-white px-3 text-[12.5px]"><option value="">Toutes interfaces</option>{observedInterfaces.map(name=><option key={name}>{name}</option>)}</select><Button disabled={!message.trim()} onClick={addMessage}>Ajouter le message</Button></div></section>
-      <section aria-disabled="true" className="rounded-lg border border-dashed border-border p-4 bg-surface-2 opacity-70"><div className="font-semibold text-[13px]">La session contient · Paramètre</div><div className="mt-1 text-[12px] text-muted-foreground">Arbre, valeurs et critères paramètre disponibles avec oiran-api 2.19.0.</div><button type="button" disabled className="mt-3 h-8 px-3 rounded-md border border-border bg-white text-[12px]">Charger GET /api/v1/query/catalog</button></section>
-    </div>,
+    <CriteriaStep key="criteria" draft={d} update={up} observedInterfaces={observedInterfaces}/>,
     <div key="columns" className="space-y-5">
       <section className="rounded-lg border border-border p-4"><div className="flex items-center gap-2"><div className="font-semibold text-[13px]">Base</div><span className="rounded bg-muted px-2 py-0.5 text-[10.5px] font-semibold text-muted-foreground">VERROUILLÉE</span></div><div className="mt-3 flex flex-wrap gap-2">{['Début','Résultat','Cause','RAT','Abonné (IMSI)','Durée'].map(label=><label key={label} className="inline-flex items-center gap-2 rounded-md border border-border bg-surface-2 px-3 py-2 text-[12px]"><input type="checkbox" checked disabled/>{label}</label>)}</div></section>
       {d.interfaces.map(name=><details key={name} open className="rounded-lg border border-border p-4"><summary className="cursor-pointer font-semibold text-[13px]">{name} · {(SESSION_QUERY_INTERFACE_COLUMNS[name]||[]).length} colonnes</summary><div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">{(SESSION_QUERY_INTERFACE_COLUMNS[name]||[]).map(([key,label])=><label key={key} className="flex items-center gap-2 rounded-md border border-border px-3 py-2 text-[12px]"><input type="checkbox" aria-label={`${name} · ${label}`} checked={d.variableColumns.includes(key)} onChange={()=>toggle('variableColumns',key)}/>{label}<select aria-label={`Agrégation ${name} · ${label}`} value="dernière" disabled className="ml-auto max-w-[92px] rounded border border-border bg-surface-2 px-1 py-0.5 text-[10.5px]"><option>dernière</option><option>première</option><option>toutes</option><option>nombre</option></select></label>)}</div></details>)}
@@ -113,7 +149,7 @@ export default function SessionQueryEditor({draft,setDraft,dirty,run,save,cancel
   ][step];
 
   return <div className="flex-1 min-h-0 overflow-auto scroll-thin bg-surface-2"><div className="w-full px-8 py-6">
-    <header className="rounded-xl border border-border bg-white px-6 py-5"><div className="flex flex-wrap items-start gap-4"><div><div className="text-[12px] text-muted-foreground">POLARIS Analyzer · Requête de sessions</div><input value={d.name||''} onChange={e=>up({name:e.target.value})} placeholder="Nouvelle requête" className="mt-1 w-[520px] max-w-full bg-transparent text-[24px] font-semibold tracking-[-0.02em] outline-none"/><p className="mt-1 text-[13px] text-muted-foreground">La sortie est toujours une liste de sessions.</p></div>{dirty&&<span className="ml-auto text-[12px] text-warning">● Modifications non enregistrées</span>}</div>
+    <header className="rounded-xl border border-border bg-white px-6 py-5"><div className="flex flex-wrap items-start gap-4"><div><div className="text-[12px] text-muted-foreground">POLARIS Analyzer · Requête de sessions</div><input value={d.name||''} onChange={e=>up({name:e.target.value})} placeholder="Nouvelle requête" className="mt-1 w-[520px] max-w-full bg-transparent text-[24px] font-semibold tracking-[-0.02em] outline-none"/><p className="mt-1 text-[13px] text-muted-foreground">La sortie est toujours une liste de sessions.</p></div><div className="ml-auto text-right"><div className="text-[10.5px] text-muted-foreground">estimation · sans exécution</div><div className="mt-0.5 text-[24px] font-semibold tabular-nums text-foreground" aria-label="Estimation des sessions">{estimateLabel}</div><div className="text-[10.5px] text-muted-foreground">sessions trouvées</div>{dirty&&<div className="mt-1 text-[11.5px] text-warning">● Modifications non enregistrées</div>}</div></div>
       <div className="relative mt-5"><input aria-label="Recherche directe IMSI ou paramètre" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Recherche directe : IMSI ou nom de paramètre" className="h-10 w-full rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-[var(--app-accent)]"/>{search.trim()&&<div className="absolute inset-x-0 top-11 z-20 rounded-lg border border-border bg-white p-2 shadow-lg">{identitySearch?<button type="button" onClick={addIdentity} className="w-full rounded-md px-3 py-2 text-left text-[12.5px] hover:bg-surface-2"><b>Identité</b> · IMSI se terminant par ••••{digits.slice(-4)} → ajouter une condition identité</button>:parameterSearch?<div className="rounded-md px-3 py-2 text-[12.5px] text-muted-foreground">Catalogue de paramètres disponible avec oiran-api 2.19.0 — aucune valeur suggérée localement.</div>:null}</div>}</div>
     </header>
     <div className="mt-4 grid gap-4 lg:grid-cols-[250px_minmax(0,1fr)]"><aside className="rounded-xl border border-border bg-white p-4"><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Progression</div><ol className="mt-3 space-y-1">{STEPS.map(([title],index)=><li key={title}><button type="button" onClick={()=>setStep(index)} aria-current={step===index?'step':undefined} className={`w-full flex items-center gap-2 rounded-md px-2 py-2 text-left text-[12.5px] ${step===index?'bg-brand-soft font-semibold text-[var(--app-accent)]':'text-muted-foreground hover:bg-surface-2'}`}><Icon>{index+1}</Icon>{title}</button></li>)}</ol></aside>

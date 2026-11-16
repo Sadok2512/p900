@@ -101,6 +101,19 @@ export function useSessionFilter() {
   const { demo } = usePolarisMode(); const client = useQueryClient();
   return useMutation({ mutationFn: async (draft: Draft) => { const unsupported = querySupport(draft, demo); if (unsupported) throw new PolarisApiError('UNAVAILABLE', unsupported, 0); return demo ? demoResponse<Session[]>('/sessions/filter') as Envelope<Session[]> : fetchAllFilteredSessions(filterBody(draft)); }, onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris', 'api', '/sessions'] }); } });
 }
+export function useSessionEstimate(draft: Draft, enabled = true) {
+  const { demo } = usePolarisMode();
+  const unsupported = querySupport(draft, demo);
+  const body = filterBody(draft);
+  return useQuery({
+    queryKey: ['polaris', 'api', '/sessions/filter', 'estimate', body],
+    queryFn: () => request<Session[]>('/sessions/filter', { method: 'POST', body: { ...body, limit: 0 } }),
+    enabled: enabled && !demo && !unsupported,
+    retry: false,
+    refetchOnWindowFocus: false,
+    staleTime: 5_000,
+  });
+}
 export function useCaptureAction() {
   const client = useQueryClient();
   return useMutation({ mutationFn: async ({ action, id, target }: { action: 'start' | 'validate' | 'stop'; id?: string | number; target?: string }) => request<RecordData>(action === 'stop' ? `/captures/${idPath(id)}/stop` : `/captures/${action}`, { method: 'POST', body: { target } }), onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris'] }); } });
