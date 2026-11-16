@@ -340,8 +340,8 @@ describe('main screens with simulated REST responses',()=>{
     fireEvent.change(screen.getByPlaceholderText('UE-…'),{target:{value:'001010000000201'}});
     fireEvent.click(screen.getByRole('button',{name:'Rechercher'}));
     await screen.findByText('UE Info');
-    await waitFor(()=>expect(listeners.message).toBeTypeOf('function'));
-    listeners.message!({lastEventId:'1',data:JSON.stringify({interface:'N2',protocol:'NGAP',message_name:'InitialUEMessage',direction:'UPLINK',source:{address:'10.77.21.10',network_function:'gNB'},destination:{address:'10.77.21.11',network_function:'AMF'},capture_id:'cap',packet_number:7,event_id:'e7'})});
+    await waitFor(()=>expect(listeners['message']).toBeTypeOf('function'));
+    listeners['message']!({lastEventId:'1',data:JSON.stringify({interface:'N2',protocol:'NGAP',message_name:'InitialUEMessage',direction:'UPLINK',source:{address:'10.77.21.10',network_function:'gNB'},destination:{address:'10.77.21.11',network_function:'AMF'},capture_id:'cap',packet_number:7,event_id:'e7'})});
     expect(await screen.findAllByText('InitialUEMessage')).not.toHaveLength(0);
     for (const mode of ['Lignes','Flèches']) { const b=screen.queryByRole('button',{name:mode}); if(b) fireEvent.click(b); }
     expect(screen.getAllByText('InitialUEMessage').length).toBeGreaterThan(0);
