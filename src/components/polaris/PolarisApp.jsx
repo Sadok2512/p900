@@ -12,7 +12,7 @@ import ProbeManagement from './admin/ProbeManagement';
 import { loadHidden, saveHidden, toggleHidden, isVisible, sanitizeHidden } from './admin/modules';
 import SubscriberJourney, { OtherSessions } from './analyzer/SubscriberJourney';
 import GeoPanel from './analyzer/GeoPanel';
-import SessionQueryEditor from './query/SessionQueryEditor';
+import SessionQueryEditor, { SESSION_QUERY_BASE_COLUMN_KEYS, SESSION_QUERY_INTERFACE_COLUMNS, defaultVariableColumns } from './query/SessionQueryEditor';
 import { shortPseudo, groupBySubscriber } from './analyzer/subscriber';
 import { InterfaceBadge, AvailabilityStatus, TechnicalValue, BpfFilterDisplay } from './ui/InterfaceBadge';
 import { INTERFACE_FAMILY_HEX, interfaceFamilyOf } from '@/lib/polaris-ui/interfaceColors';
@@ -192,6 +192,8 @@ const GRID_GROUPS = [
   {k:'ran',l:'NGAP / S1AP'},
   {k:'correlation',l:'Corrélation multi-protocole'},
 ];
+const firstObserved = (row,keys) => { for (const key of keys) { const value=row[key]; if(value!==undefined&&value!==null&&value!=='') return value; } return '—'; };
+const joinedObserved = (row,left,right,unit='') => { const a=firstObserved(row,left), b=firstObserved(row,right); return a==='—'&&b==='—'?'—':`${a==='—'?'—':a}${unit} / ${b==='—'?'—':b}${unit}`; };
 const GRID_COLS = [
   {k:'num',l:'Numéro',g:'session',w:112,v:r=>sessionNumberLabel(r),mono:true,required:true},
   {k:'start',l:'Début UTC',g:'session',w:118,v:r=>fmtUtc(toMs(r.start_timestamp)),mono:true},
@@ -216,22 +218,44 @@ const GRID_COLS = [
   {k:'ifc',l:'Interfaces',g:'correlation',w:132,v:r=>[...new Set(r.interfaces??[])].join(' ')},
   {k:'ex',l:'Liens EXACT',g:'correlation',w:90,v:r=>r.ex,mono:true},
   {k:'comp',l:'Compl.',g:'correlation',w:68,v:r=>r.comp==='—'?'—':`${r.comp} %`,sort:r=>Number(r.comp)||-1},
+  {k:'n1cause',l:'Cause 5GMM/5GSM',g:'nas',w:132,queryOnly:true,v:r=>firstObserved(r,['nas_cause','cause_5gmm','cause_5gsm','cause'])},
+  {k:'ngapcause',l:'Cause NGAP',g:'ran',w:112,queryOnly:true,v:r=>firstObserved(r,['ngap_cause','cause_ngap'])},
+  {k:'n3volume',l:'Volume UL/DL',g:'correlation',w:132,queryOnly:true,v:r=>joinedObserved(r,['uplink_bytes','volume_ul_bytes'],['downlink_bytes','volume_dl_bytes'])},
+  {k:'n3rate',l:'Débit max',g:'correlation',w:110,queryOnly:true,v:r=>firstObserved(r,['max_bitrate_bps','peak_bitrate_bps'])},
+  {k:'n3qos',l:'QFI / 5QI',g:'correlation',w:104,queryOnly:true,v:r=>joinedObserved(r,['qfi'],['five_qi','5qi'])},
+  {k:'n4seid',l:'SEID',g:'correlation',w:128,queryOnly:true,v:r=>firstObserved(r,['seid','cp_seid','up_seid']),mono:true},
+  {k:'n4cause',l:'Cause PFCP',g:'correlation',w:112,queryOnly:true,v:r=>firstObserved(r,['pfcp_cause'])},
+  {k:'n4lat',l:'Latence',g:'correlation',w:96,queryOnly:true,v:r=>firstObserved(r,['pfcp_latency_ms','n4_latency_ms'])},
+  {k:'sbiservices',l:'Services',g:'correlation',w:150,queryOnly:true,v:r=>firstObserved(r,['sbi_services','services'])},
+  {k:'sbihttp',l:'Statut HTTP',g:'correlation',w:104,queryOnly:true,v:r=>firstObserved(r,['http_status','sbi_http_status'])},
+  {k:'sbiidentities',l:'MSISDN / IMEI',g:'nas',w:174,queryOnly:true,v:r=>r.identities?`${observedIdentity(r.identities,'directory')} / ${observedIdentity(r.identities,'equipment')}`:'—',mono:true},
+  {k:'s1cause',l:'Cause S1AP',g:'ran',w:112,queryOnly:true,v:r=>firstObserved(r,['s1ap_cause','cause_s1ap'])},
+  {k:'mtmsi',l:'M-TMSI',g:'nas',w:148,queryOnly:true,v:r=>observedIdentity(r.identities,'m_tmsi'),identity:true,kind:'m_tmsi',mono:true},
+  {k:'s11apn',l:'APN',g:'correlation',w:116,queryOnly:true,v:r=>firstObserved(r,['apn'])},
+  {k:'s11qci',l:'QCI',g:'correlation',w:72,queryOnly:true,v:r=>firstObserved(r,['qci'])},
+  {k:'s11cause',l:'Cause S11',g:'correlation',w:104,queryOnly:true,v:r=>firstObserved(r,['s11_cause','gtpv2_cause'])},
+  {k:'s1uvolume',l:'Volume UL/DL',g:'correlation',w:132,queryOnly:true,v:r=>joinedObserved(r,['uplink_bytes','volume_ul_bytes'],['downlink_bytes','volume_dl_bytes'])},
+  {k:'s1urate',l:'Débit max',g:'correlation',w:110,queryOnly:true,v:r=>firstObserved(r,['max_bitrate_bps','peak_bitrate_bps'])},
+  {k:'s1uteid',l:'TEID',g:'correlation',w:116,queryOnly:true,v:r=>firstObserved(r,['teid','teids']),mono:true},
 ];
-function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={}}) {
+function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={},queryDraft=null,onColumnsChange}) {
   const { demo } = usePolarisMode(); const sessions = useSessions({ page:1, page_size:100, sort:'capture_id', order:'asc' },false);
   const [more,setMore] = useState(false);
   const [manageCols,setManageCols] = useState(false);
+  const [addProtocolColumn,setAddProtocolColumn] = useState(false);
   const [txt,setTxt] = useState('');
   const [sort,setSort] = useState(null);
   const [widths,setWidths] = useState(()=>{ try { return JSON.parse(localStorage.getItem('polaris-grid-cols'))||{}; } catch(e) { return {}; } });
   const [hiddenCols,setHiddenCols] = useState(()=>{ try { const value=JSON.parse(localStorage.getItem('polaris-grid-hidden-cols'))||[]; return Array.isArray(value)?value.filter(k=>GRID_COLS.some(c=>c.k===k&&!c.required)):[]; } catch(e) { return []; } });
   useEffect(()=>{ try { localStorage.setItem('polaris-grid-cols',JSON.stringify(widths)); } catch(e) {} },[widths]);
   useEffect(()=>{ try { localStorage.setItem('polaris-grid-hidden-cols',JSON.stringify(hiddenCols)); } catch(e) {} },[hiddenCols]);
-  const visibleCols = useMemo(()=>GRID_COLS.filter(c=>!hiddenCols.includes(c.k)),[hiddenCols]);
+  const queryMode=!!queryDraft&&!queryDraft.legacyColumns;
+  const queryColumnKeys=useMemo(()=>queryMode?[...SESSION_QUERY_BASE_COLUMN_KEYS,...(Array.isArray(queryDraft.variableColumns)?queryDraft.variableColumns:defaultVariableColumns(queryDraft.interfaces||[]))]:null,[queryMode,queryDraft]);
+  const visibleCols = useMemo(()=>queryMode?queryColumnKeys.map(key=>GRID_COLS.find(c=>c.k===key)).filter(Boolean):GRID_COLS.filter(c=>!c.queryOnly&&!hiddenCols.includes(c.k)),[hiddenCols,queryMode,queryColumnKeys]);
   const W = c => widths[c.k] ?? c.w;
-  const closeMore = () => { setMore(false); setManageCols(false); };
-  const resetCols = () => { setWidths({}); setHiddenCols([]); setSort(null); closeMore(); };
-  const toggleCol = c => { if(c.required) return; setHiddenCols(value=>value.includes(c.k)?value.filter(k=>k!==c.k):[...value,c.k]); if(sort?.[0]===c.k) setSort(null); };
+  const closeMore = () => { setMore(false); setManageCols(false); setAddProtocolColumn(false); };
+  const resetCols = () => { setWidths({}); if(queryMode)onColumnsChange?.(defaultVariableColumns(queryDraft.interfaces||[]));else setHiddenCols([]); setSort(null); closeMore(); };
+  const toggleCol = c => { if((queryMode&&SESSION_QUERY_BASE_COLUMN_KEYS.includes(c.k))||c.required) return; if(queryMode){const current=queryDraft.variableColumns||defaultVariableColumns(queryDraft.interfaces||[]);onColumnsChange?.(current.includes(c.k)?current.filter(key=>key!==c.k):[...current,c.k]);}else setHiddenCols(value=>value.includes(c.k)?value.filter(k=>k!==c.k):[...value,c.k]); if(sort?.[0]===c.k) setSort(null); };
   const resize = (e,c) => { e.preventDefault(); e.stopPropagation(); const x0=e.clientX, w0=W(c);
     const mv = ev => setWidths(w=>({...w,[c.k]:Math.max(48,w0+ev.clientX-x0)}));
     const up = () => { window.removeEventListener('mousemove',mv); window.removeEventListener('mouseup',up); document.body.style.cursor=''; };
@@ -279,6 +303,10 @@ function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={}}) {
     if (c.k==='cause') return <span className={verdict(r.res)==='FAILED'?'text-danger':'text-muted-foreground'}>{v}</span>;
     return v;
   };
+  const queryHeaderGroups=queryMode?[
+    {label:'BASE',count:visibleCols.filter(c=>SESSION_QUERY_BASE_COLUMN_KEYS.includes(c.k)).length},
+    ...(queryDraft.interfaces||[]).map(name=>({label:name,count:visibleCols.filter(c=>(SESSION_QUERY_INTERFACE_COLUMNS[name]||[]).some(([key])=>key===c.k)).length})),
+  ].filter(group=>group.count):[];
   return (
     <section className="flex flex-col min-h-0 bg-white shrink-0 rounded-xl border border-border overflow-hidden" style={{height}}>
       <div className="h-10 shrink-0 flex items-center gap-3 px-3 border-b border-border">
@@ -297,14 +325,15 @@ function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={}}) {
         <button onClick={onEdit} className="h-7 px-2.5 rounded-md border border-border text-[12px] flex items-center gap-1.5 text-ink-2 hover:bg-surface-2"><I d={ic.search} c="w-3.5 h-3.5"/>Modifier la requête</button>
         <div className="relative">
           <button onClick={()=>{setMore(m=>!m);setManageCols(false);}} title="Plus d'actions" aria-expanded={more} className="h-7 w-7 rounded-md border border-border grid place-items-center text-ink-2 hover:bg-surface-2">⋯</button>
-          {more && <><div className="fixed inset-0 z-30" onClick={closeMore}/>{manageCols ? <div role="dialog" aria-label="Gérer les colonnes" className="absolute right-0 top-8 z-40 w-72 bg-white border border-border rounded-lg shadow-lg text-[12.5px] overflow-hidden">
-            <div className="h-9 px-3 flex items-center border-b border-border"><button onClick={()=>setManageCols(false)} aria-label="Retour aux actions" className="mr-2 text-muted-foreground hover:text-foreground">←</button><span className="font-semibold text-foreground">Gérer les colonnes</span><button onClick={()=>setHiddenCols([])} className="ml-auto text-[11.5px] text-[var(--app-accent)]">Tout afficher</button></div>
+          {more && <><div className="fixed inset-0 z-30" onClick={closeMore}/>{manageCols ? <div role="dialog" aria-label="Gérer les colonnes" className="absolute right-0 top-8 z-40 w-80 bg-white border border-border rounded-lg shadow-lg text-[12.5px] overflow-hidden">
+            <div className="h-9 px-3 flex items-center border-b border-border"><button onClick={()=>setManageCols(false)} aria-label="Retour aux actions" className="mr-2 text-muted-foreground hover:text-foreground">←</button><span className="font-semibold text-foreground">Gérer les colonnes</span><button onClick={()=>queryMode?onColumnsChange?.(defaultVariableColumns(queryDraft.interfaces||[])):setHiddenCols([])} className="ml-auto text-[11.5px] text-[var(--app-accent)]">Tout afficher</button></div>
             <div className="max-h-[420px] overflow-auto scroll-thin p-2.5 space-y-3">
-              {GRID_GROUPS.map(group=><section key={group.k} aria-label={group.l}><div className="px-1 mb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{group.l}</div>{GRID_COLS.filter(c=>c.g===group.k).map(c=><label key={c.k} className={`h-7 px-1 flex items-center gap-2 rounded hover:bg-surface-2 ${c.required?'cursor-not-allowed':'cursor-pointer'}`}><input type="checkbox" aria-label={c.l} checked={!hiddenCols.includes(c.k)} disabled={c.required} onChange={()=>toggleCol(c)}/><span>{c.l}</span>{c.required&&<span className="ml-auto text-[11px] text-subtle">obligatoire</span>}</label>)}</section>)}
+            {queryMode?<><section aria-label="Base"><div className="px-1 mb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Base</div>{SESSION_QUERY_BASE_COLUMN_KEYS.map(key=>GRID_COLS.find(c=>c.k===key)).filter(Boolean).map(c=><label key={c.k} className="h-7 px-1 flex items-center gap-2 rounded cursor-not-allowed"><input type="checkbox" aria-label={c.l} checked disabled/><span>{c.l}</span><span className="ml-auto text-[11px] text-subtle">verrouillée</span></label>)}</section>{(queryDraft.interfaces||[]).map(name=><details key={name} open aria-label={name}><summary className="px-1 mb-1 cursor-pointer text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{name}</summary>{(SESSION_QUERY_INTERFACE_COLUMNS[name]||[]).map(([key,label])=>{const c=GRID_COLS.find(column=>column.k===key);return c?<label key={key} className="h-7 px-1 flex items-center gap-2 rounded hover:bg-surface-2 cursor-pointer"><input type="checkbox" aria-label={`${name} · ${label}`} checked={(queryDraft.variableColumns||[]).includes(key)} onChange={()=>toggleCol(c)}/><span>{label}</span></label>:null;})}</details>)}</>:GRID_GROUPS.map(group=><section key={group.k} aria-label={group.l}><div className="px-1 mb-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">{group.l}</div>{GRID_COLS.filter(c=>c.g===group.k&&!c.queryOnly).map(c=><label key={c.k} className={`h-7 px-1 flex items-center gap-2 rounded hover:bg-surface-2 ${c.required?'cursor-not-allowed':'cursor-pointer'}`}><input type="checkbox" aria-label={c.l} checked={!hiddenCols.includes(c.k)} disabled={c.required} onChange={()=>toggleCol(c)}/><span>{c.l}</span>{c.required&&<span className="ml-auto text-[11px] text-subtle">obligatoire</span>}</label>)}</section>)}
             </div>
-            <div className="p-2 border-t border-border text-[11px] text-muted-foreground">Les choix sont enregistrés dans ce navigateur.</div>
-          </div> : <div className="absolute right-0 top-8 z-40 w-52 bg-white border border-border rounded-lg shadow-lg py-1 text-[12.5px]">
+            <div className="p-2 border-t border-border text-[11px] text-muted-foreground">{queryMode?'Les choix sont enregistrés avec la requête.':'Les choix sont enregistrés dans ce navigateur.'}</div>
+          </div> : addProtocolColumn ? <div role="dialog" aria-label="Ajouter une colonne de protocole" className="absolute right-0 top-8 z-40 w-80 rounded-lg border border-border bg-white p-4 shadow-lg"><div className="flex items-center"><span className="font-semibold">Ajouter une colonne de protocole</span><button type="button" onClick={()=>setAddProtocolColumn(false)} className="ml-auto text-muted-foreground">×</button></div><div className="mt-3 rounded-md border border-dashed border-border bg-surface-2 p-3 text-[12px] text-muted-foreground">Arbre des paramètres, agrégation et calcul sur tout le résultat disponibles avec oiran-api 2.19.0.</div><button type="button" disabled className="mt-3 h-8 rounded-md border border-border px-3 text-[12px] opacity-50">GET /api/v1/query/catalog</button></div> : <div className="absolute right-0 top-8 z-40 w-60 bg-white border border-border rounded-lg shadow-lg py-1 text-[12.5px]">
             <button onClick={()=>setManageCols(true)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.cols} c="w-3.5 h-3.5 text-muted-foreground"/>Gérer les colonnes</button>
+            {queryMode&&<button onClick={()=>setAddProtocolColumn(true)} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.plus} c="w-3.5 h-3.5 text-muted-foreground"/>Ajouter une colonne de protocole</button>}
             <button onClick={()=>{setGrouped(g=>!g);closeMore();}} aria-pressed={grouped} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.cols} c="w-3.5 h-3.5 text-muted-foreground"/>{grouped?'Ne plus grouper':'Grouper par abonné'}</button>
             <button onClick={resetCols} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.cols} c="w-3.5 h-3.5 text-muted-foreground"/>Réinitialiser les colonnes</button>
             <button onClick={closeMore} className="w-full px-3 h-8 flex items-center gap-2 hover:bg-surface-2"><I d={ic.dl} c="w-3.5 h-3.5 text-muted-foreground"/>Exporter</button>
@@ -315,6 +344,7 @@ function Grid({rows,sel,setSel,conds,setConds,onEdit,height,identityMap={}}) {
         <table className="text-[12px] whitespace-nowrap border-separate border-spacing-0 table-fixed" style={{width:visibleCols.reduce((a,c)=>a+W(c),0)}}>
           <colgroup>{visibleCols.map(c=><col key={c.k} style={{width:W(c)}}/>)}</colgroup>
           <thead className="sticky top-0 z-20">
+            {queryMode&&<tr>{queryHeaderGroups.map(group=><th key={group.label} colSpan={group.count} className="h-6 border-b border-r border-border bg-white px-2 text-left text-[10.5px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{group.label}</th>)}</tr>}
             <tr>{visibleCols.map((c,k) => <th key={c.k} aria-sort={sort?.[0]===c.k?(sort[1]>0?'ascending':'descending'):'none'} onClick={()=>setSort(s=>s?.[0]===c.k?(s[1]>0?[c.k,-1]:null):[c.k,1])} className={`relative h-7 px-2 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border cursor-pointer select-none hover:text-foreground ${k===0?'sticky left-0 z-30 border-r':''}`}>
               <span className="inline-flex items-center gap-1 truncate max-w-full">{c.lock && <I d={ic.lock} c="w-3 h-3"/>}{c.l}{sort?.[0]===c.k && <span className="text-foreground">{sort[1]>0?'↑':'↓'}</span>}</span>
               <span onMouseDown={e=>resize(e,c)} onClick={e=>e.stopPropagation()} onDoubleClick={e=>{e.stopPropagation();setWidths(w=>{const n={...w};delete n[c.k];return n;});}} title="Redimensionner" className="absolute right-0 top-0 h-full w-1.5 cursor-col-resize hover:bg-[var(--app-accent)]/40"/></th>)}</tr>
@@ -921,7 +951,7 @@ const matchQ = (s,conds,join) => { const r = conds.map(c=>c[2]==='≠'?!test(s,c
 const TPLS = [['Trace','Toutes les sessions d’un UE'],['Parcourir','Une ligne par session'],['Inspecter','Une ligne par message'],['Capture','Extrait pcap d’une session']];
 const SCOPES = ['Run 5G #482','lte-run-976bd44b','Captures c41 → c43','Fenêtre horaire'];
 const GROUPS = ['Aucun','Procédure','Résultat','Cause','Cellule','UE'];
-const mkDraft = (o={}) => ({tpl:'Parcourir',scope:'',conds:[],join:'ET',group:'Aucun',name:'',rat:'5G SA',nodes:[],periodMode:'period',period:'1 h',interfaces:[],...o});
+const mkDraft = (o={}) => ({tpl:'Parcourir',scope:'',conds:[],join:'ET',group:'Aucun',name:'',rat:'5G SA',nodes:[],periodMode:'period',period:'1 h',interfaces:[],variableColumns:[],customColumns:[],...o});
 
 function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
   const [q,setQ] = useState(''); const [flt,setFlt] = useState('Toutes');
@@ -1266,7 +1296,7 @@ function App() {
   const nameOf = c => `${c.length?c.map(x=>x[1]).join(' · '):'Toutes les sessions'}${demo ? ' · run 482' : ''}`;
   const patch = (id,o) => setTabs(ts=>ts.map(x=>x.id===id?{...x,...o}:x));
   const newTab = (draft=mkDraft(),title) => { const id='q'+Date.now(); setTabs(ts=>[...ts,{id,k:'Requête',n:title||'Nouvelle requête',conds:[],mode:'edit',draft,dirty:!!title,demoOnly:demo}]); setTabId(id); setAview('tab'); };
-  const openSaved = q => { const id='q'+Date.now(); const c=q.c.map(y=>[y[0],y[1],y[2]||'=']); setTabs(ts=>[...ts,{id,k:'Requête',n:q.n,conds:c,join:'ET',mode:demo?'results':'edit',draft:mkDraft({tpl:q.g,scope:q.p,conds:c,name:q.n}),demoOnly:demo}]); setTabId(id); setAview('tab'); };
+  const openSaved = q => { const id='q'+Date.now(); const c=q.c.map(y=>[y[0],y[1],y[2]||'=']); const draft=q.draft?mkDraft({...q.draft,conds:c,name:q.n}):mkDraft({tpl:q.g,scope:q.p,conds:c,name:q.n}); setTabs(ts=>[...ts,{id,k:'Requête',n:q.n,conds:c,join:draft.join||'ET',mode:demo?'results':'edit',draft,demoOnly:demo}]); setTabId(id); setAview('tab'); };
   const editActive = () => { if (!active) return; patch(active.id,{mode:'edit',draft:active.draft||mkDraft({conds:active.conds,name:active.n,join:active.join||'ET'})}); };
   const setDraft = d => patch(active.id,{draft:d,dirty:true,n:d.name||'Nouvelle requête'});
   const runQuery = () => { const d=active.draft; const id=active.id;
@@ -1274,7 +1304,7 @@ function App() {
     sessionFilter.mutate(d,{onSuccess:response=>patch(id,{conds:d.conds,join:d.join,n:d.name||[d.rat,d.periodMode==='run'?d.scope:d.period].filter(Boolean).join(' · ')||nameOf(d.conds),mode:'results',ran:true,apiRows:demo?undefined:filterSessionRows(d,records(response.data,'sessions'))}),onError:e=>setRequestError(e.message)});
   };
   const displayAllSessions = () => {
-    const id='q'+Date.now(); const draft=mkDraft({name:'Toutes les sessions'});
+    const id='q'+Date.now(); const draft=mkDraft({name:'Toutes les sessions',legacyColumns:true});
     setRequestError('');
     sessionFilter.mutate(draft,{onSuccess:response=>{
       setTabs(ts=>[...ts,{id,k:'Requête',n:'Toutes les sessions',conds:[],join:'ET',mode:'results',ran:true,draft,dirty:false,demoOnly:demo,apiRows:demo?undefined:records(response.data,'sessions')}]);
@@ -1282,7 +1312,7 @@ function App() {
     },onError:e=>setRequestError(e.message)});
   };
   const saveQuery = () => { const d=active.draft; const n=d.name||nameOf(d.conds);
-    setSaved(sv=>[{n,g:d.tpl,p:d.scope,c:d.conds,last:"à l'instant",r:demo ? sourceRows.filter(x=>matchQ(x,d.conds,d.join)).length : '—',fav:false},...sv.filter(x=>x.n!==n)]);
+    setSaved(sv=>[{n,g:d.tpl,p:d.scope,c:d.conds,draft:d,last:"à l'instant",r:demo ? sourceRows.filter(x=>matchQ(x,d.conds,d.join)).length : '—',fav:false},...sv.filter(x=>x.n!==n)]);
     patch(active.id,{dirty:false,n,draft:{...d,name:n}}); };
   const cancelEdit = () => {
     if (active.ran || active.conds.length) { patch(active.id,{mode:'results'}); return; }
@@ -1346,7 +1376,7 @@ function App() {
       {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <SessionQueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">
         <main ref={mainRef} className={`flex-1 min-w-0 flex-col ${geoMax && selected && !geoHidden && !full ? 'hidden' : 'flex'}`}>
           {!full && !gridHidden && <>
-            <Grid rows={rows} sel={s?.id} setSel={setSel} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`} identityMap={listIdentityMap}/>
+            <Grid rows={rows} sel={s?.id} setSel={setSel} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`} identityMap={listIdentityMap} queryDraft={active?.draft} onColumnsChange={variableColumns=>active&&patch(active.id,{draft:{...active.draft,variableColumns},dirty:true})}/>
             <div onMouseDown={e=>drag(e,'h')} onDoubleClick={resetLayout} title="Glisser pour redimensionner · double-clic pour restaurer" className="group h-2 shrink-0 cursor-row-resize relative"><div className="absolute left-1/2 -translate-x-1/2 top-[3px] h-[2px] w-10 rounded-full bg-track group-hover:bg-[var(--app-accent)] group-hover:w-full transition-all"/></div>
           </>}
           <div ref={lowRef} className="flex-1 min-h-0 flex">

@@ -40,7 +40,7 @@ describe('main screens with simulated REST responses',()=>{
     fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
     await screen.findAllByText('ue-test');
     await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url).endsWith('/sessions/s1/callflow'))).toBe(true));
-    await screen.findAllByText('cc1 · 45');
+    await screen.findAllByText('Registration Accept');
     await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url).endsWith('/events/e1/provenance'))).toBe(true));
     expect(document.body.textContent).not.toContain('private');
     expect(document.body.textContent).not.toContain('198.51.100.10');
@@ -48,12 +48,53 @@ describe('main screens with simulated REST responses',()=>{
   });
   it('2.7.0 renders every session-query step without undefined scope buttons', async()=>{
     open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'}));
-    for (const name of ['Périmètre réseau','Période','Interface & protocole','Critères','Aperçu & exécuter']) {
+    for (const name of ['Périmètre réseau','Période','Interface & protocole','Critères','Colonnes','Aperçu & exécuter']) {
       fireEvent.click(screen.getByRole('button',{name:new RegExp(name)}));
       expect(screen.getAllByText(name).length).toBeGreaterThan(0);
     }
     expect(document.body.textContent).not.toContain('undefined');
     expect(screen.getByText(/disponible avec oiran-api 2.19.0/)).toBeInTheDocument();
+  });
+  it('2.7.0 locks the six base columns and derives three columns per N1/N2/N3 interface', async()=>{
+    const previousSessions=payloads['/sessions']; const previousFilter=payloads['/sessions/filter'];
+    payloads['/sessions']=[{...session,interfaces:['N1','N2','N3']}]; payloads['/sessions/filter']=[{...session,interfaces:['N1','N2','N3']}];
+    try {
+      open('sessions'); await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url).startsWith('/api/v1/sessions?'))).toBe(true)); fireEvent.click(screen.getByRole('button',{name:/^Nouvelle requête$/}));
+      fireEvent.click(screen.getByRole('button',{name:/Interface & protocole/}));
+      fireEvent.click(await screen.findByRole('button',{name:'N1'}));
+      fireEvent.click(screen.getByRole('button',{name:/Colonnes/}));
+      for(const label of ['Début','Résultat','Cause','RAT','Abonné (IMSI)','Durée']) expect(screen.getByRole('checkbox',{name:label})).toBeDisabled();
+      for(const label of ['N1 · Procédure NAS','N1 · Cause 5GMM/5GSM','N1 · TMSI / GUTI']) expect(screen.getByRole('checkbox',{name:label})).toBeChecked();
+      expect(screen.getAllByRole('checkbox')).toHaveLength(10); // Démo + base 6 + N1 3
+      fireEvent.click(screen.getByRole('button',{name:/Interface & protocole/}));
+      fireEvent.click(screen.getByRole('button',{name:'N2'})); fireEvent.click(screen.getByRole('button',{name:'N3'}));
+      fireEvent.click(screen.getByRole('button',{name:/Colonnes/}));
+      for(const label of ['N2 · AMF','N2 · gNB','N2 · Cause NGAP','N3 · Volume UL/DL','N3 · Débit max','N3 · QFI / 5QI']) expect(screen.getByRole('checkbox',{name:label})).toBeChecked();
+      expect(screen.getAllByRole('checkbox')).toHaveLength(16); // Démo + base 6 + variables 9
+    } finally { payloads['/sessions']=previousSessions; payloads['/sessions/filter']=previousFilter; }
+  });
+  it('2.7.0 opens protocol-column management after results without rerunning the filter', async()=>{
+    open('sessions'); fireEvent.click(screen.getByRole('button',{name:/^Nouvelle requête$/})); fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
+    await screen.findAllByText('ue-test');
+    const before=fetcher.mock.calls.filter(([url,options])=>String(url)==='/api/v1/sessions/filter'&&options.method==='POST').length;
+    fireEvent.click(screen.getByTitle("Plus d'actions")); fireEvent.click(screen.getByRole('button',{name:'Ajouter une colonne de protocole'}));
+    expect(screen.getByRole('dialog',{name:'Ajouter une colonne de protocole'})).toHaveTextContent('disponibles avec oiran-api 2.19.0');
+    const after=fetcher.mock.calls.filter(([url,options])=>String(url)==='/api/v1/sessions/filter'&&options.method==='POST').length;
+    expect(after).toBe(before);
+  });
+  it('2.7.0 restores column choices with a saved query', async()=>{
+    const previousSessions=payloads['/sessions']; payloads['/sessions']=[{...session,interfaces:['N1']}];
+    try {
+      open('sessions'); await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url).startsWith('/api/v1/sessions?'))).toBe(true)); fireEvent.click(screen.getByRole('button',{name:/^Nouvelle requête$/}));
+      fireEvent.change(screen.getByPlaceholderText('Nouvelle requête'),{target:{value:'Colonnes sauvegardées'}});
+      fireEvent.click(screen.getByRole('button',{name:/Interface & protocole/})); fireEvent.click(await screen.findByRole('button',{name:'N1'}));
+      fireEvent.click(screen.getByRole('button',{name:/Colonnes/})); fireEvent.click(screen.getByRole('checkbox',{name:'N1 · Cause 5GMM/5GSM'}));
+      fireEvent.click(screen.getByRole('button',{name:/Aperçu & exécuter/})); fireEvent.click(screen.getByRole('button',{name:'Enregistrer'}));
+      fireEvent.click(screen.getByTitle('Requêtes')); const saved=await screen.findAllByText('Colonnes sauvegardées'); fireEvent.click(saved.at(-1)!);
+      fireEvent.click(screen.getByRole('button',{name:/Colonnes/}));
+      expect(screen.getByRole('checkbox',{name:'N1 · Procédure NAS'})).toBeChecked();
+      expect(screen.getByRole('checkbox',{name:'N1 · Cause 5GMM/5GSM'})).not.toBeChecked();
+    } finally { payloads['/sessions']=previousSessions; }
   });
   it('2.7.0 turns a direct IMSI search into the real identity filter body', async()=>{
     open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'}));
@@ -112,7 +153,7 @@ describe('main screens with simulated REST responses',()=>{
     expect(manager).toHaveTextContent('Corrélation multi-protocole');
     expect(screen.getByRole('checkbox',{name:'Numéro'})).toBeDisabled();
     fireEvent.click(screen.getByRole('checkbox',{name:'Cause'}));
-    expect(screen.queryByRole('columnheader',{name:'Cause'})).not.toBeInTheDocument();
+    await waitFor(()=>expect(screen.queryByRole('columnheader',{name:'Cause'})).not.toBeInTheDocument());
     fireEvent.click(screen.getByLabelText('Retour aux actions'));
     fireEvent.click(screen.getByRole('button',{name:'Réinitialiser les colonnes'}));
     expect(screen.getByRole('columnheader',{name:'Cause'})).toBeInTheDocument();
@@ -121,7 +162,7 @@ describe('main screens with simulated REST responses',()=>{
     const previousSessions=payloads['/sessions']; const previousFilter=payloads['/sessions/filter'];
     payloads['/sessions']=[{...session,session_id:undefined}]; payloads['/sessions/filter']=[{...session,session_id:undefined}];
     try {
-      open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'})); fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
+      open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Afficher toutes les sessions'}));
       const absent=await screen.findByText('identifiant absent'); fireEvent.click(absent);
       expect(fetcher.mock.calls.some(([url])=>/\/sessions\/(row-|undefined|null)/.test(String(url)))).toBe(false);
     } finally { payloads['/sessions']=previousSessions; payloads['/sessions/filter']=previousFilter; }

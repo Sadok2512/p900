@@ -142,6 +142,9 @@ export type Draft = {
   from?: string;
   to?: string;
   interfaces?: string[];
+  variableColumns?: string[];
+  customColumns?: RecordData[];
+  legacyColumns?: boolean;
 };
 export function querySupport(d: Draft, demo: boolean): string | null {
   if (demo) return null;
