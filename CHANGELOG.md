@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.7.0 — 2026-11-16 — Nouvelle UI « Requête de sessions »
+
+- Remplace l’éditeur historique par un assistant en cinq étapes inspiré de la maquette fournie : Périmètre réseau, Période, Interface & protocole, Critères, puis Aperçu & exécuter. La sortie reste la grille de sessions Analyzer existante.
+- Toutes les options observées (éléments réseau, interfaces et runs) viennent des réponses API. Les champs absents ne sont plus convertis en boutons « undefined ».
+- Branche le contrat réel de `POST /api/v1/sessions/filter` : `messages[]`, `causes[]`, `identity`, `failures_only`, pagination par curseur. RAT, période et éléments observés affinent localement les seules sessions retournées par l’API.
+- La recherche directe IMSI crée une condition identité sans afficher la valeur dans les récapitulatifs. Le nom de paramètre, l’arbre, les valeurs, `matched_criteria`, le catalogue et le compte `limit: 0` restent désactivés avec la mention « disponible avec oiran-api 2.19.0 ».
+- Site / Cellule restent explicitement hors périmètre V2. Aucune donnée issue de la maquette n’est embarquée.
+
 ## 2.6.3 — 2026-11-16 — Live : plus de plantage à l'armement d'une trace IMSI (patch)
 
 - Constat Sadok (« This page didn't load » au clic sur Rechercher, IMSI UE-201) : en mode réel, la trace est ARMÉE avant le premier event `ue_info` ; `UeInfo` lisait `ue.tech` / `ue.proof` sur `ue = null` → exception → page entière tombée. Garde `ue?.` + technologie par défaut 5G.

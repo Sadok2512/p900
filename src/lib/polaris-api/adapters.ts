@@ -129,23 +129,67 @@ export function healthKpi(id: string, m?: Metrics | null, s?: Safety | null): nu
   }
   return null;
 }
-export type Draft = { tpl?: string; group?: string; scope?: string; join?: string; conds: string[][] };
+export type Draft = {
+  tpl?: string;
+  group?: string;
+  scope?: string;
+  join?: string;
+  conds: string[][];
+  rat?: string;
+  nodes?: string[];
+  periodMode?: string;
+  period?: string;
+  from?: string;
+  to?: string;
+  interfaces?: string[];
+};
 export function querySupport(d: Draft, demo: boolean): string | null {
   if (demo) return null;
   if (d.join === 'OU' || d.conds.some(c => c[2] === '≠')) return 'Non disponible : backend à venir (OU / ≠)';
   if (d.group && d.group !== 'Aucun') return 'Non disponible : backend à venir (Regrouper par)';
   if (d.tpl && d.tpl !== 'Parcourir') return 'Non disponible : backend à venir (Gabarit)';
-  if (d.conds.some(c => !['Message', 'Cause', 'Interface', 'UE'].includes(c[0] ?? ''))) return 'Non disponible : backend à venir (condition)';
-  const fields = d.conds.map(c => c[0]);
-  if (new Set(fields).size !== fields.length) return 'Non disponible : backend à venir (conditions multiples)';
+  if (d.conds.some(c => !['Message', 'Cause', 'Interface', 'IMSI', 'Résultat', 'RAT'].includes(c[0] ?? ''))) return 'Non disponible : backend à venir (condition)';
   return null;
 }
 export function filterBody(d: Draft) {
-  const map: Record<string, string> = { Message: 'message', Cause: 'cause', Interface: 'interface', UE: 'pseudonym' };
-  const body: Record<string, string> = {};
-  for (const c of d.conds) { const field = map[c[0] ?? '']; if (field && c[1]) body[field] = c[1]; }
-  if (d.scope) body['dataset_id'] = d.scope;
+  const body: Record<string, unknown> = {};
+  const messages = d.conds.filter(c => c[0] === 'Message' && c[1]).map(c => ({ name: c[1], ...(c[3] ? { interface: c[3] } : {}) }));
+  const causes = d.conds.filter(c => c[0] === 'Cause' && c[1]).map(c => ({ value: c[1] }));
+  const identity = d.conds.find(c => c[0] === 'IMSI' && c[1]);
+  if (messages.length) body['messages'] = messages;
+  if (causes.length) body['causes'] = causes;
+  if (identity) body['identity'] = { kind: 'supi_or_imsi', value: identity[1] };
+  if (d.conds.some(c => c[0] === 'Résultat' && /échec|failed|failure/i.test(c[1] ?? ''))) body['failures_only'] = true;
   return body;
+}
+
+export function filterSessionRows<T extends RecordData>(draft: Draft, rows: T[], now = Date.now()): T[] {
+  const d = draft ?? { conds: [] };
+  const windows: Record<string, number> = { '15 min': 15 * 60_000, '1 h': 60 * 60_000, '24 h': 24 * 60 * 60_000 };
+  const periodWindow = d.period ? windows[d.period] : undefined;
+  const from = d.period === 'personnalisée' && d.from ? Date.parse(d.from) : periodWindow != null ? now - periodWindow : null;
+  const to = d.period === 'personnalisée' && d.to ? Date.parse(d.to) : null;
+  return rows.filter(row => {
+    const technology = String(row['technology'] ?? row['rat'] ?? '');
+    if (d.rat && technology && technology !== d.rat) return false;
+    const nodes = [row['serving_ran_node'], row['core_node'], row['serving_node']].filter(Boolean).map(String);
+    if (d.nodes?.length && !d.nodes.every(node => nodes.includes(node))) return false;
+    const interfaces = Array.isArray(row['interfaces']) ? row['interfaces'].map(String) : [];
+    if (d.interfaces?.length && !d.interfaces.every(name => interfaces.includes(name))) return false;
+    const conditionInterfaces = d.conds.filter(c => c[0] === 'Interface' && !!c[1]).map(c => String(c[1]));
+    if (conditionInterfaces.length && !conditionInterfaces.every(name => interfaces.includes(name))) return false;
+    const conditionRat = d.conds.find(c => c[0] === 'RAT' && c[1])?.[1];
+    if (conditionRat && technology && technology !== conditionRat) return false;
+    if (d.periodMode === 'run' && d.scope && row['dataset_id'] != null && String(row['dataset_id']) !== String(d.scope)) return false;
+    const rawTimestamp = row['start_timestamp'];
+    const numericTimestamp = typeof rawTimestamp === 'number' ? rawTimestamp : typeof rawTimestamp === 'string' && /^\d+(?:\.\d+)?Z?$/.test(rawTimestamp) ? Number(rawTimestamp.replace(/Z$/, '')) : NaN;
+    const observed = Number.isFinite(numericTimestamp)
+      ? numericTimestamp > 1e18 ? numericTimestamp / 1e6 : numericTimestamp > 1e15 ? numericTimestamp / 1e3 : numericTimestamp > 1e12 ? numericTimestamp : numericTimestamp * 1e3
+      : Date.parse(String(rawTimestamp ?? ''));
+    if (Number.isFinite(observed) && from != null && Number.isFinite(from) && observed < from) return false;
+    if (Number.isFinite(observed) && to != null && Number.isFinite(to) && observed > to) return false;
+    return true;
+  });
 }
 
 /**

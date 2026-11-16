@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { available, toLegacySession, toLegacyCallflow, healthKpi, querySupport, filterBody, versionComponents } from './adapters';
+import { available, toLegacySession, toLegacyCallflow, healthKpi, querySupport, filterBody, filterSessionRows, versionComponents } from './adapters';
 import { demoResponse, shouldUseDemo } from './demo';
 describe('POLARIS data rules', () => {
   it('uses existing isolated demo rows only when demo is on', () => {
@@ -118,7 +118,18 @@ describe('POLARIS data rules', () => {
     expect(querySupport({conds:[['Cause','#27','≠']]},false)).not.toBeNull();
     expect(querySupport({conds:[],tpl:'Capture'},false)).not.toBeNull();
     expect(querySupport({conds:[['Interface','N4','=']]},false)).toBeNull();
-    expect(filterBody({conds:[['Interface','N4'],['UE','ue-7f3a']]})).toEqual({interface:'N4',pseudonym:'ue-7f3a'});
+    expect(filterBody({conds:[['Message','SessionEstablishmentRequest','=','N4'],['Cause','#27'],['IMSI','001010000000201'],['Résultat','Échec']]})).toEqual({
+      messages:[{name:'SessionEstablishmentRequest',interface:'N4'}],
+      causes:[{value:'#27'}],
+      identity:{kind:'supi_or_imsi',value:'001010000000201'},
+      failures_only:true,
+    });
+    const now=Date.parse('2026-11-16T10:00:00Z');
+    expect(filterSessionRows({conds:[],rat:'5G SA',period:'1 h'},[
+      {session_id:'recent',technology:'5G SA',start_timestamp:`${now/1000-60}.123Z`},
+      {session_id:'old',technology:'5G SA',start_timestamp:now/1000-7200},
+      {session_id:'lte',technology:'LTE',start_timestamp:now/1000-60},
+    ],now).map(row=>row.session_id)).toEqual(['recent']);
   });
 });
 

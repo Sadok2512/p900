@@ -46,6 +46,24 @@ describe('main screens with simulated REST responses',()=>{
     expect(document.body.textContent).not.toContain('198.51.100.10');
     expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/sessions/filter' && options.method==='POST')).toBe(true);
   });
+  it('2.7.0 renders every session-query step without undefined scope buttons', async()=>{
+    open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'}));
+    for (const name of ['Périmètre réseau','Période','Interface & protocole','Critères','Aperçu & exécuter']) {
+      fireEvent.click(screen.getByRole('button',{name:new RegExp(name)}));
+      expect(screen.getAllByText(name).length).toBeGreaterThan(0);
+    }
+    expect(document.body.textContent).not.toContain('undefined');
+    expect(screen.getByText(/disponible avec oiran-api 2.19.0/)).toBeInTheDocument();
+  });
+  it('2.7.0 turns a direct IMSI search into the real identity filter body', async()=>{
+    open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'}));
+    fireEvent.change(screen.getByRole('textbox',{name:'Recherche directe IMSI ou paramètre'}),{target:{value:clearSubscriber}});
+    fireEvent.click(screen.getByRole('button',{name:/ajouter une condition identité/i}));
+    fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
+    await waitFor(()=>expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/sessions/filter' && options.method==='POST')).toBe(true));
+    const request=fetcher.mock.calls.find(([url,options])=>String(url)==='/api/v1/sessions/filter' && options.method==='POST');
+    expect(JSON.parse(String(request?.[1]?.body))).toEqual({identity:{kind:'supi_or_imsi',value:clearSubscriber},limit:100});
+  });
   it('loads clear identities only for the visible operator page', async()=>{
     open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Afficher toutes les sessions'}));
     expect((await screen.findAllByText(clearSubscriber)).length).toBeGreaterThan(0);
@@ -251,7 +269,7 @@ describe('main screens with simulated REST responses',()=>{
     payloads['/live/traces']=previous;
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.6.3').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.6.3')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.7.0').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.7.0')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard sits under KPI and is gone from the top menu', async()=>{
     open('kpi');

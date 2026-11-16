@@ -1,0 +1,94 @@
+import React, { useMemo, useState } from 'react';
+import { records, useDatasets } from '@/lib/polaris-api';
+
+const STEPS = [
+  ['Périmètre réseau', 'Choisissez la technologie et les éléments de réseau dont les traces sont observées. Site et cellule arrivent en V2.'],
+  ['Période', "Cadrez la recherche sur l’horaire de capture, ou sur un run de scénario."],
+  ['Interface & protocole', 'Choisissez les interfaces réellement observées dans le périmètre.'],
+  ['Critères', 'La session contient… un message ou une identité. Les paramètres arrivent avec oiran-api 2.19.0.'],
+  ['Aperçu & exécuter', 'Vérifiez la requête, puis enregistrez ou exécutez. La sortie est toujours une liste de sessions.'],
+];
+
+const unique = values => [...new Set(values.filter(value => value != null && String(value).trim() && String(value) !== '—' && String(value) !== 'undefined').map(String))];
+const Button = ({active=false,disabled=false,children,...props}) => <button type="button" disabled={disabled} {...props} className={`h-8 px-3 rounded-md border text-[12.5px] transition ${active?'border-[var(--app-accent)] bg-[var(--app-accent)] text-white':'border-border bg-white text-ink-2 hover:border-border-strong'} disabled:cursor-not-allowed disabled:opacity-45`}>{children}</button>;
+const Icon = ({children}) => <span className="w-5 h-5 rounded-full bg-muted text-[11px] font-semibold grid place-items-center text-ink-2 shrink-0">{children}</span>;
+
+function normalizeDraft(draft) {
+  return {
+    ...draft,
+    rat: draft.rat || '5G SA',
+    nodes: Array.isArray(draft.nodes) ? draft.nodes : [],
+    periodMode: draft.periodMode || 'period',
+    period: draft.period || '1 h',
+    interfaces: Array.isArray(draft.interfaces) ? draft.interfaces : [],
+    conds: Array.isArray(draft.conds) ? draft.conds : [],
+    join: draft.join || 'ET',
+  };
+}
+
+export default function SessionQueryEditor({draft,setDraft,dirty,run,save,cancel,sessionRows=[]}) {
+  const d = normalizeDraft(draft);
+  const datasets = useDatasets();
+  const [step,setStep] = useState(0);
+  const [search,setSearch] = useState('');
+  const [message,setMessage] = useState('');
+  const [messageInterface,setMessageInterface] = useState('');
+  const [customFrom,setCustomFrom] = useState('');
+  const [customTo,setCustomTo] = useState('');
+  const up = patch => setDraft({...d,...patch});
+  const toggle = (key,value) => up({[key]:d[key].includes(value)?d[key].filter(item=>item!==value):[...d[key],value]});
+
+  const rowsForRat = useMemo(()=>sessionRows.filter(row=>!row.rat || row.rat===d.rat || row.technology===d.rat),[sessionRows,d.rat]);
+  const observedNodes = useMemo(()=>unique(rowsForRat.flatMap(row=>[row.serving_ran_node,row.core_node,row.serving_node])),[rowsForRat]);
+  const observedInterfaces = useMemo(()=>unique(rowsForRat.flatMap(row=>Array.isArray(row.interfaces)?row.interfaces:[])).sort(),[rowsForRat]);
+  const runOptions = useMemo(()=>records(datasets.data?.data,'datasets').map(item=>({
+    id:item.dataset_id ?? item.id ?? null,
+    label:item.name ?? item.label ?? item.dataset_id ?? item.id ?? null,
+  })).filter(item=>item.id && item.label),[datasets.data]);
+  const digits = search.replace(/\D/g,'');
+  const identitySearch = digits.length >= 5 || /^imsi\b/i.test(search.trim());
+  const parameterSearch = search.trim() && !identitySearch;
+  const addIdentity = () => {
+    if (!digits) return;
+    up({conds:[...d.conds,['IMSI',digits,'=']]});
+    setSearch('');
+    setStep(3);
+  };
+  const addMessage = () => {
+    const value=message.trim(); if(!value) return;
+    up({conds:[...d.conds,['Message',value,'=',messageInterface]]});
+    setMessage('');
+  };
+  const removeCondition = index => up({conds:d.conds.filter((_,i)=>i!==index)});
+
+  const scopeLabel = d.periodMode==='run' ? (runOptions.find(item=>String(item.id)===String(d.scope))?.label || 'Run non sélectionné') : d.period;
+  const summary = [d.rat,...d.nodes,scopeLabel,...d.interfaces,...d.conds.map(c=>`${c[0]} ${c[2]||'='} ${c[0]==='IMSI'?'••••'+String(c[1]).slice(-4):c[1]}`)];
+
+  const stepBody = [
+    <div key="network" className="space-y-6">
+      <section><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-2">Technologie (RAT)</div><div className="flex gap-2">{['5G SA','LTE'].map(rat=><Button key={rat} active={d.rat===rat} onClick={()=>up({rat,nodes:[],interfaces:[]})}>{rat}</Button>)}</div></section>
+      <section><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-2">Éléments de réseau observés</div><div className="flex flex-wrap gap-2">{observedNodes.map(node=><Button key={node} active={d.nodes.includes(node)} onClick={()=>toggle('nodes',node)}>{node}</Button>)}{!observedNodes.length&&<span className="text-[12.5px] text-muted-foreground">Aucun élément remonté par les sessions observées.</span>}</div><p className="mt-2 text-[11.5px] text-subtle">Site / Cellule : V2 — aucune valeur inventée.</p></section>
+    </div>,
+    <div key="period" className="space-y-5">
+      <div className="inline-flex rounded-lg border border-border p-1">{[['period','Plage horaire'],['run','Run de scénario']].map(([mode,label])=><button type="button" key={mode} onClick={()=>up({periodMode:mode,scope:mode==='run'?d.scope:''})} className={`h-8 px-3 rounded-md text-[12.5px] ${d.periodMode===mode?'bg-[var(--app-accent)] text-white font-semibold':'text-muted-foreground'}`}>{label}</button>)}</div>
+      {d.periodMode==='period'?<><div className="flex flex-wrap gap-2">{['15 min','1 h','24 h','personnalisée'].map(period=><Button key={period} active={d.period===period} onClick={()=>up({period})}>{period}</Button>)}</div>{d.period==='personnalisée'&&<div className="flex flex-wrap gap-3"><label className="text-[12px] text-muted-foreground">Début<input aria-label="Début personnalisé" type="datetime-local" value={customFrom} onChange={e=>{setCustomFrom(e.target.value);up({from:e.target.value});}} className="block mt-1 h-9 rounded-md border border-border px-2 text-foreground"/></label><label className="text-[12px] text-muted-foreground">Fin<input aria-label="Fin personnalisée" type="datetime-local" value={customTo} onChange={e=>{setCustomTo(e.target.value);up({to:e.target.value});}} className="block mt-1 h-9 rounded-md border border-border px-2 text-foreground"/></label></div>}</>:<div>{runOptions.length?<select aria-label="Run de scénario" value={d.scope||''} onChange={e=>up({scope:e.target.value})} className="h-9 min-w-[320px] rounded-md border border-border bg-white px-3 text-[12.5px]"><option value="">Sélectionner un run observé</option>{runOptions.map(item=><option key={item.id} value={item.id}>{item.label}</option>)}</select>:<div className="text-[12.5px] text-muted-foreground">Aucun run exploitable renvoyé par l’API.</div>}</div>}
+    </div>,
+    <div key="interfaces" className="space-y-4"><div><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-2">Interfaces observées · {d.rat}</div><div className="flex flex-wrap gap-2">{observedInterfaces.map(name=><Button key={name} active={d.interfaces.includes(name)} onClick={()=>toggle('interfaces',name)}>{name}</Button>)}{!observedInterfaces.length&&<span className="text-[12.5px] text-muted-foreground">Aucune interface observée.</span>}</div></div><p className="text-[11.5px] text-subtle">Aucune sélection = toutes les interfaces. Le protocole reste celui observé par l’API ; aucune correspondance n’est fabriquée.</p></div>,
+    <div key="criteria" className="space-y-5">
+      <div className="flex items-center gap-2"><span className="text-[12px] text-muted-foreground">Critères reliés par</span><Button active={d.join==='ET'} onClick={()=>up({join:'ET'})}>ET</Button><Button disabled>OU</Button><span className="text-[11.5px] text-subtle">OU disponible avec oiran-api 2.19.0</span></div>
+      <div className="flex flex-wrap gap-2 min-h-8">{d.conds.length?d.conds.map((c,index)=><span key={`${c[0]}-${index}`} className="inline-flex items-center rounded-md border border-border bg-surface-2 text-[12px]"><span className="px-2.5 py-1.5 font-mono">{c[0]} {c[0]==='IMSI'?'••••'+String(c[1]).slice(-4):c[1]}</span><button type="button" aria-label={`Retirer critère ${index+1}`} onClick={()=>removeCondition(index)} className="h-7 w-7 border-l border-border text-muted-foreground hover:text-danger">×</button></span>):<span className="text-[12.5px] text-subtle">Aucun critère : toutes les sessions du périmètre.</span>}</div>
+      <section className="rounded-lg border border-border p-4"><div className="font-semibold text-[13px] mb-3">La session contient · Message</div><div className="flex flex-wrap gap-2"><input aria-label="Nom du message" value={message} onChange={e=>setMessage(e.target.value)} placeholder="Nom exact observé" className="h-9 min-w-[280px] flex-1 rounded-md border border-border px-3 text-[12.5px]"/><select aria-label="Interface du message" value={messageInterface} onChange={e=>setMessageInterface(e.target.value)} className="h-9 rounded-md border border-border bg-white px-3 text-[12.5px]"><option value="">Toutes interfaces</option>{observedInterfaces.map(name=><option key={name}>{name}</option>)}</select><Button disabled={!message.trim()} onClick={addMessage}>Ajouter le message</Button></div></section>
+      <section aria-disabled="true" className="rounded-lg border border-dashed border-border p-4 bg-surface-2 opacity-70"><div className="font-semibold text-[13px]">La session contient · Paramètre</div><div className="mt-1 text-[12px] text-muted-foreground">Arbre, valeurs et critères paramètre disponibles avec oiran-api 2.19.0.</div><button type="button" disabled className="mt-3 h-8 px-3 rounded-md border border-border bg-white text-[12px]">Charger GET /api/v1/query/catalog</button></section>
+    </div>,
+    <div key="review" className="space-y-5"><div><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-2">Récapitulatif</div><div className="flex flex-wrap gap-2">{summary.map((value,index)=><span key={`${value}-${index}`} className="rounded-full border border-border bg-surface-2 px-3 py-1.5 text-[12px]">{value}</span>)}</div></div><div className="rounded-lg border border-dashed border-border p-4 bg-surface-2"><div className="text-[12px] font-semibold">Sessions correspondantes</div><div className="mt-1 text-[12px] text-muted-foreground">Compte via <code>limit: 0</code> disponible avec oiran-api 2.19.0. L’exécution charge la liste réelle paginée.</div></div><div className="flex flex-wrap items-center gap-2"><input aria-label="Nom de la requête" value={d.name||''} onChange={e=>up({name:e.target.value})} placeholder="Nom de la requête" className="h-9 min-w-[280px] rounded-md border border-border px-3 text-[12.5px]"/><Button onClick={save}>Enregistrer</Button><button type="button" onClick={run} className="h-9 px-5 rounded-md bg-[var(--app-accent)] text-white text-[13px] font-semibold">Exécuter →</button></div></div>,
+  ][step];
+
+  return <div className="flex-1 min-h-0 overflow-auto scroll-thin bg-surface-2"><div className="w-full px-8 py-6">
+    <header className="rounded-xl border border-border bg-white px-6 py-5"><div className="flex flex-wrap items-start gap-4"><div><div className="text-[12px] text-muted-foreground">POLARIS Analyzer · Requête de sessions</div><input value={d.name||''} onChange={e=>up({name:e.target.value})} placeholder="Nouvelle requête" className="mt-1 w-[520px] max-w-full bg-transparent text-[24px] font-semibold tracking-[-0.02em] outline-none"/><p className="mt-1 text-[13px] text-muted-foreground">La sortie est toujours une liste de sessions.</p></div>{dirty&&<span className="ml-auto text-[12px] text-warning">● Modifications non enregistrées</span>}</div>
+      <div className="relative mt-5"><input aria-label="Recherche directe IMSI ou paramètre" value={search} onChange={e=>setSearch(e.target.value)} placeholder="Recherche directe : IMSI ou nom de paramètre" className="h-10 w-full rounded-lg border border-border bg-white px-3 text-[13px] outline-none focus:border-[var(--app-accent)]"/>{search.trim()&&<div className="absolute inset-x-0 top-11 z-20 rounded-lg border border-border bg-white p-2 shadow-lg">{identitySearch?<button type="button" onClick={addIdentity} className="w-full rounded-md px-3 py-2 text-left text-[12.5px] hover:bg-surface-2"><b>Identité</b> · IMSI se terminant par ••••{digits.slice(-4)} → ajouter une condition identité</button>:parameterSearch?<div className="rounded-md px-3 py-2 text-[12.5px] text-muted-foreground">Catalogue de paramètres disponible avec oiran-api 2.19.0 — aucune valeur suggérée localement.</div>:null}</div>}</div>
+    </header>
+    <div className="mt-4 grid gap-4 lg:grid-cols-[250px_minmax(0,1fr)]"><aside className="rounded-xl border border-border bg-white p-4"><div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground">Progression</div><ol className="mt-3 space-y-1">{STEPS.map(([title],index)=><li key={title}><button type="button" onClick={()=>setStep(index)} aria-current={step===index?'step':undefined} className={`w-full flex items-center gap-2 rounded-md px-2 py-2 text-left text-[12.5px] ${step===index?'bg-brand-soft font-semibold text-[var(--app-accent)]':'text-muted-foreground hover:bg-surface-2'}`}><Icon>{index+1}</Icon>{title}</button></li>)}</ol></aside>
+      <main className="rounded-xl border border-border bg-white p-6"><div className="mb-6"><div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--app-accent)]">Étape {String(step+1).padStart(2,'0')} / 05</div><h1 className="mt-1 text-[22px] font-semibold">{STEPS[step][0]}</h1><p className="mt-1 text-[13px] text-muted-foreground">{STEPS[step][1]}</p></div>{stepBody}</main></div>
+    <footer className="sticky bottom-0 mt-4 flex items-center gap-2 rounded-xl border border-border bg-white/95 p-3 shadow-sm backdrop-blur"><button type="button" onClick={cancel} className="h-9 px-3 rounded-md border border-border text-[12.5px]">← Retour aux requêtes</button><button type="button" disabled={step===0} onClick={()=>setStep(value=>Math.max(0,value-1))} className="ml-auto h-9 px-3 rounded-md border border-border text-[12.5px] disabled:opacity-40">← Retour</button>{step<4?<button type="button" onClick={()=>setStep(value=>Math.min(4,value+1))} className="h-9 px-4 rounded-md bg-[var(--app-accent)] text-white text-[12.5px] font-semibold">Suivant →</button>:null}<button type="button" onClick={run} className="h-9 px-4 rounded-md bg-[var(--app-accent)] text-white text-[12.5px] font-semibold">Exécuter la requête</button></footer>
+  </div></div>;
+}

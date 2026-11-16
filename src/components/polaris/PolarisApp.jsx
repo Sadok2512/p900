@@ -2,7 +2,7 @@ import KpiModule from './kpi/KpiModule';
 import { ConditionBadge } from './ui/ConditionBadge';
 import { conditionTone } from '@/lib/polaris-ui/conditionTone';
 import LiveModule from './live/LiveModule';
-import { useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useSessionIdentities, usePacketDissection, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, versionComponents, decoderVersions, topBarLiveIndicator, identityValue, identityProofs, observedIdentity } from '@/lib/polaris-api';
+import { useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useSessionIdentities, usePacketDissection, useEvent, useProvenance, usePackets, useCorrelationRules, apiPath, redact, records, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, filterSessionRows, versionComponents, decoderVersions, topBarLiveIndicator, identityValue, identityProofs, observedIdentity } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
 import Administration from './admin/Administration';
@@ -12,6 +12,7 @@ import ProbeManagement from './admin/ProbeManagement';
 import { loadHidden, saveHidden, toggleHidden, isVisible, sanitizeHidden } from './admin/modules';
 import SubscriberJourney, { OtherSessions } from './analyzer/SubscriberJourney';
 import GeoPanel from './analyzer/GeoPanel';
+import SessionQueryEditor from './query/SessionQueryEditor';
 import { shortPseudo, groupBySubscriber } from './analyzer/subscriber';
 import { InterfaceBadge, AvailabilityStatus, TechnicalValue, BpfFilterDisplay } from './ui/InterfaceBadge';
 import { INTERFACE_FAMILY_HEX, interfaceFamilyOf } from '@/lib/polaris-ui/interfaceColors';
@@ -920,7 +921,7 @@ const matchQ = (s,conds,join) => { const r = conds.map(c=>c[2]==='≠'?!test(s,c
 const TPLS = [['Trace','Toutes les sessions d’un UE'],['Parcourir','Une ligne par session'],['Inspecter','Une ligne par message'],['Capture','Extrait pcap d’une session']];
 const SCOPES = ['Run 5G #482','lte-run-976bd44b','Captures c41 → c43','Fenêtre horaire'];
 const GROUPS = ['Aucun','Procédure','Résultat','Cause','Cellule','UE'];
-const mkDraft = (o={}) => ({tpl:'Parcourir',scope:'',conds:[],join:'ET',group:'Aucun',name:'',...o});
+const mkDraft = (o={}) => ({tpl:'Parcourir',scope:'',conds:[],join:'ET',group:'Aucun',name:'',rat:'5G SA',nodes:[],periodMode:'period',period:'1 h',interfaces:[],...o});
 
 function QueryLibrary({saved,onNew,onOpen,onDisplayAll,displayingAll=false}) {
   const [q,setQ] = useState(''); const [flt,setFlt] = useState('Toutes');
@@ -1270,7 +1271,7 @@ function App() {
   const setDraft = d => patch(active.id,{draft:d,dirty:true,n:d.name||'Nouvelle requête'});
   const runQuery = () => { const d=active.draft; const id=active.id;
     setRequestError('');
-    sessionFilter.mutate(d,{onSuccess:response=>patch(id,{conds:d.conds,join:d.join,n:d.name||nameOf(d.conds),mode:'results',ran:true,apiRows:demo?undefined:records(response.data,'sessions')}),onError:e=>setRequestError(e.message)});
+    sessionFilter.mutate(d,{onSuccess:response=>patch(id,{conds:d.conds,join:d.join,n:d.name||[d.rat,d.periodMode==='run'?d.scope:d.period].filter(Boolean).join(' · ')||nameOf(d.conds),mode:'results',ran:true,apiRows:demo?undefined:filterSessionRows(d,records(response.data,'sessions'))}),onError:e=>setRequestError(e.message)});
   };
   const displayAllSessions = () => {
     const id='q'+Date.now(); const draft=mkDraft({name:'Toutes les sessions'});
@@ -1342,7 +1343,7 @@ function App() {
       {requestError && <div role="alert" className="shrink-0 border-b border-warning-line bg-warning-soft px-4 py-2 text-[12px] text-warning">{requestError}</div>}
       {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={navHidden} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV} DashboardView={<QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/>}/> : page==='live' ? <LiveModule t={t} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : <>
       {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
-      {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <QueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">
+      {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <SessionQueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">
         <main ref={mainRef} className={`flex-1 min-w-0 flex-col ${geoMax && selected && !geoHidden && !full ? 'hidden' : 'flex'}`}>
           {!full && !gridHidden && <>
             <Grid rows={rows} sel={s?.id} setSel={setSel} conds={conds} setConds={setConds} onEdit={editActive} height={`${gridPct}%`} identityMap={listIdentityMap}/>
