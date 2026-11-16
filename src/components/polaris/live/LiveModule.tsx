@@ -5,6 +5,8 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { InterfaceBadge } from '../ui/InterfaceBadge';
 import {
   LIVE_BUFFER_MAX,
+  countsAsLiveTraffic,
+  liveTraceUiState,
   validateLiveIdentity,
   findExistingTrace,
   buildOpenSessionContext,
@@ -52,6 +54,19 @@ export default function LiveModule({ t, setPage }) {
   // pause/déconnexion. Le header Last-Event-ID géré par le browser
   // ne traverse pas withCredentials sur certains CORS strict.
   const lastEventId = useRef(null);
+  // La reprise réseau utilise l'id SSE opaque attendu par l'API. La dernière
+  // clé métier (capture_id, seq) est conservée séparément pour dédupliquer le
+  // premier message rejoué ; aucun timestamp ne participe à la reprise.
+  const lastOrderKey = useRef(null);
+  const deliveredOrderKeys = useRef(new Set());
+  // Requête de trace conservée uniquement en mémoire pour pouvoir réarmer
+  // après un redémarrage API (le store de traces backend est volatil).
+  // Cette valeur n'est jamais journalisée ni persistée.
+  const traceRequestRef = useRef(null);
+  const [lastLiveEventAt, setLastLiveEventAt] = useState(null);
+  const [sseReconnecting, setSseReconnecting] = useState(false);
+  const [sseClock, setSseClock] = useState(Date.now());
+  const [streamError, setStreamError] = useState(null);
   const [mode, setMode] = useStore('polaris-live-mode', 'ladder');
   const [sel, setSel] = useState(null);
   const [hide, setHide] = useState([]); const [fq, setFq] = useState('');
@@ -67,9 +82,12 @@ export default function LiveModule({ t, setPage }) {
   const ue = demo ? (res?.ue && DIR[res.ue]) : realUe;
   const tech = ue?.tech || '5G';
   const tracking = demo ? !!(ue && (res?.st === 'Trouvé' || res?.st === 'OUVERT')) : !!traceId;
+  const liveState = liveTraceUiState({jobStarted:!!traceId&&ttl>0,reconnecting:sseReconnecting,lastEventAt:lastLiveEventAt,now:sseClock});
 
   useEffect(() => { setMsgs([]); setBuf([]); setThr([]); seq.current = 0; setSel(null); setTtl(30*60); }, [res?.ue, demo]);
   useEffect(() => { runningRef.current=running; },[running]);
+  useEffect(()=>{ if(demo||!traceId)return; const timer=setInterval(()=>{setSseClock(Date.now());setTtl(v=>Math.max(0,v-1));},1000); return()=>clearInterval(timer);},[demo,traceId]);
+  useEffect(()=>{lastEventId.current=null;lastOrderKey.current=null;deliveredOrderKeys.current=new Set();setLastLiveEventAt(null);setSseReconnecting(false);setStreamError(null);},[traceId]);
   useEffect(() => { if (!tracking || !demo) return; const script = liveData.scripts[tech]; const t0 = Date.now();
     const id = setInterval(() => {
       const s = script[seq.current % script.length]; seq.current++;
@@ -87,14 +105,42 @@ export default function LiveModule({ t, setPage }) {
     // ?last_event_id=N (fallback header Last-Event-ID géré par le
     // browser sur certains CORS). Le back honore les deux sources
     // d'id depuis 2.16.0.
-    const lastId = lastEventId.current;
-    const params = lastId != null ? { last_event_id: String(lastId) } : {};
-    const source=new EventSource(apiPath(`/live/traces/${encodeURIComponent(traceId)}/stream`, params),{withCredentials:true});
-    const receive=(kind)=>(event)=>{
-      if(event?.lastEventId){ lastEventId.current=event.lastEventId; }
-      let data;try{data=JSON.parse(event.data)}catch{return}
-      if(kind==='message'){const m={cap:data.capture_id,seq:data.packet_number,eventId:data.event_id,ts:new Date().toLocaleTimeString('fr-FR'),rel:'—',ifc:data.interface,proto:data.protocol,from:endpointLabel(data.source),to:endpointLabel(data.destination),name:data.message_name,proc:data.procedure||data.message_name,res:data.result||'En cours',cause:data.cause||'',kind:data.phase||'message',corr:'LIVE',decoded:data.decoded_ie_tree};if(runningRef.current)setMsgs(x=>[...x,m].slice(-LIVE_BUFFER_MAX));else setBuf(x=>[...x,{m}].slice(-LIVE_BUFFER_MAX));} else if(kind==='throughput'){const p={ts:Date.now(),dl:Number(data.dl_bytes_s||0)*8/1e6,ul:Number(data.ul_bytes_s||0)*8/1e6};if(runningRef.current)setThr(x=>[...x,p].filter(z=>Date.now()-z.ts<1800000));else setBuf(x=>[...x,{p}].slice(-LIVE_BUFFER_MAX));}else if(kind==='ue_info'){setRealUe({tech:data.technology||'5G',info:data});}else if(kind==='status'){setTtl(Math.max(0,Number(data.expires_at||0)-Math.floor(Date.now()/1000)));}};
-    ['message','throughput','ue_info','procedure','marker','status'].forEach(k=>source.addEventListener(k,receive(k))); source.onerror=()=>setRes(r=>({...r,st:'Déconnecté',err:'Flux SSE interrompu'})); return()=>source.close(); },[traceId,demo]);
+    let source=null; let retryTimer=null; let stopped=false; let retryAttempt=0;
+    const connect=()=>{
+      const lastId=lastEventId.current;
+      const params=lastId!=null?{last_event_id:String(lastId)}:{};
+      source=new EventSource(apiPath(`/live/traces/${encodeURIComponent(traceId)}/stream`,params),{withCredentials:true});
+      source.onopen=()=>{retryAttempt=0;setSseReconnecting(false);setStreamError(null);};
+      const receive=(kind)=>(event)=>{
+        let data;try{data=JSON.parse(event.data)}catch{return}
+        if(event?.lastEventId)lastEventId.current=event.lastEventId;
+        if(countsAsLiveTraffic(kind)){setLastLiveEventAt(Date.now());setSseClock(Date.now());}
+        if(kind==='message'){
+          const orderKey=`${String(data.capture_id??'')}\u0000${String(data.packet_number??'')}`;
+          if(deliveredOrderKeys.current.has(orderKey))return;
+          deliveredOrderKeys.current.add(orderKey);lastOrderKey.current={captureId:data.capture_id,seq:data.packet_number};
+          if(deliveredOrderKeys.current.size>LIVE_BUFFER_MAX*2)deliveredOrderKeys.current=new Set(Array.from(deliveredOrderKeys.current).slice(-LIVE_BUFFER_MAX));
+          const m={cap:data.capture_id,seq:data.packet_number,eventId:data.event_id,ts:new Date().toLocaleTimeString('fr-FR'),rel:'—',ifc:data.interface,proto:data.protocol,from:endpointLabel(data.source),to:endpointLabel(data.destination),name:data.message_name,proc:data.procedure||data.message_name,res:data.result||'En cours',cause:data.cause||'',kind:data.phase||'message',corr:'LIVE',decoded:data.decoded_ie_tree};if(runningRef.current)setMsgs(x=>[...x,m].slice(-LIVE_BUFFER_MAX));else setBuf(x=>[...x,{m}].slice(-LIVE_BUFFER_MAX));
+        }else if(kind==='throughput'){const p={ts:Date.now(),dl:Number(data.dl_bytes_s||0)*8/1e6,ul:Number(data.ul_bytes_s||0)*8/1e6};if(runningRef.current)setThr(x=>[...x,p].filter(z=>Date.now()-z.ts<1800000));else setBuf(x=>[...x,{p}].slice(-LIVE_BUFFER_MAX));}else if(kind==='ue_info'){setRealUe({tech:data.technology||'5G',info:data});}else if(kind==='status'){setTtl(Math.max(0,Number(data.expires_at||0)-Math.floor(Date.now()/1000)));}
+      };
+      ['message','throughput','ue_info','procedure','marker','status'].forEach(k=>source.addEventListener(k,receive(k)));
+      source.onerror=()=>{if(stopped)return;source?.close();setSseReconnecting(true);setStreamError('Flux SSE interrompu — reconnexion en cours');const delay=Math.min(1000*(2**retryAttempt),10_000);retryAttempt+=1;retryTimer=setTimeout(async()=>{
+        if(stopped)return;
+        // Une trace survit aux coupures réseau ordinaires : on reprend alors
+        // le même id SSE. Après redémarrage API, son store volatil répond 404 ;
+        // au deuxième échec seulement, vérifier la liste puis réarmer la même
+        // clé. Aucun timestamp ne participe à la reprise.
+        if(retryAttempt>=2&&traceRequestRef.current){try{
+          const list=await request('/live/traces',{clearIdentityResponse:true,timeoutMs:5000});
+          const exists=Array.isArray(list?.data)&&list.data.some(trace=>trace.trace_id===traceId);
+          if(!exists){const out=await request('/live/traces',{method:'POST',body:traceRequestRef.current,clearIdentityResponse:true,timeoutMs:5000});
+            if(out?.data?.trace_id&&out.data.trace_id!==traceId){setTtl(Math.max(0,out.data.expires_at-Math.floor(Date.now()/1000)));setTraceId(out.data.trace_id);return;}}
+        }catch{/* API encore indisponible : la boucle EventSource reprend. */}}
+        connect();
+      },delay);};
+    };
+    connect();
+    return()=>{stopped=true;if(retryTimer)clearTimeout(retryTimer);source?.close();}; },[traceId,demo]);
 
   // 2.5.0 (ANR1 #10 Live-IMSI) — corrélation IMSI → sessions.
   // Appelé après POST /live/traces (quand un trace_id vient d'être
@@ -133,7 +179,9 @@ export default function LiveModule({ t, setPage }) {
         let list;
         try { list = await request('/live/traces', { clearIdentityResponse: true }); } catch { /* best-effort */ }
         const activeTraces = Array.isArray(list?.data) ? list.data : [];
-        const out=await request('/live/traces',{method:'POST',body:{key_type:ttype,value:check.normalized,duration_s:1800,interfaces:[]},clearIdentityResponse:true});
+        const traceRequest={key_type:ttype,value:check.normalized,duration_s:1800,interfaces:[]};
+        traceRequestRef.current=traceRequest;
+        const out=await request('/live/traces',{method:'POST',body:traceRequest,clearIdentityResponse:true});
         setTraceId(out.data.trace_id);
         setTtl(Math.max(0,out.data.expires_at-Math.floor(Date.now()/1000)));
         const expectedPseudo = out.data.subscriber_pseudonyms?.[0] ?? null;
@@ -157,7 +205,7 @@ export default function LiveModule({ t, setPage }) {
   const selM = msgs.find(m => m.seq === sel);
   const dissection = usePacketDissection(selM?.cap, selM?.seq, !demo && !!selM);
   const drag = (e, kind) => { e.preventDefault(); const x0=e.clientX, y0=e.clientY, w0=rightW, h0=ladH; const mv=(ev)=>{ if(kind==='w') setRightW(Math.max(280, Math.min(560, w0 - (ev.clientX-x0)))); else setLadH(Math.max(200, Math.min(800, h0 + ev.clientY-y0))); }; const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);}; addEventListener('pointermove',mv); addEventListener('pointerup',up); };
-  const ST_C = { 'Trouvé':'#15803D', 'OUVERT':'#A15C07', 'Non trouvé':'#666666', 'Invalide':'#B42318', 'Refusé':'#B42318', 'Indisponible':'#A15C07' };
+  const ST_C = { 'Trouvé':'#15803D', 'OUVERT':'#A15C07', 'ARMÉE':'#A15C07', 'ACTIVE':'#15803D', 'ARRÊTÉE':'#666666', 'COUPÉE':'#B42318', 'Non trouvé':'#666666', 'Invalide':'#B42318', 'Refusé':'#B42318', 'Indisponible':'#A15C07' };
   const exportCsv = () => { const h='capture_id,seq,t_rel,interface,protocol,message,src,dst,procedure,result,cause\n'; const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([h+shown.map(m=>[m.cap,m.seq,m.rel,m.ifc,m.proto,m.name,m.from,m.to,m.proc,m.res,m.cause].map(x=>`"${x}"`).join(',')).join('\n')],{type:'text/csv'})); a.download='live-'+res.ue+'.csv'; a.click(); };
 
   const sig = <div className={card+' overflow-hidden flex flex-col'} style={full==='sig'?{height:'calc(100vh - 220px)'}:{}}>
@@ -198,9 +246,9 @@ export default function LiveModule({ t, setPage }) {
             <input value={q} onChange={e=>{const v=e.target.value; setQ(v); if(ttype==='pseudonym' && /^(imsi-)?\d{14,15}$/i.test(v.trim())) setTtype('imsi');}} type="text" autoComplete="off" placeholder={ttype==='pseudonym'?'UE-…':'identité en clair'} className="w-48 px-3 text-[13px] font-mono outline-none"/>
             <button className="h-full px-3 bg-[var(--app-accent)] text-white text-[12.5px] font-medium hover:opacity-90">{t('Rechercher')}</button>
           </form>
-          {res && <span className="flex items-center gap-1.5 text-[12px]"><Tag c={ST_C[res.st]||'#666'}>{t(res.st)}</Tag>{res.ue && <span className="font-mono text-foreground">{res.ue}</span>}{res.err && <span className="text-danger">{res.err}</span>}</span>}
+          {res && <span className="flex items-center gap-1.5 text-[12px]"><Tag c={ST_C[traceId?liveState:res.st]||'#666'}>{t(traceId?liveState:res.st)}</Tag>{res.ue && <span className="font-mono text-foreground">{res.ue}</span>}{(streamError||res.err) && <span className="text-danger">{streamError||res.err}</span>}</span>}
           <div className="ml-auto flex items-center gap-2">
-            <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground"><span className={`w-[7px] h-[7px] rounded-full ${tracking&&running?'bg-success animate-pulse':'bg-track'}`}/>{tracking?(running?t('Live'):t('En pause')):t('Inactif')}</span>
+            <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground"><span className={`w-[7px] h-[7px] rounded-full ${liveState==='ACTIVE'&&running?'bg-success animate-pulse':'bg-track'}`}/>{traceId?t(liveState):t('ARRÊTÉE')}</span>
             {tracking && <span className="text-[12px] text-warning bg-warning-soft border border-warning-line rounded px-1.5 h-6 grid place-items-center">{t('Retard import')} {delay} s</span>}
             <Btn disabled={!tracking} onClick={()=>running?setRunning(false):resume()}>{running?'❚❚ '+t('Pause'):'▶ '+t('Reprendre')+(buf.length?` (+${buf.length})`:'')}</Btn>
             <Btn disabled={!tracking||(!msgs.length&&!traceId)} onClick={demo?()=>{const s=msgs[msgs.length-1].seq;setMarks(m=>[...m,s]);}:addMarker}>⚑ {t('Marqueur')}</Btn>
