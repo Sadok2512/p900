@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.8.2 — 2026-11-17 — Provenance vTAP visible dans l’Analyzer (patch)
+
+- Affiche le `probe_type` réellement fourni par l’événement dans l’en-tête et les métadonnées techniques de l’inspecteur de session.
+- Met en évidence `vtap` avec un badge discret, sans inventer de provenance quand le champ est absent.
+- Conserve l’affichage existant des identités de session MSISDN/GPSI et IMEI(SV)/PEI ; aucune identité n’est journalisée par ce changement.
+
 ## 2.8.1 — 2026-11-16 — Design Accueil étendu à toute l'application (patch)
 
 - Nouvelle classe partagée `.polaris-card` (fond blanc, bordure fine, ombre douce) appliquée aux cartes de KPI, Live, Administration, Requêtes, Traffic et aux fiches sonde.

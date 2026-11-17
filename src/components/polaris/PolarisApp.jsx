@@ -5,6 +5,7 @@ import LiveModule from './live/LiveModule';
 import { useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useSessionIdentities, usePacketDissection, useEvent, useProvenance, usePackets, useCorrelationRules, useQueryCatalog, useQueryCatalogSearch, useSessionColumns, supportsQueryApi, apiPath, redact, records, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, filterSessionRows, versionComponents, decoderVersions, topBarLiveIndicator, identityValue, identityProofs, observedIdentity } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
+import ProbeTypeBadge from './analyzer/ProbeTypeBadge';
 import Administration from './admin/Administration';
 import LiveCapture from './admin/LiveCapture';
 import ProbeRegistration from './admin/ProbeRegistration';
@@ -646,6 +647,7 @@ function Inspector({s,sel,lens,setLens,width,onHide}) {
   const identities=useSessionIdentities(s.session_id,true);
   const eventQuery = useEvent(evidence?.event_id ?? evidence?.id,true); const provenance = useProvenance(evidence?.event_id ?? evidence?.id); const packetRef=provenance.data?.data?.packet_references?.[0]??evidence?.packet_references?.[0]??{}; const packetCapture=provenance.data?.data?.capture_id??evidence?.capture_id; const packetNumber=packetRef.packet_number??evidence?.seq; const packets = usePackets({capture_id:packetCapture,packet_number:packetNumber}, packetCapture!=null && packetNumber!=null); const dissection=usePacketDissection(packetCapture,packetNumber,tab==='Hex'); const rules = useCorrelationRules(); const versions = useVersion();
   const proof = provenance.data?.data ?? evidence ?? {};
+  const probeType = eventQuery.data?.data?.probe_type ?? evidence?.probe_type ?? proof?.probe_type;
   const ids=identities.data?.data??{};
   if (!m) return <aside className="p-4 text-muted-foreground">Non disponible</aside>;
   const shared = m[5] ? d.msgs.filter(x=>x[5]===m[5]).length : 0;
@@ -657,7 +659,7 @@ function Inspector({s,sel,lens,setLens,width,onHide}) {
       </div>
       <div className="flex-1 overflow-auto scroll-thin p-3 text-[12px]">
         {tab==='Décodage' && <div className="space-y-3">
-          <div><div className="flex items-center gap-2"><Tag i={m[0]}/><span className="font-mono text-[11.5px] text-muted-foreground">message #{available(evidence?.seq ?? Math.min(sel,d.msgs.length-1)+1)}</span>{evidence?.decoding_status && <span className="ml-auto text-[11px] font-semibold text-muted-foreground border border-border rounded px-1">{String(evidence.decoding_status)}</span>}</div>
+          <div><div className="flex items-center gap-2"><Tag i={m[0]}/><ProbeTypeBadge probeType={probeType}/><span className="font-mono text-[11.5px] text-muted-foreground">message #{available(evidence?.seq ?? Math.min(sel,d.msgs.length-1)+1)}</span>{evidence?.decoding_status && <span className="ml-auto text-[11px] font-semibold text-muted-foreground border border-border rounded px-1">{String(evidence.decoding_status)}</span>}</div>
             <div className="mt-1 text-[13px] font-semibold text-foreground leading-snug">{m[1]}</div><div className="text-muted-foreground text-[12px]">{m[2]}</div></div>
           {eventQuery.isPending && evidence && <div className="text-muted-foreground">Chargement du décodage…</div>}
           {eventQuery.isError && <div role="alert" className="rounded-md border border-danger-line bg-danger-soft px-2 py-1.5 text-[11.5px] text-danger">Échec <span className="font-mono">GET {apiPath(`/events/${encodeURIComponent(String(evidence?.event_id ?? evidence?.id ?? ''))}`)}</span> → {eventQuery.error.status ? `HTTP ${eventQuery.error.status}` : 'réseau'}{eventQuery.error.code && eventQuery.error.code!=='HTTP_ERROR' ? ` · ${eventQuery.error.code}` : ''}{evidence?.decoded_ie_tree ? ' — arbre affiché depuis le callflow.' : ''}</div>}
@@ -676,7 +678,7 @@ function Inspector({s,sel,lens,setLens,width,onHide}) {
           <details className="rounded-md border border-border"><summary className="px-2 h-7 flex items-center cursor-pointer text-[11.5px] font-medium text-ink-2">Métadonnées techniques</summary>
             <dl className="grid grid-cols-[110px_1fr] gap-y-1 font-mono text-[11.5px] p-2 pt-0">
               <dt className="text-muted-foreground">capture_id</dt><dd>{available(proof.capture_id)}</dd><dt className="text-muted-foreground">seq</dt><dd>{available(proof.seq)}</dd>
-              <dt className="text-muted-foreground">packet_number</dt><dd>{available(proof.packet_number)}</dd><dt className="text-muted-foreground">décodeurs</dt><dd>{decoderVersions(versions.data?.data?.decoders)}</dd>
+              <dt className="text-muted-foreground">packet_number</dt><dd>{available(proof.packet_number)}</dd><dt className="text-muted-foreground">probe_type</dt><dd>{available(probeType)}</dd><dt className="text-muted-foreground">décodeurs</dt><dd>{decoderVersions(versions.data?.data?.decoders)}</dd>
             </dl></details>
           {m[5] && (isCause(m) ? <div className="rounded-md border border-danger-line bg-danger-soft p-3">
             <div className="flex items-center gap-2 font-medium text-danger"><I d="M12 8v5M12 16h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" c="w-4 h-4"/>Lentille de cause</div>
