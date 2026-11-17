@@ -280,7 +280,7 @@ export default function LiveCapture({ probe }) {
   };
   return (
     <section
-      className="mt-5 rounded-lg border border-border bg-white overflow-hidden"
+      className="mt-5 polaris-card overflow-hidden"
       data-testid="live-capture-admin"
     >
       <header className="px-4 py-3 border-b flex items-center gap-3">
