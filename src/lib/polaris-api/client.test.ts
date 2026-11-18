@@ -31,6 +31,21 @@ describe('POLARIS client', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: 'Only HTML requests are supported here' }), { status: 406 })));
     await expect(request('/health')).rejects.toMatchObject({ status: 406, message: 'GET /health · HTTP 406' });
   });
+  it('retries a publication 503 using Retry-After instead of surfacing an error', async () => {
+    const fetcher = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: { code: 'HEAVY_WORK_IN_PROGRESS', message: 'busy' } }), { status: 503, headers: { 'Retry-After': '0' } }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ data: [{ session_id: 'session-after-publication' }], meta: {} })));
+    const retryStates: Array<number | null> = [];
+    vi.stubGlobal('fetch', fetcher);
+    const response = await request<Array<{ session_id: string }>>('/sessions/filter', { method: 'POST', body: { limit: 100 }, retryHeavyWork: true, onHeavyWorkRetry: seconds => retryStates.push(seconds) });
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(retryStates).toEqual([0, null]);
+    expect(response.data).toEqual([{ session_id: 'session-after-publication' }]);
+  });
+  it('exposes the publication retry delay when automatic retry is not requested', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({ error: { code: 'HEAVY_WORK_IN_PROGRESS' } }), { status: 503, headers: { 'Retry-After': '60' } })));
+    await expect(request('/sessions/filter', { method: 'POST', body: {} })).rejects.toMatchObject({ code: 'HEAVY_WORK_IN_PROGRESS', status: 503, retryAfterSeconds: 60, message: 'Publication en cours, nouvel essai dans 60 s' });
+  });
   it('does not accept preview HTML as an API response', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('<html/>')));
     await expect(request('/health')).rejects.toMatchObject({ code: 'INVALID_RESPONSE' });

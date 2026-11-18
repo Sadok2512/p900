@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.8.5 — 2026-11-18 — Réessai automatique pendant une publication Analyzer (patch)
+
+- Reconnaît le `503 HEAVY_WORK_IN_PROGRESS` de `/sessions/filter`, respecte l’en-tête `Retry-After` et réessaie automatiquement tant que la publication est en cours.
+- Affiche « Publication en cours, nouvel essai dans N s » pendant l’attente, puis retire cet état après la réponse réussie ou l’annulation.
+- Conserve la file de concurrence : le délai de réessai ne monopolise aucun des quatre emplacements de requêtes HTTP.
+- La version 2.8.4 étant déjà utilisée par `fix/privacy-contract-psn-2.8.4`, ce correctif prend la version 2.8.5.
+
 ## 2.8.3 — 2026-11-18 — Callflow paginé complet (patch)
 
 - Suit `pagination.next_cursor` jusqu’à la dernière page de `/sessions/:id/callflow`, en conservant strictement l’ordre canonique renvoyé par l’API.

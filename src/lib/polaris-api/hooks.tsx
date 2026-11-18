@@ -194,7 +194,9 @@ export async function fetchAllFilteredSessions(body: Record<string, unknown>, fe
 
 export function useSessionFilter() {
   const { demo } = usePolarisMode(); const client = useQueryClient();
-  return useMutation({ mutationFn: async (draft: Draft) => { const unsupported = querySupport(draft, demo); if (unsupported) throw new PolarisApiError('UNAVAILABLE', unsupported, 0); return demo ? demoResponse<Session[]>('/sessions/filter') as Envelope<Session[]> : fetchAllFilteredSessions(filterBody(draft)); }, onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris', 'api', '/sessions'] }); } });
+  const [publicationRetrySeconds, setPublicationRetrySeconds] = useState<number | null>(null);
+  const mutation = useMutation({ mutationFn: async (draft: Draft) => { const unsupported = querySupport(draft, demo); if (unsupported) throw new PolarisApiError('UNAVAILABLE', unsupported, 0); return demo ? demoResponse<Session[]>('/sessions/filter') as Envelope<Session[]> : fetchAllFilteredSessions(filterBody(draft), (body) => request<Session[]>('/sessions/filter', { method: 'POST', body, keepIdentities: true, retryHeavyWork: true, onHeavyWorkRetry: setPublicationRetrySeconds })); }, onSuccess: () => { client.invalidateQueries({ queryKey: ['polaris', 'api', '/sessions'] }); } });
+  return { ...mutation, publicationRetrySeconds };
 }
 export function useSessionEstimate(draft: Draft, enabled = true) {
   const { demo } = usePolarisMode();
@@ -202,7 +204,7 @@ export function useSessionEstimate(draft: Draft, enabled = true) {
   const body = filterBody(draft);
   return useQuery({
     queryKey: ['polaris', 'api', '/sessions/filter', 'estimate', body],
-    queryFn: () => request<Session[]>('/sessions/filter', { method: 'POST', body: { ...body, limit: 0 } }),
+    queryFn: () => request<Session[]>('/sessions/filter', { method: 'POST', body: { ...body, limit: 0 }, retryHeavyWork: true }),
     enabled: enabled && !demo && !unsupported,
     retry: false,
     refetchOnWindowFocus: false,

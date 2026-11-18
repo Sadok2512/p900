@@ -1,7 +1,12 @@
 import type { ApiFailure, Envelope, QueryParams } from './types';
 
 export class PolarisApiError extends Error implements ApiFailure {
-  constructor(public code: string, message: string, public status: number) { super(message); this.name = 'PolarisApiError'; }
+  public retryAfterSeconds?: number;
+  constructor(public code: string, message: string, public status: number, retryAfterSeconds?: number) {
+    super(message);
+    this.name = 'PolarisApiError';
+    if (retryAfterSeconds !== undefined) this.retryAfterSeconds = retryAfterSeconds;
+  }
 }
 export function relativeBase(base = import.meta.env['VITE_POLARIS_API_BASE'] ?? '/api/v1'): string {
   if (!/^\/(?!\/)/.test(base) || /[\\?#]/.test(base) || base.split('/').includes('..')) throw new PolarisApiError('INVALID_BASE', 'Chemin POLARIS invalide', 0);
@@ -43,7 +48,7 @@ export function redactKeepingIdentities<T>(value: T): T {
   return redact(value);
 }
 export type RequestPriority = 'detail' | 'normal' | 'background';
-export type RequestOptions = { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal; clearIdentityResponse?: boolean; keepIdentities?: boolean; timeoutMs?: number; priority?: RequestPriority };
+export type RequestOptions = { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal; clearIdentityResponse?: boolean; keepIdentities?: boolean; timeoutMs?: number; priority?: RequestPriority; retryHeavyWork?: boolean; onHeavyWorkRetry?: (seconds: number | null) => void };
 const MAX_CONCURRENT_REQUESTS = 4;
 let activeRequests = 0;
 let queuedSequence = 0;
@@ -76,31 +81,70 @@ function scheduled<T>(task: () => Promise<T>, priority: RequestPriority, signal?
     drainRequests();
   });
 }
+function retryAfterSeconds(response: Response): number {
+  const raw = response.headers?.get?.('retry-after')?.trim();
+  if (!raw) return 60;
+  const numeric = Number(raw);
+  if (Number.isFinite(numeric) && numeric >= 0) return Math.min(3_600, Math.ceil(numeric));
+  const epoch = Date.parse(raw);
+  if (Number.isFinite(epoch)) return Math.min(3_600, Math.max(0, Math.ceil((epoch - Date.now()) / 1_000)));
+  return 60;
+}
+function waitForRetry(seconds: number, signal?: AbortSignal): Promise<void> {
+  if (signal?.aborted) return Promise.reject(abortError());
+  if (seconds <= 0) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(done, seconds * 1_000);
+    function done() { signal?.removeEventListener('abort', aborted); resolve(); }
+    function aborted() { clearTimeout(timer); signal?.removeEventListener('abort', aborted); reject(abortError()); }
+    signal?.addEventListener('abort', aborted, { once: true });
+  });
+}
 export async function requestFrom<T>(base: string, path: string, options: RequestOptions = {}): Promise<Envelope<T>> {
   const url = apiPath(path, options.params, base);
   const timeoutMs = options.timeoutMs ?? 60_000;
   const method = options.method ?? 'GET';
-  const { response, payload } = await scheduled(async () => {
-    const timeout = new AbortController();
-    const timer = setTimeout(() => timeout.abort(), timeoutMs);
-    const signal = options.signal ? AbortSignal.any([timeout.signal, options.signal]) : timeout.signal;
-    try {
-      const response = await fetch(url, { method, credentials: 'same-origin', signal, headers: { Accept: 'application/json', ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }) });
-      let payload: unknown;
-      try { payload = await response.json(); } catch { payload = null; }
-      return { response, payload };
-    } catch (error) {
-      if (options.signal?.aborted) throw abortError();
-      if (timeout.signal.aborted) throw new PolarisApiError('TIMEOUT', `Délai dépassé (${Math.round(timeoutMs / 1000)} s) pour ${method} ${path}`, 0);
-      throw new PolarisApiError('NETWORK_ERROR', `Erreur réseau pour ${method} ${path}`, 0);
-    } finally { clearTimeout(timer); }
-  }, options.priority ?? 'normal', options.signal);
+  let response: Response;
+  let payload: unknown;
+  let announcedRetry = false;
+  try {
+    for (;;) {
+      ({ response, payload } = await scheduled(async () => {
+        const timeout = new AbortController();
+        const timer = setTimeout(() => timeout.abort(), timeoutMs);
+        const signal = options.signal ? AbortSignal.any([timeout.signal, options.signal]) : timeout.signal;
+        try {
+          const result = await fetch(url, { method, credentials: 'same-origin', signal, headers: { Accept: 'application/json', ...(options.body === undefined ? {} : { 'Content-Type': 'application/json' }) }, ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }) });
+          let body: unknown;
+          try { body = await result.json(); } catch { body = null; }
+          return { response: result, payload: body };
+        } catch (error) {
+          if (options.signal?.aborted) throw abortError();
+          if (timeout.signal.aborted) throw new PolarisApiError('TIMEOUT', `Délai dépassé (${Math.round(timeoutMs / 1000)} s) pour ${method} ${path}`, 0);
+          throw new PolarisApiError('NETWORK_ERROR', `Erreur réseau pour ${method} ${path}`, 0);
+        } finally { clearTimeout(timer); }
+      }, options.priority ?? 'normal', options.signal));
+      const errorBody = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
+      const detail = errorBody['error'] && typeof errorBody['error'] === 'object' ? errorBody['error'] as Record<string, unknown> : errorBody;
+      const heavyWork = response.status === 503 && detail['code'] === 'HEAVY_WORK_IN_PROGRESS';
+      if (!heavyWork || !options.retryHeavyWork) break;
+      const seconds = retryAfterSeconds(response);
+      announcedRetry = true;
+      options.onHeavyWorkRetry?.(seconds);
+      await waitForRetry(seconds, options.signal);
+    }
+  } finally {
+    if (announcedRetry) options.onHeavyWorkRetry?.(null);
+  }
   if (response.headers?.get?.('x-polaris-unreachable') === '1') throw new PolarisApiError('BACKEND_UNREACHABLE', `Relais indisponible pour ${method} ${path} (HTTP 502)`, 502);
   if (!response.ok) {
     const error = payload && typeof payload === 'object' ? payload as Record<string, unknown> : {};
     const detail = error['error'] && typeof error['error'] === 'object' ? error['error'] as Record<string, unknown> : error;
     const serverMessage = typeof detail['message'] === 'string' ? ` · ${redact(detail['message'])}` : '';
-    throw new PolarisApiError(typeof detail['code'] === 'string' ? detail['code'] : 'HTTP_ERROR', response.status === 403 ? 'Action refusée par le serveur (HTTP 403)' : `${method} ${path} · HTTP ${response.status}${serverMessage}`, response.status);
+    const code = typeof detail['code'] === 'string' ? detail['code'] : 'HTTP_ERROR';
+    const retrySeconds = response.status === 503 && code === 'HEAVY_WORK_IN_PROGRESS' ? retryAfterSeconds(response) : undefined;
+    const message = retrySeconds === undefined ? (response.status === 403 ? 'Action refusée par le serveur (HTTP 403)' : `${method} ${path} · HTTP ${response.status}${serverMessage}`) : `Publication en cours, nouvel essai dans ${retrySeconds} s`;
+    throw new PolarisApiError(code, message, response.status, retrySeconds);
   }
   if (!payload || typeof payload !== 'object' || !('data' in payload)) throw new PolarisApiError('INVALID_RESPONSE', `Réponse invalide pour ${method} ${path} (HTTP ${response.status})`, response.status);
   const envelope = payload as { data: T; meta?: unknown };
