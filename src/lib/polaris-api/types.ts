@@ -1,7 +1,7 @@
 export type RecordData = { [key: string]: unknown };
 export type Meta = RecordData & { total?: number; page?: number; page_size?: number };
 export type Envelope<T> = { data: T; meta: Meta };
-export type ApiFailure = { code: string; message: string; status: number };
+export type ApiFailure = { code: string; message: string; status: number; retryAfterSeconds?: number };
 export type Evidence = RecordData & { event_id?: string | number; seq?: number; capture_id?: string | number; packet_number?: number };
 export type Session = Evidence & {
   session_id?: string;

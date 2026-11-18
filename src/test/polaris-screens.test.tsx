@@ -43,13 +43,41 @@ describe('main screens with simulated REST responses',()=>{
     open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'}));
     fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
     await screen.findAllByText('ue-test');
-    await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url).endsWith('/sessions/s1/callflow'))).toBe(true));
+    await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url).includes('/sessions/s1/callflow?'))).toBe(true));
     await screen.findAllByText('Registration Accept');
     await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url).endsWith('/events/e1/provenance'))).toBe(true));
     expect(document.body.textContent).not.toContain('private');
     expect(document.body.textContent).not.toContain('198.51.100.10');
     expect(fetcher.mock.calls.some(([url,options])=>String(url)==='/api/v1/sessions/filter' && options.method==='POST')).toBe(true);
   });
+  it('2.8.3 rend les 3 lots 100/100/58, le compteur complet et les 58 badges vTAP', async()=>{
+    const makeEvents=(start:number,count:number,probeType?:string)=>Array.from({length:count},(_,offset)=>({
+      ...event,
+      event_id:`evt-${start+offset}`,
+      seq:start+offset,
+      message_name:`SBI message ${start+offset}`,
+      ...(probeType?{probe_type:probeType}:{}),
+    }));
+    fetcher.mockImplementation(async (url:string)=>{
+      const raw=String(url); const path=raw.replace('/api/v1','').split('?')[0]??'';
+      if(path==='/sessions/s1/callflow'){
+        const cursor=new URLSearchParams(raw.split('?')[1]??'').get('cursor');
+        const data=!cursor
+          ? {events:makeEvents(0,100),pagination:{next_cursor:'c1',returned_events:100,total_events:258}}
+          : cursor==='c1'
+            ? {events:makeEvents(100,100),pagination:{next_cursor:'c2',returned_events:100,total_events:258}}
+            : {events:makeEvents(200,58,'vtap'),pagination:{next_cursor:null,returned_events:58,total_events:258}};
+        return new Response(JSON.stringify({data,meta:{}}),{headers:{'Content-Type':'application/json'}});
+      }
+      const operatorEnvelope=/\/identities$|^\/identities$|^\/events\/|^\/packets\/.*\/dissect$/.test(path);
+      return new Response(JSON.stringify({data:payloads[path]??[],meta:{total:1,...(operatorEnvelope?{identity_access:'operator'}:{})}}),{headers:{'Content-Type':'application/json'}});
+    });
+    open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'})); fireEvent.click(screen.getByRole('button',{name:'Exécuter la requête'}));
+    expect(await screen.findByText('258 / 258')).toBeInTheDocument();
+    expect(fetcher.mock.calls.filter(([url])=>String(url).includes('/sessions/s1/callflow')).map(([url])=>String(url))).toHaveLength(3);
+    fireEvent.click(screen.getByRole('button',{name:'Messages'}));
+    expect(await screen.findAllByTitle('probe_type=vtap')).toHaveLength(58);
+  },15000);
   it('2.7.0 renders every session-query step without undefined scope buttons', async()=>{
     open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'}));
     for (const name of ['Périmètre réseau','Période','Interface & protocole','Critères','Colonnes','Aperçu & exécuter']) {
@@ -190,8 +218,8 @@ describe('main screens with simulated REST responses',()=>{
     try {
       open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Afficher toutes les sessions'}));
       await screen.findAllByText('ue-second');
-      await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url).endsWith('/sessions/s1/callflow'))).toBe(true));
-      expect(fetcher.mock.calls.some(([url])=>String(url).endsWith('/sessions/s2/callflow'))).toBe(false);
+      await waitFor(()=>expect(fetcher.mock.calls.some(([url])=>String(url).includes('/sessions/s1/callflow?'))).toBe(true));
+      expect(fetcher.mock.calls.some(([url])=>String(url).includes('/sessions/s2/callflow?'))).toBe(false);
       expect(fetcher.mock.calls.some(([url])=>String(url).endsWith('/sessions/s2/identities'))).toBe(false);
     } finally { payloads['/sessions']=previousSessions; payloads['/sessions/filter']=previousFilter; }
   });
@@ -398,7 +426,7 @@ describe('main screens with simulated REST responses',()=>{
     payloads['/live/traces']=previous;
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.8.1').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.8.1')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.8.5').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.8.5')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard sits under KPI and is gone from the top menu', async()=>{
     open('kpi');

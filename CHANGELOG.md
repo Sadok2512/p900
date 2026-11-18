@@ -1,5 +1,24 @@
 # Changelog
 
+## 2.8.5 — 2026-11-18 — Réessai automatique pendant une publication Analyzer (patch)
+
+- Reconnaît le `503 HEAVY_WORK_IN_PROGRESS` de `/sessions/filter`, respecte l’en-tête `Retry-After` et réessaie automatiquement tant que la publication est en cours.
+- Affiche « Publication en cours, nouvel essai dans N s » pendant l’attente, puis retire cet état après la réponse réussie ou l’annulation.
+- Conserve la file de concurrence : le délai de réessai ne monopolise aucun des quatre emplacements de requêtes HTTP.
+- La version 2.8.4 étant déjà utilisée par `fix/privacy-contract-psn-2.8.4`, ce correctif prend la version 2.8.5.
+
+## 2.8.3 — 2026-11-18 — Callflow paginé complet (patch)
+
+- Suit `pagination.next_cursor` jusqu’à la dernière page de `/sessions/:id/callflow`, en conservant strictement l’ordre canonique renvoyé par l’API.
+- Affiche le nombre d’événements chargés sur le total annoncé afin qu’un résultat partiel ne soit jamais présenté comme complet.
+- Rend la provenance `probe_type` sur chaque ligne de l’onglet Messages, notamment pour les événements SBI issus du vTAP.
+
+## 2.8.2 — 2026-11-17 — Provenance vTAP visible dans l’Analyzer (patch)
+
+- Affiche le `probe_type` réellement fourni par l’événement dans l’en-tête et les métadonnées techniques de l’inspecteur de session.
+- Met en évidence `vtap` avec un badge discret, sans inventer de provenance quand le champ est absent.
+- Conserve l’affichage existant des identités de session MSISDN/GPSI et IMEI(SV)/PEI ; aucune identité n’est journalisée par ce changement.
+
 ## 2.8.1 — 2026-11-16 — Design Accueil étendu à toute l'application (patch)
 
 - Nouvelle classe partagée `.polaris-card` (fond blanc, bordure fine, ombre douce) appliquée aux cartes de KPI, Live, Administration, Requêtes, Traffic et aux fiches sonde.

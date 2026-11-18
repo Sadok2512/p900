@@ -8,6 +8,9 @@ export function toLegacySession(s: Session, firstEvent?: Event) {
 export function toLegacyCallflow(value: unknown, procedures: unknown, correlations: unknown) {
   const body = value && typeof value === 'object' && !Array.isArray(value) ? value as RecordData : {};
   const events = records<Event>(Array.isArray(value) ? value : body['events'] ?? body['messages']);
+  const pagination = body['pagination'] && typeof body['pagination'] === 'object' ? body['pagination'] as RecordData : {};
+  const loadedEvents = Number(pagination['loaded_events'] ?? pagination['returned_events'] ?? events.length);
+  const totalEvents = Number(pagination['total_events'] ?? events.length);
   // 2.4.0 (ANR1 #10 6883006379) — N3 : la payload réelle
   // `/api/v1/sessions/:id/callflow` renvoie `nodes: []` quand
   // le callflow n'a pas été rendu côté backend (cas prod
@@ -38,7 +41,7 @@ export function toLegacyCallflow(value: unknown, procedures: unknown, correlatio
     return [str(p['name'] ?? p['procedure']), start, events.findIndex(e => e.event_id === p['end_event_id']), start < 0 ? undefined : events[start]?.event_id];
   });
   const procs = suppliedProcedures.length ? suppliedProcedures : procedureGroups(events);
-  return { nodes, msgs: events.map(e => [str(e.interface), str(e.message_name), `${str(e.source_participant)} → ${str(e.destination_participant)}`, null, e.semantic_status ? 'semantic_status' : null, e.semantic_status ? str(e.semantic_status) : null]), evidence, procs, links, summary: str(body['summary']) };
+  return { nodes, msgs: events.map(e => [str(e.interface), str(e.message_name), `${str(e.source_participant)} → ${str(e.destination_participant)}`, null, e.semantic_status ? 'semantic_status' : null, e.semantic_status ? str(e.semantic_status) : null]), evidence, procs, links, summary: str(body['summary']), loadedEvents: Number.isFinite(loadedEvents) ? loadedEvents : events.length, totalEvents: Number.isFinite(totalEvents) ? totalEvents : events.length };
 }
 
 function correlationConfidence(c: Correlation): 'EXACT' | 'OUVERT' | null {

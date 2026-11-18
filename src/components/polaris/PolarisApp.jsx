@@ -5,6 +5,7 @@ import LiveModule from './live/LiveModule';
 import { useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useSessionIdentities, usePacketDissection, useEvent, useProvenance, usePackets, useCorrelationRules, useQueryCatalog, useQueryCatalogSearch, useSessionColumns, supportsQueryApi, apiPath, redact, records, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, filterSessionRows, versionComponents, decoderVersions, topBarLiveIndicator, identityValue, identityProofs, observedIdentity } from '@/lib/polaris-api';
 import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
+import ProbeTypeBadge from './analyzer/ProbeTypeBadge';
 import Administration from './admin/Administration';
 import LiveCapture from './admin/LiveCapture';
 import ProbeRegistration from './admin/ProbeRegistration';
@@ -551,7 +552,7 @@ function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
 </LadderMore>
           {s.detailLoading && d.msgs.length===0
             ? <span className="shrink-0 whitespace-nowrap text-[12px] text-muted-foreground">chargement…</span>
-            : <span title={`${shownIdx.length} messages affichés sur ${d.msgs.length}`} className="shrink-0 whitespace-nowrap text-[12px] text-muted-foreground"><b className="text-foreground tabular-nums">{shownIdx.length}</b> {shownIdx.length>1?'messages':'message'}</span>}
+            : <span title={`${shownIdx.length} messages affichés ; ${d.loadedEvents ?? d.msgs.length} événements chargés sur ${d.totalEvents ?? d.msgs.length}`} className="shrink-0 whitespace-nowrap text-[12px] text-muted-foreground"><b className="text-foreground tabular-nums">{d.loadedEvents ?? d.msgs.length} / {d.totalEvents ?? d.msgs.length}</b> événements chargés</span>}
         </div>
       </div>
       <div ref={ref} className="flex-1 overflow-auto scroll-thin">
@@ -560,7 +561,7 @@ function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
         {tab==='Messages' && <table className="w-full text-[12.5px]"><tbody>{d.msgs.map((m,k)=>[m,k]).filter(([,k])=>shownSet.has(k)).map(([m,k])=>(
           <tr key={k} onClick={()=>setSel(k)} className={`cursor-pointer ${sel===k?'bg-[color-mix(in_oklab,var(--app-accent)_9%,white)]':'hover:bg-surface-2'}`}>
             <td className="h-7 px-4 border-b border-border-subtle font-mono text-[11.5px] text-subtle w-12">{available(d.evidence?.[k]?.seq ?? (demoMessageNumber(d,k)))}</td><td className="px-2 border-b border-border-subtle w-20"><Tag i={m[0]}/></td>
-            <td className="px-2 border-b border-border-subtle">{m[1]}{m[3]&&<span className="text-muted-foreground"> · {m[3]}</span>}</td><td className="px-2 border-b border-border-subtle text-muted-foreground">{m[2]}</td>
+            <td className="px-2 border-b border-border-subtle"><span className="inline-flex items-center gap-2">{m[1]}<ProbeTypeBadge probeType={d.evidence?.[k]?.probe_type}/></span>{m[3]&&<span className="text-muted-foreground"> · {m[3]}</span>}</td><td className="px-2 border-b border-border-subtle text-muted-foreground">{m[2]}</td>
             <td className="px-4 border-b border-border-subtle font-mono text-[11.5px] text-muted-foreground">{m[4]?`${m[4]} ${m[5]}`:''}</td></tr>))}</tbody></table>}
         {tab==='Corrélation' && <table className="w-full text-[12.5px]"><thead><tr>{['De','Vers','Clé','Messages','Statut'].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border">{h}</th>)}</tr></thead><tbody>{d.links.map((l,k)=>(
           <tr key={k}><td className="h-8 px-4 border-b border-border-subtle"><Tag i={l[2]}/></td><td className="px-4 border-b border-border-subtle"><Tag i={l[3]}/></td><td className="px-4 border-b border-border-subtle font-mono text-[12px]">{l[4]}</td><td className="px-4 border-b border-border-subtle font-mono text-[12px] text-muted-foreground">{l[0]===null?'—':l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun'}</td><td className="px-4 border-b border-border-subtle"><Stat s={l[5]}/></td></tr>))}</tbody></table>}
@@ -646,6 +647,7 @@ function Inspector({s,sel,lens,setLens,width,onHide}) {
   const identities=useSessionIdentities(s.session_id,true);
   const eventQuery = useEvent(evidence?.event_id ?? evidence?.id,true); const provenance = useProvenance(evidence?.event_id ?? evidence?.id); const packetRef=provenance.data?.data?.packet_references?.[0]??evidence?.packet_references?.[0]??{}; const packetCapture=provenance.data?.data?.capture_id??evidence?.capture_id; const packetNumber=packetRef.packet_number??evidence?.seq; const packets = usePackets({capture_id:packetCapture,packet_number:packetNumber}, packetCapture!=null && packetNumber!=null); const dissection=usePacketDissection(packetCapture,packetNumber,tab==='Hex'); const rules = useCorrelationRules(); const versions = useVersion();
   const proof = provenance.data?.data ?? evidence ?? {};
+  const probeType = eventQuery.data?.data?.probe_type ?? evidence?.probe_type ?? proof?.probe_type;
   const ids=identities.data?.data??{};
   if (!m) return <aside className="p-4 text-muted-foreground">Non disponible</aside>;
   const shared = m[5] ? d.msgs.filter(x=>x[5]===m[5]).length : 0;
@@ -657,7 +659,7 @@ function Inspector({s,sel,lens,setLens,width,onHide}) {
       </div>
       <div className="flex-1 overflow-auto scroll-thin p-3 text-[12px]">
         {tab==='Décodage' && <div className="space-y-3">
-          <div><div className="flex items-center gap-2"><Tag i={m[0]}/><span className="font-mono text-[11.5px] text-muted-foreground">message #{available(evidence?.seq ?? Math.min(sel,d.msgs.length-1)+1)}</span>{evidence?.decoding_status && <span className="ml-auto text-[11px] font-semibold text-muted-foreground border border-border rounded px-1">{String(evidence.decoding_status)}</span>}</div>
+          <div><div className="flex items-center gap-2"><Tag i={m[0]}/><ProbeTypeBadge probeType={probeType}/><span className="font-mono text-[11.5px] text-muted-foreground">message #{available(evidence?.seq ?? Math.min(sel,d.msgs.length-1)+1)}</span>{evidence?.decoding_status && <span className="ml-auto text-[11px] font-semibold text-muted-foreground border border-border rounded px-1">{String(evidence.decoding_status)}</span>}</div>
             <div className="mt-1 text-[13px] font-semibold text-foreground leading-snug">{m[1]}</div><div className="text-muted-foreground text-[12px]">{m[2]}</div></div>
           {eventQuery.isPending && evidence && <div className="text-muted-foreground">Chargement du décodage…</div>}
           {eventQuery.isError && <div role="alert" className="rounded-md border border-danger-line bg-danger-soft px-2 py-1.5 text-[11.5px] text-danger">Échec <span className="font-mono">GET {apiPath(`/events/${encodeURIComponent(String(evidence?.event_id ?? evidence?.id ?? ''))}`)}</span> → {eventQuery.error.status ? `HTTP ${eventQuery.error.status}` : 'réseau'}{eventQuery.error.code && eventQuery.error.code!=='HTTP_ERROR' ? ` · ${eventQuery.error.code}` : ''}{evidence?.decoded_ie_tree ? ' — arbre affiché depuis le callflow.' : ''}</div>}
@@ -676,7 +678,7 @@ function Inspector({s,sel,lens,setLens,width,onHide}) {
           <details className="rounded-md border border-border"><summary className="px-2 h-7 flex items-center cursor-pointer text-[11.5px] font-medium text-ink-2">Métadonnées techniques</summary>
             <dl className="grid grid-cols-[110px_1fr] gap-y-1 font-mono text-[11.5px] p-2 pt-0">
               <dt className="text-muted-foreground">capture_id</dt><dd>{available(proof.capture_id)}</dd><dt className="text-muted-foreground">seq</dt><dd>{available(proof.seq)}</dd>
-              <dt className="text-muted-foreground">packet_number</dt><dd>{available(proof.packet_number)}</dd><dt className="text-muted-foreground">décodeurs</dt><dd>{decoderVersions(versions.data?.data?.decoders)}</dd>
+              <dt className="text-muted-foreground">packet_number</dt><dd>{available(proof.packet_number)}</dd><dt className="text-muted-foreground">probe_type</dt><dd>{available(probeType)}</dd><dt className="text-muted-foreground">décodeurs</dt><dd>{decoderVersions(versions.data?.data?.decoders)}</dd>
             </dl></details>
           {m[5] && (isCause(m) ? <div className="rounded-md border border-danger-line bg-danger-soft p-3">
             <div className="flex items-center gap-2 font-medium text-danger"><I d="M12 8v5M12 16h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" c="w-4 h-4"/>Lentille de cause</div>
@@ -1423,7 +1425,7 @@ function App() {
     <div style={{"--app-accent":accent}} className="h-screen flex flex-col bg-surface-2 text-foreground text-base">
       <TopBar page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')} metrics={metrics} version={version} demo={demo} hidden={navHidden}/>
       <DataStatus t={t}/>
-      {requestError && <div role="alert" className="shrink-0 border-b border-warning-line bg-warning-soft px-4 py-2 text-[12px] text-warning">{requestError}</div>}
+      {sessionFilter.publicationRetrySeconds != null ? <div role="status" className="shrink-0 border-b border-warning-line bg-warning-soft px-4 py-2 text-[12px] text-warning">Publication en cours, nouvel essai dans {sessionFilter.publicationRetrySeconds} s</div> : requestError && <div role="alert" className="shrink-0 border-b border-warning-line bg-warning-soft px-4 py-2 text-[12px] text-warning">{requestError}</div>}
       {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={navHidden} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV} DashboardView={<QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/>}/> : page==='live' ? <LiveModule t={t} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : <>
       {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
       {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <SessionQueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">
