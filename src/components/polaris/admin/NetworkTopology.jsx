@@ -150,7 +150,7 @@ export default function NetworkTopology({ onOpenProbe }) {
   })();
 
   return <div className={`grid gap-4 ${panel?'grid-cols-[minmax(0,1fr)_300px]':'grid-cols-1'}`}>
-    <section className="rounded-lg border border-border bg-white overflow-hidden">
+    <section className="polaris-card overflow-hidden">
       <header className="h-11 border-b border-border flex items-center px-3 gap-2 flex-wrap">
         <strong className="text-[13px]">Architecture réseau</strong>
         <span className="text-[11px] text-subtle hidden xl:inline">sources /lab, /nodes, /ues, /interfaces, /probes · 5 s</span>
@@ -212,7 +212,7 @@ export default function NetworkTopology({ onOpenProbe }) {
         </div>
       </div>
     </section>
-    {panel && <aside className="rounded-lg border border-border bg-white text-[12px] self-start">
+    {panel && <aside className="polaris-card text-[12px] self-start">
       <div className="px-4 py-3 border-b border-border-subtle font-semibold">Vue d'ensemble</div>
       <dl className="px-4 py-3 grid grid-cols-2 gap-y-2 gap-x-3 border-b border-border-subtle">
         <Stat k="Fonctions observées" v={labDown?'—':`${observedNfs} / ${CORE_5G.length+CORE_LTE.length}`}/>
