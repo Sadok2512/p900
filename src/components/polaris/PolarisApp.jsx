@@ -552,7 +552,7 @@ function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
 </LadderMore>
           {s.detailLoading && d.msgs.length===0
             ? <span className="shrink-0 whitespace-nowrap text-[12px] text-muted-foreground">chargement…</span>
-            : <span title={`${shownIdx.length} messages affichés sur ${d.msgs.length}`} className="shrink-0 whitespace-nowrap text-[12px] text-muted-foreground"><b className="text-foreground tabular-nums">{shownIdx.length}</b> {shownIdx.length>1?'messages':'message'}</span>}
+            : <span title={`${shownIdx.length} messages affichés ; ${d.loadedEvents ?? d.msgs.length} événements chargés sur ${d.totalEvents ?? d.msgs.length}`} className="shrink-0 whitespace-nowrap text-[12px] text-muted-foreground"><b className="text-foreground tabular-nums">{d.loadedEvents ?? d.msgs.length} / {d.totalEvents ?? d.msgs.length}</b> événements chargés</span>}
         </div>
       </div>
       <div ref={ref} className="flex-1 overflow-auto scroll-thin">
@@ -561,7 +561,7 @@ function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
         {tab==='Messages' && <table className="w-full text-[12.5px]"><tbody>{d.msgs.map((m,k)=>[m,k]).filter(([,k])=>shownSet.has(k)).map(([m,k])=>(
           <tr key={k} onClick={()=>setSel(k)} className={`cursor-pointer ${sel===k?'bg-[color-mix(in_oklab,var(--app-accent)_9%,white)]':'hover:bg-surface-2'}`}>
             <td className="h-7 px-4 border-b border-border-subtle font-mono text-[11.5px] text-subtle w-12">{available(d.evidence?.[k]?.seq ?? (demoMessageNumber(d,k)))}</td><td className="px-2 border-b border-border-subtle w-20"><Tag i={m[0]}/></td>
-            <td className="px-2 border-b border-border-subtle">{m[1]}{m[3]&&<span className="text-muted-foreground"> · {m[3]}</span>}</td><td className="px-2 border-b border-border-subtle text-muted-foreground">{m[2]}</td>
+            <td className="px-2 border-b border-border-subtle"><span className="inline-flex items-center gap-2">{m[1]}<ProbeTypeBadge probeType={d.evidence?.[k]?.probe_type}/></span>{m[3]&&<span className="text-muted-foreground"> · {m[3]}</span>}</td><td className="px-2 border-b border-border-subtle text-muted-foreground">{m[2]}</td>
             <td className="px-4 border-b border-border-subtle font-mono text-[11.5px] text-muted-foreground">{m[4]?`${m[4]} ${m[5]}`:''}</td></tr>))}</tbody></table>}
         {tab==='Corrélation' && <table className="w-full text-[12.5px]"><thead><tr>{['De','Vers','Clé','Messages','Statut'].map(h=><th key={h} className="h-8 px-4 text-left font-medium text-muted-foreground bg-surface-2 border-b border-border">{h}</th>)}</tr></thead><tbody>{d.links.map((l,k)=>(
           <tr key={k}><td className="h-8 px-4 border-b border-border-subtle"><Tag i={l[2]}/></td><td className="px-4 border-b border-border-subtle"><Tag i={l[3]}/></td><td className="px-4 border-b border-border-subtle font-mono text-[12px]">{l[4]}</td><td className="px-4 border-b border-border-subtle font-mono text-[12px] text-muted-foreground">{l[0]===null?'—':l[0]+1}{l[1]!==null?` ↔ ${l[1]+1}`:' → aucun'}</td><td className="px-4 border-b border-border-subtle"><Stat s={l[5]}/></td></tr>))}</tbody></table>}

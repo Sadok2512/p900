@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { Envelope, Event, QueryParams, RecordData } from './types';
 import { request, requestFrom, relativeBase, redact } from './client';
 afterEach(() => vi.unstubAllGlobals());
 describe('POLARIS client', () => {
@@ -111,6 +112,37 @@ describe('fetchAllFilteredSessions — 2.5.1 (pagination, ANR1 #10 c330d205 en p
     });
     expect(result.data.map((r) => r.session_id)).toEqual(['a', 'b', '5g-session-c330d205adafa233']);
     expect(bodies).toEqual([{ interface: 'N4', limit: 100 }, { interface: 'N4', limit: 100, cursor: 'c1' }]);
+  });
+});
+
+describe('fetchAllCallflowPages — 2.8.3 (pagination canonique du callflow)', () => {
+  it('suit 3 lots 100/100/58 sans réordonner et conserve les 58 événements vTAP du dernier lot', async () => {
+    const { fetchAllCallflowPages } = await import('./hooks');
+    const makeEvents = (start: number, count: number, probeType?: string) => Array.from({ length: count }, (_, offset) => ({
+      event_id: `evt-${start + offset}`,
+      capture_id: `cap-${Math.floor((start + offset) / 100)}`,
+      seq: start + offset,
+      interface: 'SBI',
+      message_name: 'SBI HTTP/2',
+      ...(probeType ? { probe_type: probeType } : {}),
+    }));
+    const pages: Record<string, Envelope<RecordData>> = {
+      first: { data: { nodes: ['UE', 'AMF'], summary: 'callflow canonical', events: makeEvents(0, 100), pagination: { next_cursor: 'c1', returned_events: 100, total_events: 258 } }, meta: {} },
+      c1: { data: { events: makeEvents(100, 100), pagination: { next_cursor: 'c2', returned_events: 100, total_events: 258 } }, meta: {} },
+      c2: { data: { events: makeEvents(200, 58, 'vtap'), pagination: { next_cursor: null, returned_events: 58, total_events: 258 } }, meta: {} },
+    };
+    const params: QueryParams[] = [];
+    const result = await fetchAllCallflowPages('trial7', async (query) => {
+      params.push(query);
+      return pages[String(query['cursor'] ?? 'first')]!;
+    });
+    const body = result.data as RecordData;
+    const events = body['events'] as Event[];
+    expect(params).toEqual([{ limit: 100 }, { limit: 100, cursor: 'c1' }, { limit: 100, cursor: 'c2' }]);
+    expect(events.map((event) => event.seq)).toEqual(Array.from({ length: 258 }, (_, index) => index));
+    expect(events.filter((event) => event['probe_type'] === 'vtap')).toHaveLength(58);
+    expect(body).toEqual(expect.objectContaining({ nodes: ['UE', 'AMF'], summary: 'callflow canonical' }));
+    expect(body['pagination']).toEqual(expect.objectContaining({ next_cursor: null, loaded_events: 258, total_events: 258 }));
   });
 });
 

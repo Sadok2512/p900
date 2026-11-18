@@ -65,7 +65,71 @@ const detailRequest = { priority: 'detail' as const, timeoutMs: 60_000 };
 export const useSession = (id?: string | number | null) => useResource<Session>(`/sessions/${idPath(id)}`, {}, id != null, true, detailRequest);
 export const useEvents = (id?: string | number | null) => useResource<Event[]>(`/sessions/${idPath(id)}/events`, {}, id != null, true, detailRequest);
 export const useProcedures = (id?: string | number | null) => useResource<RecordData[]>(`/sessions/${idPath(id)}/procedures`, {}, id != null, true, detailRequest);
-export const useCallflow = (id?: string | number | null) => useResource<RecordData | Event[]>(`/sessions/${idPath(id)}/callflow`, {}, id != null, true, detailRequest);
+type CallflowPage = Envelope<RecordData | Event[]>;
+type CallflowPageFetcher = (params: QueryParams) => Promise<CallflowPage>;
+
+/**
+ * 2.8.3 — `/callflow` est paginé par curseur. Les événements sont ajoutés
+ * strictement dans l'ordre des pages renvoyées par l'API : aucun tri client.
+ * Un curseur répété est une réponse invalide explicite, jamais un callflow
+ * partiel présenté comme complet.
+ */
+export async function fetchAllCallflowPages(id: string | number, fetchPage: CallflowPageFetcher = (params) => request<RecordData | Event[]>(`/sessions/${idPath(id)}/callflow`, { ...detailRequest, params })): Promise<CallflowPage> {
+  const events: Event[] = [];
+  const seen = new Set<string>();
+  let cursor: string | undefined;
+  let firstPage = true;
+  let firstBody: RecordData = {};
+  let lastBody: RecordData = {};
+  let lastMeta: RecordData = {};
+
+  for (;;) {
+    const page = await fetchPage({ limit: 100, ...(cursor ? { cursor } : {}) });
+    const body = page.data && typeof page.data === 'object' && !Array.isArray(page.data) ? page.data as RecordData : {};
+    const pageEvents = Array.isArray(page.data) ? page.data : records<Event>(body['events'] ?? body['messages']);
+    if (firstPage) {
+      firstBody = body;
+      firstPage = false;
+    }
+    events.push(...pageEvents);
+    lastBody = body;
+    lastMeta = page.meta ?? {};
+
+    const pagination = body['pagination'] && typeof body['pagination'] === 'object' ? body['pagination'] as RecordData : {};
+    const rawNext = pagination['next_cursor'] ?? page.meta?.['next_cursor'];
+    const next = typeof rawNext === 'string' && rawNext ? rawNext : undefined;
+    if (!next) break;
+    if (seen.has(next)) throw new PolarisApiError('INVALID_CURSOR', 'Le callflow répète un curseur de pagination', 0);
+    seen.add(next);
+    cursor = next;
+  }
+
+  const lastPagination = lastBody['pagination'] && typeof lastBody['pagination'] === 'object' ? lastBody['pagination'] as RecordData : {};
+  const total = Number(lastPagination['total_events'] ?? events.length);
+  return {
+    data: {
+      ...firstBody,
+      events,
+      pagination: {
+        ...lastPagination,
+        next_cursor: null,
+        returned_events: events.length,
+        loaded_events: events.length,
+        total_events: Number.isFinite(total) ? total : events.length,
+      },
+    },
+    meta: { ...lastMeta, next_cursor: null },
+  };
+}
+
+export const useCallflow = (id?: string | number | null) => useQuery({
+  queryKey: ['polaris', 'api', `/sessions/${idPath(id)}/callflow`, { limit: 100 }],
+  queryFn: ({ signal }) => fetchAllCallflowPages(id!, (params) => request<RecordData | Event[]>(`/sessions/${idPath(id)}/callflow`, { ...detailRequest, params, signal })),
+  enabled: id != null,
+  retry: false,
+  refetchOnWindowFocus: false,
+  staleTime: 15_000,
+});
 export const useCorrelations = (id?: string | number | null) => useResource<Correlation[] | { edges: Correlation[] }>(`/sessions/${idPath(id)}/correlations`, {}, id != null, true, detailRequest);
 export const useEvent = (id?: string | number | null, clearIdentities=false) => useQuery({ queryKey:['polaris','api','event',id,clearIdentities?'clear':'redacted'], queryFn:({signal})=>request<Event>(`/events/${idPath(id)}`,{signal,clearIdentityResponse:clearIdentities}), enabled:id!=null, retry:false, refetchOnWindowFocus:false });
 export const useProvenance = (id?: string | number | null) => useResource<RecordData>(`/events/${idPath(id)}/provenance`, {}, id != null);

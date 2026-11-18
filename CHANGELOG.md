@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.8.3 — 2026-11-18 — Callflow paginé complet (patch)
+
+- Suit `pagination.next_cursor` jusqu’à la dernière page de `/sessions/:id/callflow`, en conservant strictement l’ordre canonique renvoyé par l’API.
+- Affiche le nombre d’événements chargés sur le total annoncé afin qu’un résultat partiel ne soit jamais présenté comme complet.
+- Rend la provenance `probe_type` sur chaque ligne de l’onglet Messages, notamment pour les événements SBI issus du vTAP.
+
 ## 2.8.2 — 2026-11-17 — Provenance vTAP visible dans l’Analyzer (patch)
 
 - Affiche le `probe_type` réellement fourni par l’événement dans l’en-tête et les métadonnées techniques de l’inspecteur de session.
