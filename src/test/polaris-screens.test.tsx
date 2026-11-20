@@ -10,14 +10,14 @@ const clearSubscriber=['001','01','012','345','6789'].join('');
 const clearTemporary=['0x','C0','FF','EE','01'].join('');
 const identities={imsi:clearSubscriber,tmsi:[{value:clearTemporary}],s_tmsi:[{value:['01',clearTemporary.slice(2)].join('')}],m_tmsi:[{value:clearTemporary.slice(2)}],imei:{value:['35','2099','00','176','148'].join('')},msisdn:['33','6','00','00','00','01'].join('')};
 const payloads: Record<string,unknown> = {
-  '/auth/me':{role:'operator',permissions:['probes.create','probes.update','probes.delete','probes.software_update']}, '/health':{status:'healthy',coordination_open:false}, '/version':{backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{ngap:'0.6.0'}},
-  '/metrics':{capture_state:'active',pending_segments:7,segments_ingested:18,ingestion_failures:0,open_segments:2,zero_event_segments:1,dumpcap_active:6,dumpcap_expected:12}, '/storage/safety':{filesystem:{usage_percent:75,available_bytes:268435456}},
+  '/auth/me':{role:'operator',permissions:['probes.create','probes.update','probes.delete','probes.software_update']}, '/health':{status:'healthy',coordination_open:false,quarantined_segments:{count:1,items:[{source_path:'/capture/N2-00042.pcapng',source_sha256:'test-sha'}]}}, '/version':{backend_api:'2.11.6',web_frontend:'2.11.6',platform_core:'2.11.6',session_engine:'0.5.7',correlation_engine:'0.6.6',event_schema:'1.6.1',callflow_schema:'1.3.2',decoders:{ngap:'0.6.0'}},
+  '/metrics':{capture_state:'active',pending_segments:7,segments_ingested:18,ingestion_failures:0,open_segments:2,zero_event_segments:1,dumpcap_active:6,dumpcap_expected:12,capture_owned_bytes_percent:563.8018}, '/storage/safety':{filesystem:{usage_percent:75,available_bytes:268435456}},
   '/sessions':[session], '/sessions/filter':[session], '/sessions/s1':session, '/sessions/s1/events':[event], '/sessions/s1/callflow':{events:[event]}, '/sessions/s1/procedures':[], '/sessions/s1/correlations':{edges:[{edge_id:'edge-1',source_event_id:'e1',target_event_id:'e1',source_interface:'N2',target_interface:'N2',matching_identifiers:['ctx=test'],rule_id:'context-rule',rule_version:'1',matched_rules:['context-rule'],evidence_description:'same context',evidence_type:'EXACT_CONTEXT',confidence:'EXACT',scope:'session',limitations:[],packet_references:[]}]},
   '/sessions/catalog':{columns:[],filters:{},always_present_columns:[],session_count:1,protocol_tree:[{interface:'N2',protocols:[{protocol:'NGAP',messages:[{message:'TEST.Message',detail:{occurrences:1,params:[{param_path:'test/cause',type:'enum',occurrences:1,observed_values:[{value:'ok',count:1}],decoded_from_octets:true}]}}]}]}],network_elements:[{role:'AMF',address:'amf-test',occurrences:1}],scope:{}},
   '/sessions/catalog/search':{results:[{interface:'N2',protocol:'NGAP',message:'TEST.Message',param_path:'test/cause',type:'enum',occurrences:1}],total:1,query:{q:'cause'}},
   '/sessions/catalog/param':{interface:'N2',protocol:'NGAP',message:'TEST.Message',param_path:'test/cause',type:'enum',occurrences:1,observed_values:[{value:'ok',count:1}],decoded_from_octets:true,example_sessions:[{session_id:'s1',event_id:'e1',capture_id:'c1',seq:45}]},
   '/sessions/columns':[{...session,fields:[{interface:'N2',protocol:'NGAP',message:'TEST.Message',param_path:'test/cause',mode:'last',value:'ok',proof:[{event_id:'e1',capture_id:'c1',seq:45}]}]}],
-  '/events/e1':{...event,decoded_ie_tree:{...event.decoded_ie_tree,imsi:clearSubscriber}}, '/events/e1/provenance':{capture_id:'c1',event_id:'e1',packet_number:45}, '/packets':[{id:'p1'}], '/packets/c1/45/dissect':{dissection:['subscriber',clearSubscriber].join('=')}, '/sessions/s1/identities':identities,
+  '/events/e1':{...event,decoded_ie_tree:{...event.decoded_ie_tree,imsi:clearSubscriber}}, '/events/e1/provenance':{capture_id:'c1',event_id:'e1',packet_number:45}, '/packets':[{id:'p1'}], '/packets/c1/45/dissect':{dissection:['subscriber',clearSubscriber].join('=')}, '/sessions/s1/identities':identities, '/identities/lookup':{subscriber_pseudonym:'subscriber-psn-test',sessions:['s1'],matches:[]},
   '/probes':[{id:'p1',probe_id:'p1',name:'lab-probe',host:'localhost',mgmt_ip:'127.0.0.1',site:'lab-a',probe_type:'virtual',role:'Capture',status:'healthy',version:'probe-test'}], '/probes/p1':{id:'p1',probe_id:'p1',name:'lab-probe',host:'localhost',mgmt_ip:'127.0.0.1',site:'lab-a',probe_type:'virtual',version:'probe-test'}, '/probes/p1/interfaces':[{interface:'ens3',role:'N2',bpf_filter:'sctp port 38412'}],
   '/interfaces':[{name:'N2',interface:'N2',device:'br-test',protocol:'NGAP',status:'CAPTURING'}], '/interfaces/runtime':[{interface:'N2',pid:9001,active:true,bpf_filter:'sctp port 38412',device:'br-test'}], '/captures':[], '/modules':[], '/datasets':[{id:'d1',name:'Dataset test'}], '/sessions/available_causes':['#27'], '/correlation/rules':[]
 };
@@ -37,7 +37,24 @@ function open(hash: string) {
 describe('main screens with simulated REST responses',()=>{
   it('Home shows server metrics without Traffic or fabricated recent activity', async()=>{
     open('home'); await screen.findByText('18'); expect(screen.queryByText('Traffic')).not.toBeInTheDocument(); expect(screen.getByText("Aucune activité pour l'instant")).toBeInTheDocument();
+    expect(screen.getByText('Stock capture')).toBeInTheDocument();
+    expect(screen.getByTestId('capture-stock-percent')).toHaveTextContent('563,8 %');
+    expect(screen.getByText('Segments quarantinés')).toBeInTheDocument();
+    expect(screen.getByTestId('quarantine-count')).toHaveTextContent('1');
+    fireEvent.click(screen.getByText('Voir la liste'));
+    expect(screen.getByText('N2-00042.pcapng')).toBeInTheDocument();
+    expect(document.body.textContent).not.toContain('/capture/');
     expect(screen.queryByRole('button',{name:'operator'})).not.toBeInTheDocument();
+  });
+  it('Home renders an em dash when capture stock and quarantine are null', async()=>{
+    const previousHealth=payloads['/health']; const previousMetrics=payloads['/metrics'];
+    payloads['/health']={status:'healthy',quarantined_segments:null};
+    payloads['/metrics']={capture_state:'active',capture_owned_bytes_percent:null};
+    try {
+      open('home');
+      expect(await screen.findByTestId('capture-stock-percent')).toHaveTextContent('—');
+      expect(screen.getByTestId('quarantine-count')).toHaveTextContent('—');
+    } finally { payloads['/health']=previousHealth; payloads['/metrics']=previousMetrics; }
   });
   it('Analyzer executes filter, displays session and reads callflow and provenance', async()=>{
     open('sessions'); fireEvent.click(screen.getByRole('button',{name:'Nouvelle requête'}));
@@ -426,7 +443,7 @@ describe('main screens with simulated REST responses',()=>{
     payloads['/live/traces']=previous;
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.8.5').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.8.5')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.8.6').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.8.6')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard sits under KPI and is gone from the top menu', async()=>{
     open('kpi');

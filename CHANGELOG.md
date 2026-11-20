@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.8.6 — 2026-11-19 — Stock de capture, quarantaine et lookup privé
+
+- Affiche le stock de capture `capture_owned_bytes_percent` sans plafond et utilise « — » quand la mesure est absente.
+- Affiche le nombre de segments quarantinés et une liste repliable de leurs seuls noms de fichier, sans identité ni chemin complet.
+- Migre la recherche d'identité vers `POST /identities/lookup` avec la valeur dans le corps JSON, avant la suppression du GET en oiran-api 2.21.76.
+- Conserve les badges de provenance vTAP et le réessai automatique des `503 HEAVY_WORK_IN_PROGRESS` avec `Retry-After`.
+
 ## 2.8.5 — 2026-11-18 — Réessai automatique pendant une publication Analyzer (patch)
 
 - Reconnaît le `503 HEAVY_WORK_IN_PROGRESS` de `/sessions/filter`, respecte l’en-tête `Retry-After` et réessaie automatiquement tant que la publication est en cours.
