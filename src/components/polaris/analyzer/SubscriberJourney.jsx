@@ -6,10 +6,10 @@ import { toJourney, toTmsiList, shortPseudo, refLabel } from './subscriber';
 export const KIND = { attach:['#0062A1','Attach / Registration'], pdu:['#0F5B56','PDU / PDN'], release:['#64748B','Idle / Release'], service:['#7C3AED','Service Request'], tau:['#D97706','TAU'], handover:['#DB2777','Handover'], detach:['#DC2626','Detach'], other:['#94A3B8','Autre'] };
 const H = ({children}) => <div className="text-[11px] font-semibold uppercase tracking-[0.06em] text-muted-foreground mb-1.5">{children}</div>;
 const pending = 'Non disponible : backend à venir';
-export function Fail({q, path}) {
+export function Fail({q, path, method='GET'}) {
   if (!q.isError) return null;
   const st = q.error?.status;
-  return <div role="alert" className="rounded-md border border-border bg-surface-2 px-2 py-1.5 text-[11.5px] text-muted-foreground">{st===404||st===405||st===501 ? pending : 'Échec'} · <span className="font-mono">GET {apiPath(path)}</span> → {st ? `HTTP ${st}` : 'réseau'}</div>;
+  return <div role="alert" className="rounded-md border border-border bg-surface-2 px-2 py-1.5 text-[11.5px] text-muted-foreground">{st===404||st===405||st===501 ? pending : 'Échec'} · <span className="font-mono">{method} {apiPath(path)}</span> → {st ? `HTTP ${st}` : 'réseau'}</div>;
 }
 
 export function OtherSessions({s, onOpen}) {
@@ -43,7 +43,7 @@ export default function SubscriberJourney({s, onOpen}) {
       <input aria-label="Rechercher un abonné" value={query} onChange={e=>setQuery(e.target.value)} placeholder="IMSI, TMSI, S-TMSI, M-TMSI, IMEI ou MSISDN" className="flex-1 h-8 rounded-md border border-border px-2 outline-none focus:border-[var(--app-accent)]"/>
       <button className="h-8 px-3 rounded-md text-white text-[12px]" style={{background:'var(--app-accent)'}}>Ouvrir le parcours</button>
     </form>
-    {submitted && <Fail q={lookup} path={`/identities?q=…`}/>}
+    {submitted && <Fail q={lookup} method="POST" path="/identities/lookup"/>}
     {submitted && lookup.data && !looked && <div className="text-muted-foreground">Aucun abonné trouvé.</div>}
 
     <section><H>Identités</H>

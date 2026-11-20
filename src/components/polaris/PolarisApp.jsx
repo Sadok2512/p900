@@ -740,11 +740,16 @@ function homeTone(key, v) {
 }
 const HOME_TONE = { ok: 'var(--success)', warn: 'var(--warning)', fail: 'var(--danger)', unknown: 'var(--subtle)', neutral: 'var(--muted-foreground)' };
 const HOME_TONE_LABEL = { ok: 'Opérationnel', warn: 'Vigilance', fail: 'Échec', unknown: 'Inconnu', neutral: 'Information' };
+const captureStockPercent = value => typeof value==='number' && Number.isFinite(value) ? `${value.toLocaleString(LANG==='en'?'en-US':'fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})} %` : '—';
+const quarantineCount = value => typeof value==='number' && Number.isFinite(value) ? value.toLocaleString(LANG==='en'?'en-US':'fr-FR') : '—';
+const segmentName = value => { const parts=String(value??'').split('/').filter(Boolean); return parts.at(-1) || '—'; };
 
 function Home({setPage,onNew,hidden=[]}) {
   const { demo } = usePolarisMode();
   const health = useHealth(), metrics = useMetrics(), safety = useStorageSafety();
   const m = metrics.data?.data, h = health.data?.data;
+  const quarantine = h?.quarantined_segments;
+  const quarantineItems = Array.isArray(quarantine?.items) ? quarantine.items : [];
   const go = tg => tg && setPage(tg);
   const mods = MODULES.filter(x=>(x[3]!=='trafic'||TRAFFIC_ENABLED) && isVisible(hidden,x[3]));
   const cols = mods.length <= 2 ? 'lg:grid-cols-2' : mods.length === 4 ? 'lg:grid-cols-4' : mods.length % 3 === 0 || mods.length === 5 ? 'lg:grid-cols-3' : 'lg:grid-cols-4';
@@ -809,6 +814,18 @@ function Home({setPage,onNew,hidden=[]}) {
                 <div title={`event_id=${available(m?.event_id)} · seq=${available(m?.seq)}`} className={`text-[30px] leading-none font-semibold tabular-nums tracking-[-0.02em] ${alert?'text-warning':'text-foreground'}`}>{fmtTile(k,raw)}</div>
                 <div className="text-[12.5px] text-muted-foreground">{alert ? t("À examiner : segments non importés.") : t(HOME_TONE_LABEL[tone])}</div>
               </div>); })}
+          </div>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-4" aria-label="Moniteurs de capture">
+            <div className={`${card} p-5 flex flex-col gap-2`}>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-muted-foreground"/><span className="text-[13.5px] font-medium text-foreground">{t("Stock capture")}</span><span className="ml-auto text-[12px] text-subtle">{t("Octets possédés")}</span></div>
+              <div className="text-[30px] leading-none font-semibold tabular-nums tracking-[-0.02em] text-foreground" data-testid="capture-stock-percent">{captureStockPercent(m?.capture_owned_bytes_percent)}</div>
+              <div className="text-[12.5px] text-muted-foreground">{t("Valeur réelle non plafonnée")}</div>
+            </div>
+            <div className={`${card} p-5 flex flex-col gap-2`}>
+              <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-muted-foreground"/><span className="text-[13.5px] font-medium text-foreground">{t("Segments quarantinés")}</span><span className="ml-auto text-[12px] text-subtle">{t("Exclus de l'ingestion")}</span></div>
+              <div className="text-[30px] leading-none font-semibold tabular-nums tracking-[-0.02em] text-foreground" data-testid="quarantine-count">{quarantineCount(quarantine?.count)}</div>
+              {quarantineItems.length>0 ? <details className="text-[12.5px] text-muted-foreground"><summary className="cursor-pointer font-medium text-foreground">{t("Voir la liste")}</summary><ul className="mt-2 space-y-1" aria-label="Segments en quarantaine">{quarantineItems.map((item,index)=><li key={`${item.source_sha256??'segment'}-${index}`} className="font-mono truncate">{segmentName(item.source_path)}</li>)}</ul></details> : <div className="text-[12.5px] text-muted-foreground">{quarantine?.count==null ? t("Donnée indisponible") : t("Aucun segment exclu")}</div>}
+            </div>
           </div>
         </section>
 

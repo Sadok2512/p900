@@ -60,6 +60,7 @@ describe('p900 proxy request target validation', () => {
 
   it('opens identities, dissection, live streams, audit, and writes without Basic', () => {
     expect(proxyAccess('/api/v1/identities','GET',{}).status).toBe(200);
+    expect(proxyAccess('/api/v1/identities/lookup','POST',{}).status).toBe(200);
     expect(proxyAccess('/api/v1/sessions/s-1/identities','GET',{}).status).toBe(200);
     expect(proxyAccess('/api/v1/packets/c-1/4/dissect','GET',{}).status).toBe(200);
     expect(proxyAccess('/api/v1/live/traces/t-1/stream','GET',{}).status).toBe(200);
