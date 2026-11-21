@@ -442,8 +442,31 @@ describe('main screens with simulated REST responses',()=>{
     expect(screen.getAllByText('InitialUEMessage').length).toBeGreaterThan(0);
     payloads['/live/traces']=previous;
   });
+  it('2.8.7 — Live conserve NAS et NGAP du même paquet et remplace une révision en place', async()=>{
+    const listeners: Record<string,(e:{data:string,lastEventId?:string})=>void> = {};
+    class FakeEventSource { onerror=null; addEventListener(k:string,f:(e:{data:string})=>void){ listeners[k]=f; } close(){} constructor(){} }
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const previous=payloads['/live/traces'];
+    payloads['/live/traces']={trace_id:'trace-dedup',armed:false,expires_at:Math.floor(Date.now()/1000)+1800,subscriber_pseudonyms:['psn-test']};
+    const message=(overrides:Record<string,unknown>)=>({interface:'N2',protocol:'NGAP',message_name:'NGAP message',source:{network_function:'gNB'},destination:{network_function:'AMF'},capture_id:'cap',packet_number:7,revision:0,...overrides});
+    try {
+      open('live');
+      fireEvent.change(screen.getByPlaceholderText('UE-…'),{target:{value:'001010000000201'}});
+      fireEvent.click(screen.getByRole('button',{name:'Rechercher'}));
+      await screen.findByText('UE Info');
+      await waitFor(()=>expect(listeners['message']).toBeTypeOf('function'));
+      listeners['message']!({data:JSON.stringify(message({stable_event_key:'ngap:cap:7',event_id:'ngap-7'}))});
+      listeners['message']!({data:JSON.stringify(message({stable_event_key:'nas:cap:7',event_id:'nas-7',protocol:'NAS-5GS',message_name:'Registration Request'}))});
+      expect(await screen.findAllByText('NGAP message')).not.toHaveLength(0);
+      expect(await screen.findAllByText('Registration Request')).not.toHaveLength(0);
+      listeners['message']!({data:JSON.stringify(message({stable_event_key:'ngap:cap:7',event_id:'ngap-7-r1',revision:1,message_name:'NGAP message revised'}))});
+      expect(await screen.findAllByText('NGAP message revised')).not.toHaveLength(0);
+      expect(screen.queryByText('NGAP message')).not.toBeInTheDocument();
+      expect(screen.getAllByText('Registration Request').length).toBeGreaterThan(0);
+    } finally { payloads['/live/traces']=previous; }
+  });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.8.6').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.8.6')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.8.7').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.8.7')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard sits under KPI and is gone from the top menu', async()=>{
     open('kpi');

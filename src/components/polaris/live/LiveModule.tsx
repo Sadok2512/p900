@@ -12,6 +12,7 @@ import {
   buildOpenSessionContext,
   persistOpenSessionContext,
 } from './live-validation';
+import { decideLiveMessage, upsertLiveMessage } from './live-message-dedup';
 
 /* ---------- Scripts (demo) : [ifc, proto, from, to, message, procedure, result, cause, kind] ---------- */
 const fingerprint = (s) => { let h = 5381; for (const c of s) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return 'sha256:' + h.toString(16).padStart(8,'0') + '…'; };
@@ -55,10 +56,10 @@ export default function LiveModule({ t, setPage }) {
   // ne traverse pas withCredentials sur certains CORS strict.
   const lastEventId = useRef(null);
   // La reprise réseau utilise l'id SSE opaque attendu par l'API. La dernière
-  // clé métier (capture_id, seq) est conservée séparément pour dédupliquer le
-  // premier message rejoué ; aucun timestamp ne participe à la reprise.
+  // clé d'ordre (capture_id, seq) est conservée séparément pour diagnostiquer
+  // la reprise. La déduplication métier utilise stable_event_key/event_id.
   const lastOrderKey = useRef(null);
-  const deliveredOrderKeys = useRef(new Set());
+  const deliveredMessageRevisions = useRef(new Map());
   // Requête de trace conservée uniquement en mémoire pour pouvoir réarmer
   // après un redémarrage API (le store de traces backend est volatil).
   // Cette valeur n'est jamais journalisée ni persistée.
@@ -87,7 +88,7 @@ export default function LiveModule({ t, setPage }) {
   useEffect(() => { setMsgs([]); setBuf([]); setThr([]); seq.current = 0; setSel(null); setTtl(30*60); }, [res?.ue, demo]);
   useEffect(() => { runningRef.current=running; },[running]);
   useEffect(()=>{ if(demo||!traceId)return; const timer=setInterval(()=>{setSseClock(Date.now());setTtl(v=>Math.max(0,v-1));},1000); return()=>clearInterval(timer);},[demo,traceId]);
-  useEffect(()=>{lastEventId.current=null;lastOrderKey.current=null;deliveredOrderKeys.current=new Set();setLastLiveEventAt(null);setSseReconnecting(false);setStreamError(null);},[traceId]);
+  useEffect(()=>{lastEventId.current=null;lastOrderKey.current=null;deliveredMessageRevisions.current=new Map();setLastLiveEventAt(null);setSseReconnecting(false);setStreamError(null);},[traceId]);
   useEffect(() => { if (!tracking || !demo) return; const script = liveData.scripts[tech]; const t0 = Date.now();
     const id = setInterval(() => {
       const s = script[seq.current % script.length]; seq.current++;
@@ -97,7 +98,7 @@ export default function LiveModule({ t, setPage }) {
       else { setBuf(b => [...b, { m, p }]); }
       setDelay(2 + Math.round(Math.random()*4)); setTtl(v => Math.max(0, v-1));
     }, 1000); return () => clearInterval(id); }, [tracking, running, tech, res?.st]);
-  const resume = () => { setMsgs(x => [...x, ...buf.map(b=>b.m)].slice(-400)); setThr(x => [...x, ...buf.map(b=>b.p)]); setBuf([]); setRunning(true); };
+  const resume = () => { setMsgs(x => buf.filter(b=>b.m).reduce((rows,b)=>upsertLiveMessage(rows,b.m,b.action||'append',LIVE_BUFFER_MAX),x)); setThr(x => [...x, ...buf.filter(b=>b.p).map(b=>b.p)]); setBuf([]); setRunning(true); };
 
   useEffect(()=>{ if(demo||!traceId)return;
     // 2.5.0 (ANR1 #10 Live-IMSI) — reprise après pause/reconnexion :
@@ -116,11 +117,11 @@ export default function LiveModule({ t, setPage }) {
         if(event?.lastEventId)lastEventId.current=event.lastEventId;
         if(countsAsLiveTraffic(kind)){setLastLiveEventAt(Date.now());setSseClock(Date.now());}
         if(kind==='message'){
-          const orderKey=`${String(data.capture_id??'')}\u0000${String(data.packet_number??'')}`;
-          if(deliveredOrderKeys.current.has(orderKey))return;
-          deliveredOrderKeys.current.add(orderKey);lastOrderKey.current={captureId:data.capture_id,seq:data.packet_number};
-          if(deliveredOrderKeys.current.size>LIVE_BUFFER_MAX*2)deliveredOrderKeys.current=new Set(Array.from(deliveredOrderKeys.current).slice(-LIVE_BUFFER_MAX));
-          const m={cap:data.capture_id,seq:data.packet_number,eventId:data.event_id,ts:new Date().toLocaleTimeString('fr-FR'),rel:'—',ifc:data.interface,proto:data.protocol,from:endpointLabel(data.source),to:endpointLabel(data.destination),name:data.message_name,proc:data.procedure||data.message_name,res:data.result||'En cours',cause:data.cause||'',kind:data.phase||'message',corr:'LIVE',decoded:data.decoded_ie_tree};if(runningRef.current)setMsgs(x=>[...x,m].slice(-LIVE_BUFFER_MAX));else setBuf(x=>[...x,{m}].slice(-LIVE_BUFFER_MAX));
+          const decision=decideLiveMessage(deliveredMessageRevisions.current,data);
+          if(decision.action==='ignore')return;
+          lastOrderKey.current={captureId:data.capture_id,seq:data.packet_number};
+          if(deliveredMessageRevisions.current.size>LIVE_BUFFER_MAX*2)deliveredMessageRevisions.current=new Map(Array.from(deliveredMessageRevisions.current).slice(-LIVE_BUFFER_MAX));
+          const m={cap:data.capture_id,seq:data.packet_number,eventId:data.event_id,liveKey:decision.key,revision:decision.revision,renderKey:decision.key||`${String(data.capture_id??'')}\u0000${String(data.packet_number??'')}\u0000${String(data.event_id??'')}\u0000${Date.now()}-${Math.random()}`,ts:new Date().toLocaleTimeString('fr-FR'),rel:'—',ifc:data.interface,proto:data.protocol,from:endpointLabel(data.source),to:endpointLabel(data.destination),name:data.message_name,proc:data.procedure||data.message_name,res:data.result||'En cours',cause:data.cause||'',kind:data.phase||'message',corr:'LIVE',decoded:data.decoded_ie_tree};if(runningRef.current)setMsgs(x=>upsertLiveMessage(x,m,decision.action,LIVE_BUFFER_MAX));else setBuf(x=>[...x,{m,action:decision.action}].slice(-LIVE_BUFFER_MAX));
         }else if(kind==='throughput'){const p={ts:Date.now(),dl:Number(data.dl_bytes_s||0)*8/1e6,ul:Number(data.ul_bytes_s||0)*8/1e6};if(runningRef.current)setThr(x=>[...x,p].filter(z=>Date.now()-z.ts<1800000));else setBuf(x=>[...x,{p}].slice(-LIVE_BUFFER_MAX));}else if(kind==='ue_info'){setRealUe({tech:data.technology||'5G',info:data});}else if(kind==='status'){setTtl(Math.max(0,Number(data.expires_at||0)-Math.floor(Date.now()/1000)));}
       };
       ['message','throughput','ue_info','procedure','marker','status'].forEach(k=>source.addEventListener(k,receive(k)));
@@ -220,7 +221,7 @@ export default function LiveModule({ t, setPage }) {
     <div ref={sigBox} onScroll={onSigScroll} className="overflow-auto scroll-thin flex-1" style={full==='sig'?{}:{height:ladH}}>
       {!tracking ? <Empty t={t} demo={demo} res={res}/> : mode==='ladder' ? <Ladder t={t} msgs={shown} nodes={NODES[tech]} colors={IFC_C} sel={sel} setSel={setSel} marks={marks} atEnd={atEnd}/> :
         <table className="w-full text-[12px]"><thead className="sticky top-0 bg-white"><tr className="text-left text-[11px] text-subtle">{['Capture','Seq','t (s)','Interface','Protocole','Message','Source','Destination','Procédure','Résultat','Cause',''].map(h=><th key={h} className="px-2.5 py-2 font-medium border-b border-border-subtle whitespace-nowrap">{t(h)}</th>)}</tr></thead>
-          <tbody>{shown.map(m=><tr key={m.seq} onClick={()=>setSel(m.seq)} className={`cursor-pointer whitespace-nowrap ${sel===m.seq?'bg-surface-2 shadow-[inset_2px_0_0_var(--app-accent)]':'hover:bg-surface-2'} ${marks.includes(m.seq)?'bg-warning-soft':''}`}>
+          <tbody>{shown.map(m=><tr key={m.renderKey||m.eventId||`${m.cap}-${m.seq}`} onClick={()=>setSel(m.seq)} className={`cursor-pointer whitespace-nowrap ${sel===m.seq?'bg-surface-2 shadow-[inset_2px_0_0_var(--app-accent)]':'hover:bg-surface-2'} ${marks.includes(m.seq)?'bg-warning-soft':''}`}>
             <td className="px-2.5 py-1.5 font-mono text-subtle">{m.cap}</td><td className="px-2.5 font-mono">{m.seq}</td><td className="px-2.5 font-mono text-subtle">{m.rel}</td><td className="px-2.5"><span className="font-medium" style={{color:IFC_C[m.ifc]}}>{m.ifc}</span></td><td className="px-2.5 text-muted-foreground">{m.proto}</td><td className="px-2.5 text-foreground">{m.name}</td><td className="px-2.5">{m.from}</td><td className="px-2.5">{m.to}</td><td className="px-2.5 text-muted-foreground">{m.proc}</td><td className="px-2.5" style={{color:RES_C(m.res)}}>{m.res}</td><td className="px-2.5 text-danger">{m.cause}</td>
             <td className="px-2.5"><button onClick={e=>{e.stopPropagation();setSel(m.seq);setMode('ladder');}} className="text-[11px] text-[var(--app-accent)]">{t('→ ladder')}</button></td></tr>)}</tbody></table>}
     </div>
@@ -305,7 +306,7 @@ function Ladder({ t, msgs, nodes, colors = {}, sel, setSel, marks, atEnd }) {
     <svg viewBox={`0 0 ${W} ${msgs.length * RH + 12}`} className="w-full block" style={{ height: msgs.length * RH + 12 }} preserveAspectRatio="none">
       {nodes.map(n => <line key={n} x1={cx(n)} x2={cx(n)} y1={0} y2={msgs.length * RH + 12} stroke="#EFEFEF" />)}
       {msgs.map((m, i) => { const y = i * RH + 22, a = cx(m.from), b = cx(m.to), c = colors[m.ifc] || '#666', on = sel === m.seq, fail = m.res === 'Échec';
-        return <g key={m.seq} onClick={() => setSel(m.seq)} className="cursor-pointer">
+        return <g key={m.renderKey||m.eventId||`${m.cap}-${m.seq}`} onClick={() => setSel(m.seq)} className="cursor-pointer">
           <rect x={0} y={y - 20} width={W} height={RH} fill={on ? '#F5F5F5' : marks.includes(m.seq) ? '#FFFBEB' : 'transparent'} />
           <line x1={a} x2={b} y1={y} y2={y} stroke={c} strokeWidth={on ? 2.4 : 1.5} strokeDasharray={m.proto.includes('NAS') && !m.proto.startsWith('NAS') ? '' : ''} />
           <path d={b > a ? `M${b},${y} l-7,-3.5 v7z` : `M${b},${y} l7,-3.5 v7z`} fill={c} />

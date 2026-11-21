@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.8.7 — 2026-11-21 — Déduplication fidèle du flux Live
+
+- Déduplique les messages Live par `stable_event_key`, avec repli sur `event_id`, au lieu du couple `(capture_id, packet_number)` qui supprimait les événements NAS et NGAP partageant le même paquet.
+- Remplace en place une ligne quand la même clé stable arrive avec une `revision` supérieure ; les révisions identiques ou obsolètes sont ignorées.
+- Préserve l’ordre d’affichage par capture, numéro de paquet puis arrivée, y compris pendant une pause/reprise du flux.
+
 ## 2.8.6 — 2026-11-19 — Stock de capture, quarantaine et lookup privé
 
 - Affiche le stock de capture `capture_owned_bytes_percent` sans plafond et utilise « — » quand la mesure est absente.
