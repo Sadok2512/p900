@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, fireEvent, cleanup, waitFor, within } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor, within, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import PolarisApp from '@/components/polaris/PolarisApp';
 import { PolarisDataProvider } from '@/lib/polaris-api';
@@ -455,11 +455,16 @@ describe('main screens with simulated REST responses',()=>{
       fireEvent.click(screen.getByRole('button',{name:'Rechercher'}));
       await screen.findByText('UE Info');
       await waitFor(()=>expect(listeners['message']).toBeTypeOf('function'));
-      listeners['message']!({data:JSON.stringify(message({stable_event_key:'ngap:cap:7',event_id:'ngap-7'}))});
-      listeners['message']!({data:JSON.stringify(message({stable_event_key:'nas:cap:7',event_id:'nas-7',protocol:'NAS-5GS',message_name:'Registration Request'}))});
+      act(()=>listeners['message']!({data:JSON.stringify(message({stable_event_key:'ngap:cap:7',event_id:'ngap-7'}))}));
+      act(()=>listeners['message']!({data:JSON.stringify(message({stable_event_key:'nas:cap:7',event_id:'nas-7',protocol:'NAS-5GS',message_name:'Registration Request'}))}));
       expect(await screen.findAllByText('NGAP message')).not.toHaveLength(0);
       expect(await screen.findAllByText('Registration Request')).not.toHaveLength(0);
-      listeners['message']!({data:JSON.stringify(message({stable_event_key:'ngap:cap:7',event_id:'ngap-7-r1',revision:1,message_name:'NGAP message revised'}))});
+      fireEvent.click(screen.getByRole('button',{name:'Lignes'}));
+      const nasCell=screen.getAllByText('Registration Request').find((element)=>element.tagName==='TD'&&element.classList.contains('text-foreground'))!;
+      fireEvent.click(nasCell);
+      await waitFor(()=>expect(screen.getAllByText('Registration Request').some((element)=>element.tagName==='B')).toBe(true));
+      expect(screen.getAllByText('NGAP message').some((element)=>element.tagName==='B')).toBe(false);
+      act(()=>listeners['message']!({data:JSON.stringify(message({stable_event_key:'ngap:cap:7',event_id:'ngap-7-r1',revision:1,message_name:'NGAP message revised'}))}));
       expect(await screen.findAllByText('NGAP message revised')).not.toHaveLength(0);
       expect(screen.queryByText('NGAP message')).not.toBeInTheDocument();
       expect(screen.getAllByText('Registration Request').length).toBeGreaterThan(0);

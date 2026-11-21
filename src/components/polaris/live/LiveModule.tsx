@@ -31,6 +31,7 @@ export const endpointLabel = (endpoint) => {
 };
 const RES_C = (r) => r==='Échec'?'#B42318':r==='Succès'||r==='Accepted'||/^2\d\d/.test(r)?'#15803D':'#8F8F8F';
 const fmtRate = (v) => v>=1000?(v/1000).toFixed(2)+' Gb/s':v>=1?v.toFixed(1)+' Mb/s':(v*1000).toFixed(0)+' kb/s';
+const messageRowKey = (m) => m.renderKey||m.liveKey||m.eventId||`${m.cap}-${m.seq}`;
 
 export default function LiveModule({ t, setPage }) {
   const { demo, setDemo } = usePolarisMode();
@@ -198,12 +199,12 @@ export default function LiveModule({ t, setPage }) {
     else if (ttype === 'cell') { r = ['0A1F','0B07'].includes(v.toUpperCase()) ? { st:'Trouvé', ue: v.toUpperCase()==='0A1F'?'ue-7f3a':'ue-21c0' } : { st:'Non trouvé' }; }
     else { r = /482/.test(v) ? { st:'Trouvé', ue:'ue-7f3a' } : /219/.test(v) ? { st:'Trouvé', ue:'ue-21c0' } : { st:'Non trouvé' }; }
     setRes(r); };
-  const addMarker=async()=>{if(!traceId)return;await request(`/live/traces/${encodeURIComponent(traceId)}/markers`,{method:'POST',body:{label:`Marqueur ${marks.length+1}`}});const s=msgs.at(-1)?.seq;if(s!=null)setMarks(m=>[...m,s]);};
+  const addMarker=async()=>{if(!traceId)return;await request(`/live/traces/${encodeURIComponent(traceId)}/markers`,{method:'POST',body:{label:`Marqueur ${marks.length+1}`}});const key=msgs.at(-1)&&messageRowKey(msgs.at(-1));if(key!=null)setMarks(m=>[...m,key]);};
 
   const shown = useMemo(() => msgs.filter(m => !hide.includes(m.ifc) && (!fq || (m.name+' '+m.proc+' '+m.cause+' '+m.proto).toLowerCase().includes(fq.toLowerCase()))), [msgs, hide, fq]);
   const ifcs = tech==='LTE' ? ['S1-MME','S6a','S11','S5'] : ['N2','SBI','N4'];
   useEffect(() => { const b = sigBox.current; if (b && mode === 'table' && atEnd.current) b.scrollTop = b.scrollHeight; }, [shown.length, mode]);
-  const selM = msgs.find(m => m.seq === sel);
+  const selM = msgs.find(m => messageRowKey(m) === sel);
   const dissection = usePacketDissection(selM?.cap, selM?.seq, !demo && !!selM);
   const drag = (e, kind) => { e.preventDefault(); const x0=e.clientX, y0=e.clientY, w0=rightW, h0=ladH; const mv=(ev)=>{ if(kind==='w') setRightW(Math.max(280, Math.min(560, w0 - (ev.clientX-x0)))); else setLadH(Math.max(200, Math.min(800, h0 + ev.clientY-y0))); }; const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);}; addEventListener('pointermove',mv); addEventListener('pointerup',up); };
   const ST_C = { 'Trouvé':'#15803D', 'OUVERT':'#A15C07', 'ARMÉE':'#A15C07', 'ACTIVE':'#15803D', 'ARRÊTÉE':'#666666', 'COUPÉE':'#B42318', 'Non trouvé':'#666666', 'Invalide':'#B42318', 'Refusé':'#B42318', 'Indisponible':'#A15C07' };
@@ -221,9 +222,9 @@ export default function LiveModule({ t, setPage }) {
     <div ref={sigBox} onScroll={onSigScroll} className="overflow-auto scroll-thin flex-1" style={full==='sig'?{}:{height:ladH}}>
       {!tracking ? <Empty t={t} demo={demo} res={res}/> : mode==='ladder' ? <Ladder t={t} msgs={shown} nodes={NODES[tech]} colors={IFC_C} sel={sel} setSel={setSel} marks={marks} atEnd={atEnd}/> :
         <table className="w-full text-[12px]"><thead className="sticky top-0 bg-white"><tr className="text-left text-[11px] text-subtle">{['Capture','Seq','t (s)','Interface','Protocole','Message','Source','Destination','Procédure','Résultat','Cause',''].map(h=><th key={h} className="px-2.5 py-2 font-medium border-b border-border-subtle whitespace-nowrap">{t(h)}</th>)}</tr></thead>
-          <tbody>{shown.map(m=><tr key={m.renderKey||m.eventId||`${m.cap}-${m.seq}`} onClick={()=>setSel(m.seq)} className={`cursor-pointer whitespace-nowrap ${sel===m.seq?'bg-surface-2 shadow-[inset_2px_0_0_var(--app-accent)]':'hover:bg-surface-2'} ${marks.includes(m.seq)?'bg-warning-soft':''}`}>
+          <tbody>{shown.map(m=><tr key={messageRowKey(m)} onClick={()=>setSel(messageRowKey(m))} className={`cursor-pointer whitespace-nowrap ${sel===messageRowKey(m)?'bg-surface-2 shadow-[inset_2px_0_0_var(--app-accent)]':'hover:bg-surface-2'} ${marks.includes(messageRowKey(m))?'bg-warning-soft':''}`}>
             <td className="px-2.5 py-1.5 font-mono text-subtle">{m.cap}</td><td className="px-2.5 font-mono">{m.seq}</td><td className="px-2.5 font-mono text-subtle">{m.rel}</td><td className="px-2.5"><span className="font-medium" style={{color:IFC_C[m.ifc]}}>{m.ifc}</span></td><td className="px-2.5 text-muted-foreground">{m.proto}</td><td className="px-2.5 text-foreground">{m.name}</td><td className="px-2.5">{m.from}</td><td className="px-2.5">{m.to}</td><td className="px-2.5 text-muted-foreground">{m.proc}</td><td className="px-2.5" style={{color:RES_C(m.res)}}>{m.res}</td><td className="px-2.5 text-danger">{m.cause}</td>
-            <td className="px-2.5"><button onClick={e=>{e.stopPropagation();setSel(m.seq);setMode('ladder');}} className="text-[11px] text-[var(--app-accent)]">{t('→ ladder')}</button></td></tr>)}</tbody></table>}
+            <td className="px-2.5"><button onClick={e=>{e.stopPropagation();setSel(messageRowKey(m));setMode('ladder');}} className="text-[11px] text-[var(--app-accent)]">{t('→ ladder')}</button></td></tr>)}</tbody></table>}
     </div>
     {selM && <div className="border-t border-border-subtle px-4 py-3 grid grid-cols-[1fr_auto] gap-3 text-[12px] bg-surface-2">
       <div className="min-w-0"><div className="flex items-center gap-2"><b className="text-[13px]">{selM.name}</b><InterfaceBadge name={selM.ifc}/><Tag c={selM.corr==='EXACT'?'#15803D':'#A15C07'}>{selM.corr}</Tag>{selM.cause&&<Tag c="#B42318">{selM.cause}</Tag>}</div>
@@ -252,7 +253,7 @@ export default function LiveModule({ t, setPage }) {
             <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground"><span className={`w-[7px] h-[7px] rounded-full ${liveState==='ACTIVE'&&running?'bg-success animate-pulse':'bg-track'}`}/>{traceId?t(liveState):t('ARRÊTÉE')}</span>
             {tracking && <span className="text-[12px] text-warning bg-warning-soft border border-warning-line rounded px-1.5 h-6 grid place-items-center">{t('Retard import')} {delay} s</span>}
             <Btn disabled={!tracking} onClick={()=>running?setRunning(false):resume()}>{running?'❚❚ '+t('Pause'):'▶ '+t('Reprendre')+(buf.length?` (+${buf.length})`:'')}</Btn>
-            <Btn disabled={!tracking||(!msgs.length&&!traceId)} onClick={demo?()=>{const s=msgs[msgs.length-1].seq;setMarks(m=>[...m,s]);}:addMarker}>⚑ {t('Marqueur')}</Btn>
+            <Btn disabled={!tracking||(!msgs.length&&!traceId)} onClick={demo?()=>{const key=messageRowKey(msgs[msgs.length-1]);setMarks(m=>[...m,key]);}:addMarker}>⚑ {t('Marqueur')}</Btn>
             <Btn onClick={()=>{persistOpenSessionContext(buildOpenSessionContext(selM||null, correlatedSessions));setPage('sessions');}}>Session Explorer →</Btn>
             <button onClick={()=>setDemo(!demo)} className={`h-7 px-2.5 rounded-full text-[11.5px] font-medium border flex items-center gap-1.5 ${demo?'bg-warning-soft border-warning-line text-warning':'border-border text-muted-foreground'}`}><span className={`w-6 h-3.5 rounded-full relative ${demo?'bg-warning':'bg-track'}`}><span className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all ${demo?'left-[12px]':'left-[2px]'}`}/></span>{t('Démo')}</button>
           </div>
@@ -305,9 +306,9 @@ function Ladder({ t, msgs, nodes, colors = {}, sel, setSel, marks, atEnd }) {
     <div className="sticky top-0 z-10 bg-white grid border-b border-border-subtle" style={{ gridTemplateColumns: `repeat(${nodes.length},1fr)` }}>{nodes.map(n => <div key={n} className="text-center text-[11.5px] font-semibold text-ink-2 py-2">{n}</div>)}</div>
     <svg viewBox={`0 0 ${W} ${msgs.length * RH + 12}`} className="w-full block" style={{ height: msgs.length * RH + 12 }} preserveAspectRatio="none">
       {nodes.map(n => <line key={n} x1={cx(n)} x2={cx(n)} y1={0} y2={msgs.length * RH + 12} stroke="#EFEFEF" />)}
-      {msgs.map((m, i) => { const y = i * RH + 22, a = cx(m.from), b = cx(m.to), c = colors[m.ifc] || '#666', on = sel === m.seq, fail = m.res === 'Échec';
-        return <g key={m.renderKey||m.eventId||`${m.cap}-${m.seq}`} onClick={() => setSel(m.seq)} className="cursor-pointer">
-          <rect x={0} y={y - 20} width={W} height={RH} fill={on ? '#F5F5F5' : marks.includes(m.seq) ? '#FFFBEB' : 'transparent'} />
+      {msgs.map((m, i) => { const y = i * RH + 22, a = cx(m.from), b = cx(m.to), c = colors[m.ifc] || '#666', on = sel === messageRowKey(m), fail = m.res === 'Échec';
+        return <g key={messageRowKey(m)} onClick={() => setSel(messageRowKey(m))} className="cursor-pointer">
+          <rect x={0} y={y - 20} width={W} height={RH} fill={on ? '#F5F5F5' : marks.includes(messageRowKey(m)) ? '#FFFBEB' : 'transparent'} />
           <line x1={a} x2={b} y1={y} y2={y} stroke={c} strokeWidth={on ? 2.4 : 1.5} strokeDasharray={m.proto.includes('NAS') && !m.proto.startsWith('NAS') ? '' : ''} />
           <path d={b > a ? `M${b},${y} l-7,-3.5 v7z` : `M${b},${y} l7,-3.5 v7z`} fill={c} />
           <text x={(a + b) / 2} y={y - 6} fontSize="11" textAnchor="middle" fill={fail ? '#B42318' : '#171717'} fontWeight={on ? 600 : 400}>{m.name}{m.cause ? ' · ' + m.cause.split(' ').slice(0, 2).join(' ') : ''}</text>
@@ -406,7 +407,7 @@ function Procedures({ t, msgs, tracking, onGo }) {
   return <div className={card + ' overflow-hidden'}>
     <div className="h-10 px-4 flex items-center border-b border-border-subtle"><h3 className="text-[13px] font-semibold">UE Procedure Updates</h3><span className="ml-auto text-[11px] text-subtle">{list.length}</span></div>
     <div className="max-h-[320px] overflow-auto scroll-thin">{!tracking || !list.length ? <div className="px-4 py-4 text-[12px] text-subtle">{t('Aucune procédure observée.')}</div> :
-      list.map((p, i) => <button key={i} onClick={() => onGo(p.last.seq)} className="w-full text-left px-4 py-2 border-b border-border-subtle hover:bg-surface-2 flex items-start gap-2.5">
+      list.map((p, i) => <button key={i} onClick={() => onGo(messageRowKey(p.last))} className="w-full text-left px-4 py-2 border-b border-border-subtle hover:bg-surface-2 flex items-start gap-2.5">
         <span className={`mt-1.5 w-[7px] h-[7px] rounded-full shrink-0 ${p.status === 'En cours' ? 'animate-pulse' : ''}`} style={{ background: C[p.status] }} />
         <span className="min-w-0 flex-1"><span className="flex items-center gap-2"><span className="text-[12.5px] font-medium text-foreground truncate">{p.name}</span><span className="ml-auto text-[11px] font-medium" style={{ color: C[p.status] }}>{t(p.status)}</span></span>
           <span className="block text-[11px] text-subtle truncate font-mono">{p.start.cap}·{p.start.seq}→{p.last.seq} · {p.last.ts}</span>
