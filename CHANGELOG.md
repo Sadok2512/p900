@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.8.9 — 2026-11-22 — Reprise sûre des requêtes sauvegardées
+
+- Empêche l’écran Sessions de tomber sur la page d’erreur globale quand le stockage navigateur contient une racine invalide ou du JSON illisible.
+- Écarte les entrées mal formées, masque les champs sensibles et réécrit un tableau sain dans le stockage local.
+
 ## 2.8.8 — 2026-11-22 — Runtime de production et protection de l’Analyzer
 
 - Ajoute une cible Nitro Node explicite (`npm run build:node`, puis `npm start`) afin que le lab ne serve plus l’application avec Vite en mode développement.

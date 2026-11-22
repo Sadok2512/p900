@@ -35,6 +35,14 @@ function open(hash: string) {
   return render(<QueryClientProvider client={client}><PolarisDataProvider><PolarisApp/></PolarisDataProvider></QueryClientProvider>);
 }
 describe('main screens with simulated REST responses',()=>{
+  it('Sessions recovers from a malformed saved-query root without crashing', async()=>{
+    localStorage.setItem('polaris-saved-queries','{}');
+    open('sessions');
+    expect(await screen.findByRole('button',{name:'Nouvelle requête'})).toBeInTheDocument();
+    await waitFor(()=>expect(localStorage.getItem('polaris-saved-queries')).toBe('[]'));
+    expect(screen.queryByText('Cette page n’a pas pu être chargée')).not.toBeInTheDocument();
+  });
+
   it('Home shows server metrics without Traffic or fabricated recent activity', async()=>{
     open('home'); await screen.findByText('18'); expect(screen.queryByText('Traffic')).not.toBeInTheDocument(); expect(screen.getByText("Aucune activité pour l'instant")).toBeInTheDocument();
     expect(screen.getByText('Stock capture')).toBeInTheDocument();
@@ -471,7 +479,7 @@ describe('main screens with simulated REST responses',()=>{
     } finally { payloads['/live/traces']=previous; }
   });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.8.8').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.8.8')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.8.9').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.8.9')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard sits under KPI and is gone from the top menu', async()=>{
     open('kpi');

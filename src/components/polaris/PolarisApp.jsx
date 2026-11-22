@@ -2,7 +2,8 @@ import KpiModule from './kpi/KpiModule';
 import { ConditionBadge } from './ui/ConditionBadge';
 import { conditionTone } from '@/lib/polaris-ui/conditionTone';
 import LiveModule from './live/LiveModule';
-import { useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useSessionIdentities, usePacketDissection, useEvent, useProvenance, usePackets, useCorrelationRules, useQueryCatalog, useQueryCatalogSearch, useSessionColumns, supportsQueryApi, apiPath, redact, records, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, filterSessionRows, versionComponents, decoderVersions, topBarLiveIndicator, identityValue, identityProofs, observedIdentity } from '@/lib/polaris-api';
+import { useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useSessionIdentities, usePacketDissection, useEvent, useProvenance, usePackets, useCorrelationRules, useQueryCatalog, useQueryCatalogSearch, useSessionColumns, supportsQueryApi, apiPath, records, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, filterSessionRows, versionComponents, decoderVersions, topBarLiveIndicator, identityValue, identityProofs, observedIdentity } from '@/lib/polaris-api';
+import { loadSavedQueries, SAVED_QUERIES_KEY } from '@/lib/saved-queries';
 import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
 import ProbeTypeBadge from './analyzer/ProbeTypeBadge';
@@ -1337,8 +1338,8 @@ function App() {
     }
   },[demo]);
   const [tabId,setTabId] = useState('t1');
-  const [saved,setSaved] = useState(()=>{ try { return redact(JSON.parse(localStorage.getItem('polaris-saved-queries') || '[]')); } catch { return []; } });
-  useEffect(()=>{localStorage.setItem('polaris-saved-queries',JSON.stringify(saved));},[saved]);
+  const [saved,setSaved] = useState(()=>loadSavedQueries());
+  useEffect(()=>{localStorage.setItem(SAVED_QUERIES_KEY,JSON.stringify(saved));},[saved]);
   const savedList = [...saved,...demoLibrary.saved.filter(x=>!saved.some(y=>y.n===x.n))];
   const [aview,setAview] = useState('queries');
   const active = tabs.find(x=>x.id===tabId);
