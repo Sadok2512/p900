@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.8.8 — 2026-11-22 — Runtime de production et protection de l’Analyzer
+
+- Ajoute une cible Nitro Node explicite (`npm run build:node`, puis `npm start`) afin que le lab ne serve plus l’application avec Vite en mode développement.
+- Limite à deux les requêtes coûteuses de détail d’une session qui pouvaient auparavant saturer simultanément les quatre emplacements HTTP du navigateur.
+- Borne les appels de détail à 30 secondes et conserve les erreurs endpoint par endpoint dans l’Analyzer.
+- Traduit la dernière barrière d’erreur globale en français et permet une relance sans quitter la page.
+- Conserve p900 2.8.7 comme rollback ; aucun changement Open5GS, OTV ou catalogue Control.
+
 ## 2.8.7 — 2026-11-21 — Déduplication fidèle du flux Live
 
 - Déduplique les messages Live par `stable_event_key`, avec repli sur `event_id`, au lieu du couple `(capture_id, packet_number)` qui supprimait les événements NAS et NGAP partageant le même paquet.

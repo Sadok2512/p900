@@ -61,7 +61,7 @@ export const useLiveMetrics = () => useQuery({ ...resourceOptions<Metrics>('/met
 export const useStorageSafety = () => useQuery({ ...resourceOptions<Safety>('/storage/safety', {}, false), refetchInterval: 30_000, refetchIntervalInBackground: false });
 export const useSessions = (params: QueryParams = {}, enabled = true) => useResource<Session[]>('/sessions', params, enabled, true, { keepIdentities: true });
 const idPath = (id: string | number | null | undefined) => encodeURIComponent(String(id ?? ''));
-const detailRequest = { priority: 'detail' as const, timeoutMs: 60_000 };
+const detailRequest = { priority: 'detail' as const, timeoutMs: 30_000 };
 export const useSession = (id?: string | number | null) => useResource<Session>(`/sessions/${idPath(id)}`, {}, id != null, true, detailRequest);
 export const useEvents = (id?: string | number | null) => useResource<Event[]>(`/sessions/${idPath(id)}/events`, {}, id != null, true, detailRequest);
 export const useProcedures = (id?: string | number | null) => useResource<RecordData[]>(`/sessions/${idPath(id)}/procedures`, {}, id != null, true, detailRequest);

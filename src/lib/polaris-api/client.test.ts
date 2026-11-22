@@ -89,6 +89,20 @@ describe('POLARIS client', () => {
     while (resolvers.length) resolvers.shift()?.(new Response(JSON.stringify({ data: {}, meta: {} })));
     await Promise.all([...normal, detail]);
   });
+  it('limits expensive opened-session detail requests to two at once', async () => {
+    const resolvers: Array<(value: Response) => void> = [];
+    const fetcher = vi.fn((..._args: unknown[]) => new Promise<Response>(resolve => resolvers.push(resolve)));
+    vi.stubGlobal('fetch', fetcher);
+    const details = Array.from({ length: 5 }, (_, index) => request(`/sessions/opened/detail-${index}`, { priority: 'detail' }));
+    await Promise.resolve();
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    resolvers.shift()?.(new Response(JSON.stringify({ data: {}, meta: {} })));
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(3));
+    while (resolvers.length) resolvers.shift()?.(new Response(JSON.stringify({ data: {}, meta: {} })));
+    await vi.waitFor(() => expect(fetcher).toHaveBeenCalledTimes(5));
+    while (resolvers.length) resolvers.shift()?.(new Response(JSON.stringify({ data: {}, meta: {} })));
+    await Promise.all(details);
+  });
   it('keeps navigation cancellation as AbortError', async () => {
     const controller = new AbortController(); controller.abort();
     await expect(request('/sessions/left', { signal: controller.signal })).rejects.toMatchObject({ name: 'AbortError' });

@@ -50,25 +50,33 @@ export function redactKeepingIdentities<T>(value: T): T {
 export type RequestPriority = 'detail' | 'normal' | 'background';
 export type RequestOptions = { params?: QueryParams; method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE'; body?: unknown; signal?: AbortSignal; clearIdentityResponse?: boolean; keepIdentities?: boolean; timeoutMs?: number; priority?: RequestPriority; retryHeavyWork?: boolean; onHeavyWorkRetry?: (seconds: number | null) => void };
 const MAX_CONCURRENT_REQUESTS = 4;
+// Opening one Analyzer session used to start five expensive endpoints at once.
+// Keep capacity for health/navigation and protect the single-CPU analyzer.
+const MAX_CONCURRENT_DETAIL_REQUESTS = 2;
 let activeRequests = 0;
+let activeDetailRequests = 0;
 let queuedSequence = 0;
-const queuedRequests: Array<{ priority: number; sequence: number; signal?: AbortSignal | undefined; run: () => void; reject: (reason: unknown) => void }> = [];
+const queuedRequests: Array<{ priority: number; sequence: number; detail: boolean; signal?: AbortSignal | undefined; run: () => void; reject: (reason: unknown) => void }> = [];
 const priorityValue = (priority: RequestPriority = 'normal') => priority === 'detail' ? 0 : priority === 'normal' ? 1 : 2;
 const abortError = () => new DOMException('Navigation annulée', 'AbortError');
 function drainRequests() {
   while (activeRequests < MAX_CONCURRENT_REQUESTS && queuedRequests.length) {
     queuedRequests.sort((a, b) => a.priority - b.priority || a.sequence - b.sequence);
-    const item = queuedRequests.shift()!;
+    const index = queuedRequests.findIndex(item => !item.detail || activeDetailRequests < MAX_CONCURRENT_DETAIL_REQUESTS);
+    if (index < 0) break;
+    const [item] = queuedRequests.splice(index, 1);
+    if (!item) break;
     if (item.signal?.aborted) { item.reject(abortError()); continue; }
     activeRequests += 1;
+    if (item.detail) activeDetailRequests += 1;
     item.run();
   }
 }
 function scheduled<T>(task: () => Promise<T>, priority: RequestPriority, signal?: AbortSignal): Promise<T> {
   return new Promise<T>((resolve, reject) => {
     const item: (typeof queuedRequests)[number] = {
-      priority: priorityValue(priority), sequence: queuedSequence++, reject,
-      run: () => { signal?.removeEventListener('abort', onAbort); void task().then(resolve, reject).finally(() => { activeRequests -= 1; drainRequests(); }); },
+      priority: priorityValue(priority), sequence: queuedSequence++, detail: priority === 'detail', reject,
+      run: () => { signal?.removeEventListener('abort', onAbort); void task().then(resolve, reject).finally(() => { activeRequests -= 1; if (item.detail) activeDetailRequests -= 1; drainRequests(); }); },
     };
     if (signal) item.signal = signal;
     if (signal?.aborted) { reject(abortError()); return; }
