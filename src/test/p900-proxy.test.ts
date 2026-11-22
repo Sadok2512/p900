@@ -1,8 +1,18 @@
 import { PassThrough } from 'node:stream';
 import { describe, expect, it } from 'vitest';
-import { basicAuthEnabled, basicAuthorized, csrfForToken, forwardedHeaders, openAccessEnabled, pipeEventStream, proxyAccess, targetFor } from '../../ops/p900-proxy.mjs';
+import { basicAuthEnabled, basicAuthorized, csrfForToken, forwardedHeaders, openAccessEnabled, pipeEventStream, proxyAccess, securityHeaders, targetFor } from '../../ops/p900-proxy.mjs';
 
 describe('p900 proxy request target validation', () => {
+  it('adds browser hardening headers without overriding upstream headers', () => {
+    expect(securityHeaders({ 'cache-control': 'public' })).toMatchObject({
+      'cache-control': 'public',
+      'content-security-policy': "base-uri 'self'; frame-ancestors 'none'; object-src 'none'",
+      'permissions-policy': 'camera=(), microphone=(), geolocation=()',
+      'referrer-policy': 'no-referrer',
+      'x-content-type-options': 'nosniff',
+      'x-frame-options': 'DENY',
+    });
+  });
   it('rejects an invalid authority-form target instead of crashing the process', () => {
     expect(targetFor('//')).toBeNull();
   });

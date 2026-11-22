@@ -26,6 +26,17 @@ const basicAuthRequired = basicAuthEnabled();
 const cpuSample = { at: 0, usage: 0, percent: null };
 const byteSamples = new Map();
 
+export function securityHeaders(headers = {}) {
+  return {
+    ...headers,
+    'content-security-policy': "base-uri 'self'; frame-ancestors 'none'; object-src 'none'",
+    'permissions-policy': 'camera=(), microphone=(), geolocation=()',
+    'referrer-policy': 'no-referrer',
+    'x-content-type-options': 'nosniff',
+    'x-frame-options': 'DENY',
+  };
+}
+
 function parsedUrl(rawUrl) {
   try { return new URL(rawUrl || '/', 'http://localhost'); } catch { return null; }
 }
@@ -146,7 +157,7 @@ function captureDisk() {
   try { const stat=statfsSync(process.env.OIRAN_DISK_PATH??'/'), total=Number(stat.blocks)*Number(stat.bsize), free=Number(stat.bavail)*Number(stat.bsize); return {disk_usage_percent:total>0?(total-free)/total*100:null,disk_free_bytes:free}; } catch { return {}; }
 }
 
-function sendJson(response,status,payload) { response.writeHead(status,{'content-type':'application/json; charset=utf-8','cache-control':'no-store'}); response.end(JSON.stringify(payload)); }
+function sendJson(response,status,payload) { response.writeHead(status,securityHeaders({'content-type':'application/json; charset=utf-8','cache-control':'no-store'})); response.end(JSON.stringify(payload)); }
 
 // A restarted upstream may emit `aborted`/`close` without `end`. Node's
 // default pipe then leaves the browser response open forever: EventSource
@@ -173,7 +184,7 @@ function proxy(request,response,target,operatorAuthenticated) {
         headers['x-accel-buffering']='no'; headers['cache-control']='no-cache, no-transform';
         response.socket?.setNoDelay(true);
       }
-      response.writeHead(upstreamResponse.statusCode??502,headers);
+      response.writeHead(upstreamResponse.statusCode??502,securityHeaders(headers));
       if(String(headers['content-type']??'').startsWith('text/event-stream')) pipeEventStream(upstreamResponse,response);
       else upstreamResponse.pipe(response);
       return;

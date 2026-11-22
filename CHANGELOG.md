@@ -6,6 +6,7 @@
 - Limite à deux les requêtes coûteuses de détail d’une session qui pouvaient auparavant saturer simultanément les quatre emplacements HTTP du navigateur.
 - Borne les appels de détail à 30 secondes et conserve les erreurs endpoint par endpoint dans l’Analyzer.
 - Traduit la dernière barrière d’erreur globale en français et permet une relance sans quitter la page.
+- Ajoute au proxy les protections navigateur CSP anti-iframe/objet, `nosniff`, `DENY`, politique de référent et désactivation caméra/micro/géolocalisation.
 - Conserve p900 2.8.7 comme rollback ; aucun changement Open5GS, OTV ou catalogue Control.
 
 ## 2.8.7 — 2026-11-21 — Déduplication fidèle du flux Live

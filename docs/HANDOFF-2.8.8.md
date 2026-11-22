@@ -17,6 +17,7 @@ Correction de la lenteur et des erreurs globales observées à l’ouverture d�
 - Ordonnanceur HTTP : quatre requêtes au total, dont deux détails de session au maximum.
 - Timeout d’un détail : 30 secondes ; l’échec reste local au panneau concerné.
 - Barrière d’erreur globale traduite en français.
+- En-têtes de sécurité ajoutés par `ops/p900-proxy.mjs` ; HTTPS reste OUVERT faute de certificat et de nom DNS fournis.
 
 ## Validation attendue
 
