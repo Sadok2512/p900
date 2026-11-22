@@ -13,6 +13,7 @@ import {
   persistOpenSessionContext,
 } from './live-validation';
 import { decideLiveMessage, upsertLiveMessage } from './live-message-dedup';
+import { appendLiveThroughputPoint, liveThroughputPoint } from './live-throughput';
 
 /* ---------- Scripts (demo) : [ifc, proto, from, to, message, procedure, result, cause, kind] ---------- */
 const fingerprint = (s) => { let h = 5381; for (const c of s) h = ((h << 5) + h + c.charCodeAt(0)) >>> 0; return 'sha256:' + h.toString(16).padStart(8,'0') + '…'; };
@@ -99,7 +100,7 @@ export default function LiveModule({ t, setPage }) {
       else { setBuf(b => [...b, { m, p }]); }
       setDelay(2 + Math.round(Math.random()*4)); setTtl(v => Math.max(0, v-1));
     }, 1000); return () => clearInterval(id); }, [tracking, running, tech, res?.st]);
-  const resume = () => { setMsgs(x => buf.filter(b=>b.m).reduce((rows,b)=>upsertLiveMessage(rows,b.m,b.action||'append',LIVE_BUFFER_MAX),x)); setThr(x => [...x, ...buf.filter(b=>b.p).map(b=>b.p)]); setBuf([]); setRunning(true); };
+  const resume = () => { setMsgs(x => buf.filter(b=>b.m).reduce((rows,b)=>upsertLiveMessage(rows,b.m,b.action||'append',LIVE_BUFFER_MAX),x)); setThr(x => buf.filter(b=>b.p).reduce((points,b)=>appendLiveThroughputPoint(points,b.p),x)); setBuf([]); setRunning(true); };
 
   useEffect(()=>{ if(demo||!traceId)return;
     // 2.5.0 (ANR1 #10 Live-IMSI) — reprise après pause/reconnexion :
@@ -123,7 +124,7 @@ export default function LiveModule({ t, setPage }) {
           lastOrderKey.current={captureId:data.capture_id,seq:data.packet_number};
           if(deliveredMessageRevisions.current.size>LIVE_BUFFER_MAX*2)deliveredMessageRevisions.current=new Map(Array.from(deliveredMessageRevisions.current).slice(-LIVE_BUFFER_MAX));
           const m={cap:data.capture_id,seq:data.packet_number,eventId:data.event_id,liveKey:decision.key,revision:decision.revision,renderKey:decision.key||`${String(data.capture_id??'')}\u0000${String(data.packet_number??'')}\u0000${String(data.event_id??'')}\u0000${Date.now()}-${Math.random()}`,ts:new Date().toLocaleTimeString('fr-FR'),rel:'—',ifc:data.interface,proto:data.protocol,from:endpointLabel(data.source),to:endpointLabel(data.destination),name:data.message_name,proc:data.procedure||data.message_name,res:data.result||'En cours',cause:data.cause||'',kind:data.phase||'message',corr:'LIVE',decoded:data.decoded_ie_tree};if(runningRef.current)setMsgs(x=>upsertLiveMessage(x,m,decision.action,LIVE_BUFFER_MAX));else setBuf(x=>[...x,{m,action:decision.action}].slice(-LIVE_BUFFER_MAX));
-        }else if(kind==='throughput'){const p={ts:Date.now(),dl:Number(data.dl_bytes_s||0)*8/1e6,ul:Number(data.ul_bytes_s||0)*8/1e6};if(runningRef.current)setThr(x=>[...x,p].filter(z=>Date.now()-z.ts<1800000));else setBuf(x=>[...x,{p}].slice(-LIVE_BUFFER_MAX));}else if(kind==='ue_info'){setRealUe({tech:data.technology||'5G',info:data});}else if(kind==='status'){setTtl(Math.max(0,Number(data.expires_at||0)-Math.floor(Date.now()/1000)));}
+        }else if(kind==='throughput'){const p=liveThroughputPoint(data);if(!p)return;if(runningRef.current)setThr(x=>appendLiveThroughputPoint(x,p));else setBuf(x=>[...x,{p}].slice(-LIVE_BUFFER_MAX));}else if(kind==='ue_info'){setRealUe({tech:data.technology||'5G',info:data});}else if(kind==='status'){setTtl(Math.max(0,Number(data.expires_at||0)-Math.floor(Date.now()/1000)));}
       };
       ['message','throughput','ue_info','procedure','marker','status'].forEach(k=>source.addEventListener(k,receive(k)));
       source.onerror=()=>{if(stopped)return;source?.close();setSseReconnecting(true);setStreamError('Flux SSE interrompu — reconnexion en cours');const delay=Math.min(1000*(2**retryAttempt),10_000);retryAttempt+=1;retryTimer=setTimeout(async()=>{

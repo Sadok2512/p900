@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.8.10 — 2026-11-22 — Débit fidèle au rejeu Live
+
+- Date chaque point de débit avec la seconde du bucket `throughput` fournie par l'Analyzer, au lieu de l'heure de réception par le navigateur.
+- Borne la fenêtre de trente minutes relativement au bucket le plus récent afin qu'un rejeu historique reste visible sans superposer ses points à l'instant présent.
+- Refuse un point sans seconde de bucket plutôt que d'inventer silencieusement un timestamp local.
+
 ## 2.8.9 — 2026-11-22 — Reprise sûre des requêtes sauvegardées
 
 - Empêche l’écran Sessions de tomber sur la page d’erreur globale quand le stockage navigateur contient une racine invalide ou du JSON illisible.
