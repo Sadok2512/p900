@@ -1,5 +1,5 @@
 export type LiveThroughputPayload = {
-  second?: number;
+  second?: unknown;
   dl_bytes_s?: number;
   ul_bytes_s?: number;
 };
@@ -13,10 +13,12 @@ export type LiveThroughputPoint = {
 const LIVE_THROUGHPUT_WINDOW_MS = 30 * 60 * 1_000;
 
 export function liveThroughputPoint(data: LiveThroughputPayload): LiveThroughputPoint | null {
-  const second = Number(data.second);
-  if (!Number.isSafeInteger(second) || second < 0) return null;
+  const second = data.second;
+  if (typeof second !== "number" || !Number.isSafeInteger(second) || second <= 0) return null;
+  const timestamp = second * 1_000;
+  if (!Number.isSafeInteger(timestamp)) return null;
   return {
-    ts: second * 1_000,
+    ts: timestamp,
     dl: (Number(data.dl_bytes_s || 0) * 8) / 1e6,
     ul: (Number(data.ul_bytes_s || 0) * 8) / 1e6,
   };

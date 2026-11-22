@@ -74,7 +74,7 @@ type CallflowPageFetcher = (params: QueryParams) => Promise<CallflowPage>;
  * Un curseur répété est une réponse invalide explicite, jamais un callflow
  * partiel présenté comme complet.
  */
-export async function fetchAllCallflowPages(id: string | number, fetchPage: CallflowPageFetcher = (params) => request<RecordData | Event[]>(`/sessions/${idPath(id)}/callflow`, { ...detailRequest, params })): Promise<CallflowPage> {
+async function collectCallflowPages(fetchPage: CallflowPageFetcher): Promise<CallflowPage> {
   const events: Event[] = [];
   const seen = new Set<string>();
   let cursor: string | undefined;
@@ -122,10 +122,22 @@ export async function fetchAllCallflowPages(id: string | number, fetchPage: Call
   };
 }
 
+export async function fetchAllCallflowPages(id: string | number, fetchPage: CallflowPageFetcher = (params) => request<RecordData | Event[]>(`/sessions/${idPath(id)}/callflow`, { ...detailRequest, params })): Promise<CallflowPage> {
+  return collectCallflowPages(fetchPage);
+}
+
 export const useCallflow = (id?: string | number | null) => useQuery({
   queryKey: ['polaris', 'api', `/sessions/${idPath(id)}/callflow`, { limit: 100 }],
   queryFn: ({ signal }) => fetchAllCallflowPages(id!, (params) => request<RecordData | Event[]>(`/sessions/${idPath(id)}/callflow`, { ...detailRequest, params, signal })),
   enabled: id != null,
+  retry: false,
+  refetchOnWindowFocus: false,
+  staleTime: 15_000,
+});
+export const useLiveTraceCallflow = (traceId?: string | null) => useQuery({
+  queryKey: ['polaris', 'api', `/live/traces/${idPath(traceId)}/callflow`, { limit: 100 }],
+  queryFn: ({ signal }) => collectCallflowPages((params) => request<RecordData | Event[]>(`/live/traces/${idPath(traceId)}/callflow`, { ...detailRequest, params, signal })),
+  enabled: !!traceId,
   retry: false,
   refetchOnWindowFocus: false,
   staleTime: 15_000,

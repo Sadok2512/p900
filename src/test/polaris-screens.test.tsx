@@ -478,8 +478,37 @@ describe('main screens with simulated REST responses',()=>{
       expect(screen.getAllByText('Registration Request').length).toBeGreaterThan(0);
     } finally { payloads['/live/traces']=previous; }
   });
+  it('2.8.11 — ouvre directement le call flow provisoire de la trace et conserve IMS et N3-IMS', async()=>{
+    class FakeEventSource { onmessage=null; onerror=null; addEventListener(){} close(){} constructor(){} }
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const traceId='trace-callflow-test';
+    fetcher.mockImplementation(async (url:string,options?:RequestInit)=>{
+      const raw=String(url); const path=raw.replace('/api/v1','').split('?')[0]??'';
+      if(path==='/live/traces' && options?.method==='POST') return new Response(JSON.stringify({data:{trace_id:traceId,armed:false,expires_at:Math.floor(Date.now()/1000)+1800,subscriber_pseudonyms:['psn-test']},meta:{}}),{headers:{'Content-Type':'application/json'}});
+      if(path===`/live/traces/${traceId}/callflow`) return new Response(JSON.stringify({data:{
+        session_id:`live-${traceId}`,provisional:true,source:'live-trace',technology:'5G',complete:false,dropped_events:2,
+        capture_references:[],procedures:[],correlation_edges:[],
+        events:[
+          {...event,event_id:'sip-ims',seq:1,interface:'IMS',protocol:'SIP',message_name:'INVITE IMS'},
+          {...event,event_id:'sip-n3ims',seq:2,interface:'N3-IMS',protocol:'SIP',message_name:'INVITE N3-IMS'},
+        ],pagination:{next_cursor:null,returned_events:2,total_events:2},
+      },meta:{}}),{headers:{'Content-Type':'application/json'}});
+      const data=path==='/live/traces'?[]:payloads[path]??[];
+      return new Response(JSON.stringify({data,meta:{total:Array.isArray(data)?data.length:1}}),{headers:{'Content-Type':'application/json'}});
+    });
+    open('live');
+    fireEvent.change(screen.getByPlaceholderText('UE-…'),{target:{value:'001010000000201'}});
+    fireEvent.click(screen.getByRole('button',{name:'Rechercher'}));
+    fireEvent.click(await screen.findByRole('button',{name:'Call flow de la trace →'}));
+    expect(await screen.findByText('Call flow provisoire — issu de la trace')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Call flow incomplet, 2 événements écartés');
+    expect(await screen.findAllByText('INVITE IMS')).not.toHaveLength(0);
+    expect(await screen.findAllByText('INVITE N3-IMS')).not.toHaveLength(0);
+    expect(fetcher.mock.calls.some(([url])=>String(url).includes(`/live/traces/${traceId}/callflow?limit=100`))).toBe(true);
+    expect(fetcher.mock.calls.some(([url])=>String(url).includes(`/sessions/live-${traceId}`))).toBe(false);
+  });
   it('Settings reads every lab component and UI package version', async()=>{
-    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.8.10').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.8.10')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
+    open('settings'); fireEvent.click(screen.getByRole('button',{name:/À propos/})); await screen.findAllByText('2.11.6'); expect(screen.getAllByText('2.8.11').length).toBeGreaterThan(0); expect(screen.getByText('0.6.6')).toBeInTheDocument(); expect(screen.getByText('ngap')).toBeInTheDocument(); expect(screen.getByText('POLARIS 2.8.11')).toBeInTheDocument(); expect(screen.queryByRole('button',{name:/Sécurité/})).not.toBeInTheDocument();
   });
   it('Dashboard sits under KPI and is gone from the top menu', async()=>{
     open('kpi');

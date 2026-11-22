@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { appendLiveThroughputPoint, liveThroughputPoint } from "./live-throughput";
 
-describe("Live throughput replay timestamps", () => {
+describe("2.8.11 — Live throughput replay timestamps", () => {
   it("uses the payload bucket second instead of the browser receipt time", () => {
     expect(
       liveThroughputPoint({ second: 1_795_213_714, dl_bytes_s: 1_000_000, ul_bytes_s: 250_000 }),
@@ -25,5 +25,17 @@ describe("Live throughput replay timestamps", () => {
 
   it("does not invent a receipt timestamp when the bucket second is absent", () => {
     expect(liveThroughputPoint({ dl_bytes_s: 10, ul_bytes_s: 20 })).toBeNull();
+  });
+
+  it.each([
+    ["null", null],
+    ["empty string", ""],
+    ["boolean", false],
+    ["numeric string", "1795213714"],
+    ["negative", -1],
+    ["zero", 0],
+    ["timestamp multiplication overflow", Math.floor(Number.MAX_SAFE_INTEGER / 1_000) + 1],
+  ])("rejects an invalid second payload: %s", (_label, second) => {
+    expect(liveThroughputPoint({ second })).toBeNull();
   });
 });

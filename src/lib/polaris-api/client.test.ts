@@ -175,6 +175,29 @@ describe('fetchAllCallflowPages — 2.8.3 (pagination canonique du callflow)', (
   });
 });
 
+describe('call flow de trace Live — 2.8.11', () => {
+  it('suit la pagination canonique sans passer par une session publiée', async () => {
+    const { fetchAllCallflowPages } = await import('./hooks');
+    const requested: QueryParams[] = [];
+    const result = await fetchAllCallflowPages('unused', async (query) => {
+      requested.push(query);
+      const cursor = query['cursor'];
+      return {
+        data: cursor
+          ? { provisional:true, source:'live-trace', complete:false, dropped_events:3, events:[{event_id:'b',interface:'N3-IMS',message_name:'SIP INVITE'}], pagination:{next_cursor:null,total_events:2} }
+          : { provisional:true, source:'live-trace', complete:false, dropped_events:3, events:[{event_id:'a',interface:'IMS',message_name:'SIP INVITE'}], pagination:{next_cursor:'a',total_events:2} },
+        meta: {},
+      } as never;
+    });
+    expect(requested).toEqual([{limit:100},{limit:100,cursor:'a'}]);
+    expect((result.data as RecordData)['events']).toEqual([
+      expect.objectContaining({event_id:'a',interface:'IMS'}),
+      expect.objectContaining({event_id:'b',interface:'N3-IMS'}),
+    ]);
+    expect(result.data).toEqual(expect.objectContaining({provisional:true,complete:false,dropped_events:3}));
+  });
+});
+
 describe('2.6.4 rafraîchissement de fond', () => {
   it('aucune requête de fond plus fréquente que 15 s, ni onglet masqué', async () => {
     const { BACKGROUND_POLL_MS } = await import('./hooks');

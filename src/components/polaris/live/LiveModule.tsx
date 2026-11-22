@@ -34,7 +34,7 @@ const RES_C = (r) => r==='Échec'?'#B42318':r==='Succès'||r==='Accepted'||/^2\d
 const fmtRate = (v) => v>=1000?(v/1000).toFixed(2)+' Gb/s':v>=1?v.toFixed(1)+' Mb/s':(v*1000).toFixed(0)+' kb/s';
 const messageRowKey = (m) => m.renderKey||m.liveKey||m.eventId||`${m.cap}-${m.seq}`;
 
-export default function LiveModule({ t, setPage }) {
+export default function LiveModule({ t, setPage, onOpenTraceCallflow }) {
   const { demo, setDemo } = usePolarisMode();
   const liveData = useLiveDemo(); const DIR = liveData.directory; const NODES = liveData.nodes; const IFC_C = liveData.colors;
   const [ttype, setTtype] = useState('pseudonym');
@@ -255,6 +255,7 @@ export default function LiveModule({ t, setPage }) {
             {tracking && <span className="text-[12px] text-warning bg-warning-soft border border-warning-line rounded px-1.5 h-6 grid place-items-center">{t('Retard import')} {delay} s</span>}
             <Btn disabled={!tracking} onClick={()=>running?setRunning(false):resume()}>{running?'❚❚ '+t('Pause'):'▶ '+t('Reprendre')+(buf.length?` (+${buf.length})`:'')}</Btn>
             <Btn disabled={!tracking||(!msgs.length&&!traceId)} onClick={demo?()=>{const key=messageRowKey(msgs[msgs.length-1]);setMarks(m=>[...m,key]);}:addMarker}>⚑ {t('Marqueur')}</Btn>
+            {!demo && traceId && <Btn onClick={()=>onOpenTraceCallflow?.(traceId)}>Call flow de la trace →</Btn>}
             <Btn onClick={()=>{persistOpenSessionContext(buildOpenSessionContext(selM||null, correlatedSessions));setPage('sessions');}}>Session Explorer →</Btn>
             <button onClick={()=>setDemo(!demo)} className={`h-7 px-2.5 rounded-full text-[11.5px] font-medium border flex items-center gap-1.5 ${demo?'bg-warning-soft border-warning-line text-warning':'border-border text-muted-foreground'}`}><span className={`w-6 h-3.5 rounded-full relative ${demo?'bg-warning':'bg-track'}`}><span className={`absolute top-[2px] w-2.5 h-2.5 rounded-full bg-white transition-all ${demo?'left-[12px]':'left-[2px]'}`}/></span>{t('Démo')}</button>
           </div>

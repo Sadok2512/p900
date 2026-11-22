@@ -2,7 +2,7 @@ import KpiModule from './kpi/KpiModule';
 import { ConditionBadge } from './ui/ConditionBadge';
 import { conditionTone } from '@/lib/polaris-ui/conditionTone';
 import LiveModule from './live/LiveModule';
-import { useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionBundle, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useSessionIdentities, usePacketDissection, useEvent, useProvenance, usePackets, useCorrelationRules, useQueryCatalog, useQueryCatalogSearch, useSessionColumns, supportsQueryApi, apiPath, records, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyProbe, available, querySupport, filterSessionRows, versionComponents, decoderVersions, topBarLiveIndicator, identityValue, identityProofs, observedIdentity } from '@/lib/polaris-api';
+import { useHealth, useVersion, useMetrics, useLiveMetrics, useInterfaceRuntime, useStorageSafety, useSessions, useSessionBundle, useLiveTraceCallflow, useProbes, useProbeResources, useDatasets, useAvailableCauses, useTrafficDemo, useKpiCatalogue, useDemoLibrary, usePolarisMode, useSessionFilter, useSessionIdentities, usePacketDissection, useEvent, useProvenance, usePackets, useCorrelationRules, useQueryCatalog, useQueryCatalogSearch, useSessionColumns, supportsQueryApi, apiPath, records, useCaptureAction, TRAFFIC_ENABLED, UI_VERSION, toLegacySession, toLegacyCallflow, toLegacyProbe, available, querySupport, filterSessionRows, versionComponents, decoderVersions, topBarLiveIndicator, identityValue, identityProofs, observedIdentity } from '@/lib/polaris-api';
 import { loadSavedQueries, SAVED_QUERIES_KEY } from '@/lib/saved-queries';
 import { DataStatus } from '@/lib/polaris-api/status';
 import SessionAnalysis, { VerdictBadge } from './analyzer/SessionAnalysis';
@@ -541,7 +541,7 @@ function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
             {ifs.map(i=>{const off=hidden.includes(i); return <button key={i} aria-pressed={!off} onClick={()=>setHidden(off?hidden.filter(x=>x!==i):[...hidden,i])} title={off?`Afficher ${i}`:`Masquer ${i}`} className={`h-6 px-0.5 rounded-md border transition ${off?'opacity-35 border-transparent':'border-border bg-white'}`}><Tag i={i}/></button>;})}
           </div>
           <LadderFilter flow={d} value={mf} onApply={setMf}/>
-          <LadderMore><button disabled={demo} onClick={()=>{window.location.href=apiPath(`/exports/callflow/${encodeURIComponent(s.id)}`);}} className={tb+" border-border"}>Exporter</button><button disabled={demo || s.cap==='—'} onClick={()=>{if(window.confirm('Télécharger cet extrait pcap ?')) window.location.href=apiPath(`/captures/${encodeURIComponent(s.cap)}/download`);}} className={tb+" border-border"}>PCAP</button>
+          <LadderMore>{!s.provisional && <><button disabled={demo} onClick={()=>{window.location.href=apiPath(`/exports/callflow/${encodeURIComponent(s.id)}`);}} className={tb+" border-border"}>Exporter</button><button disabled={demo || s.cap==='—'} onClick={()=>{if(window.confirm('Télécharger cet extrait pcap ?')) window.location.href=apiPath(`/captures/${encodeURIComponent(s.cap)}/download`);}} className={tb+" border-border"}>PCAP</button></>}
           <button onClick={()=>setZoom(z=>Math.max(0.6,+(z-0.2).toFixed(1)))} title="Zoom arrière" className={`${tb} border-border text-ink-2`}>−</button>
           <button onClick={()=>setZoom(1)} title="Ajuster à la largeur" className={`${tb} border-border text-ink-2 tabular-nums`}>{zoom===1?'Ajusté':`${Math.round(zoom*100)} %`}</button>
           <button onClick={()=>setZoom(z=>Math.min(3,+(z+0.2).toFixed(1)))} title="Zoom avant" className={`${tb} border-border text-ink-2`}>+</button>
@@ -570,6 +570,40 @@ function Detail({s,sel,setSel,lens,ui,onOpenSession}) {
       </div>
     </section>
   );
+}
+
+function LiveTraceCallflow({traceId,onClose}) {
+  const query = useLiveTraceCallflow(traceId);
+  const [selectedMessage,setSelectedMessage] = useState(0);
+  const [lens,setLens] = useState(null);
+  const [full,setFull] = useState(false);
+  const [gridHidden,setGridHidden] = useState(true);
+  const body = query.data?.data;
+  const detail = body ? toLegacyCallflow(body, body.procedures, {edges:body.correlation_edges}) : null;
+  const session = detail ? {
+    id: body.session_id,
+    session_id: body.session_id,
+    cap: body.capture_references?.[0] ?? '—',
+    ue: '—',
+    rat: body.technology ?? '—',
+    cell: '—',
+    provisional: true,
+    d: detail,
+    detailErrors: [],
+    detailLoading: query.isFetching,
+  } : null;
+  const dropped = Number(body?.dropped_events ?? 0);
+  return <main className="flex-1 min-h-0 p-3 bg-surface-2 flex flex-col gap-3">
+    <div className="polaris-card px-4 py-3 flex flex-wrap items-center gap-3">
+      <button type="button" onClick={onClose} className="h-8 px-3 rounded-md border border-border bg-white text-[12.5px]">← Retour au Live</button>
+      <strong className="text-[13px]">Call flow provisoire — issu de la trace</strong>
+      <span className="text-[12px] text-muted-foreground">Il ne contient que les événements rattachés depuis l’ouverture de la trace.</span>
+    </div>
+    {body?.complete === false && <div role="alert" className="rounded-md border border-warning-line bg-warning-soft px-4 py-2 text-[12.5px] text-warning">Call flow incomplet, {Number.isFinite(dropped) ? dropped : 0} événements écartés</div>}
+    {query.isPending && <div role="status" className="polaris-card p-6 text-muted-foreground">Chargement du call flow de la trace…</div>}
+    {query.isError && <div role="alert" className="polaris-card p-6 text-danger">Call flow indisponible · {query.error?.message ?? 'cause inconnue'}</div>}
+    {session && <div className="flex-1 min-h-0 flex"><Detail s={session} sel={selectedMessage} setSel={setSelectedMessage} lens={lens} ui={{full,setFull,gridHidden,setGridHidden}} onOpenSession={()=>{}}/></div>}
+  </main>;
 }
 
 function DecodeNode({k,v,path,open,toggle,q}) {
@@ -1324,6 +1358,7 @@ function App() {
   const accent = accentOf(theme);
     const readP = () => { const h=(location.hash||'').replace('#',''); if(h==='templates'){ try { localStorage.setItem('polaris-kpi-tab', JSON.stringify('dash')); location.hash = 'kpi'; } catch(e) {} return 'kpi'; } return (h!=='trafic'||TRAFFIC_ENABLED) && ['sessions','nodes','settings','kpi','live','trafic'].includes(h) ? h : 'home'; };
   const [page,setPageS] = useState(readP);
+  const [liveCallflowTraceId,setLiveCallflowTraceId] = useState(null);
   const setPage = p => { if(p==='trafic'&&!TRAFFIC_ENABLED) p='home'; if(p==='templates'){ try { localStorage.setItem('polaris-kpi-tab', JSON.stringify('dash')); } catch(e) {} p='kpi'; } try { location.hash = p; } catch(e) {} setPageS(p); };
   useEffect(()=>{ const f=()=>setPageS(readP()); window.addEventListener('hashchange',f); return ()=>window.removeEventListener('hashchange',f); },[]);
   const [tabs,setTabs] = useState([]);
@@ -1444,7 +1479,7 @@ function App() {
       <TopBar page={page} setPage={setPage} onAnalyzer={()=>setAview('queries')} accent={accent} onSettings={()=>setPage('settings')} metrics={metrics} version={version} demo={demo} hidden={navHidden}/>
       <DataStatus t={t}/>
       {sessionFilter.publicationRetrySeconds != null ? <div role="status" className="shrink-0 border-b border-warning-line bg-warning-soft px-4 py-2 text-[12px] text-warning">Publication en cours, nouvel essai dans {sessionFilter.publicationRetrySeconds} s</div> : requestError && <div role="alert" className="shrink-0 border-b border-warning-line bg-warning-soft px-4 py-2 text-[12px] text-warning">{requestError}</div>}
-      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={navHidden} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV} DashboardView={<QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/>}/> : page==='live' ? <LiveModule t={t} setPage={setPage}/> : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : <>
+      {page==='settings' ? <Settings theme={theme} setTheme={setTheme} lang={lang} setLang={setLang} onClose={()=>setPage('home')}/> : page==='home' ? <Home hidden={navHidden} setPage={setPage} onNew={()=>{ setPage('sessions'); newTab(); }}/> : page==='kpi' ? <KpiModule t={t} setPage={setPage} KPIS={kpis.catalogue} mockSeries={kpis.mockSeries} MockChart={MockChart} fmtV={fmtV} DashboardView={<QueryLibrary saved={savedList} onNew={(d,tt)=>{setPage('sessions'); newTab(d,tt);}} onOpen={q=>{setPage('sessions'); openSaved(q);}}/>}/> : page==='live' ? (liveCallflowTraceId ? <LiveTraceCallflow traceId={liveCallflowTraceId} onClose={()=>setLiveCallflowTraceId(null)}/> : <LiveModule t={t} setPage={setPage} onOpenTraceCallflow={setLiveCallflowTraceId}/>) : page==='trafic' ? (TRAFFIC_ENABLED && demo ? <Traffic setPage={setPage}/> : <div className="p-8">Non disponible : backend à venir</div>) : page==='nodes' ? <Administration Card={Card} nodeManager={<Nodes/>} hidden={hiddenMods} onToggle={toggleMod} onSettings={()=>setPage('settings')}/> : <>
       {!full && <Tabs tabs={tabs} active={view==='library'?null:tabId} home={view==='library'} onPick={pickTab} onClose={closeTab} onHome={()=>setAview('queries')} onNew={()=>newTab()}/>}
       {view==='library' ? <QueryLibrary saved={savedList} onNew={newTab} onOpen={openSaved} onDisplayAll={displayAllSessions} displayingAll={sessionFilter.isPending}/> : view==='edit' ? <SessionQueryEditor key={active.id} draft={active.draft} setDraft={setDraft} dirty={active.dirty} run={runQuery} save={saveQuery} cancel={cancelEdit} sessionRows={sourceRows}/> : <div ref={rowRef} className="flex-1 flex min-h-0 p-2 bg-surface-2">
         <main ref={mainRef} className={`flex-1 min-w-0 flex-col ${geoMax && selected && !geoHidden && !full ? 'hidden' : 'flex'}`}>

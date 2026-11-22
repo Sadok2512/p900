@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.8.11 — 2026-11-22 — Call flow de trace et seconde de débit stricte
+
+- Refuse les secondes de débit Live absentes, convertibles ou hors plage : seule une valeur numérique, entière sûre, strictement positive et donnant un timestamp milliseconde sûr est affichée.
+- Ajoute depuis une trace active l'ouverture directe de son call flow provisoire, sans détour par `/sessions`, avec le ladder Analyzer existant et la pagination canonique de l'API.
+- Signale explicitement que le call flow vient de la trace et affiche le nombre d'événements écartés lorsque le quota rend le résultat incomplet.
+- N'invente aucune corrélation pour la trace et conserve séparément les observations SIP provenant d'IMS et de N3-IMS.
+
 ## 2.8.10 — 2026-11-22 — Débit fidèle au rejeu Live
 
 - Date chaque point de débit avec la seconde du bucket `throughput` fournie par l'Analyzer, au lieu de l'heure de réception par le navigateur.
